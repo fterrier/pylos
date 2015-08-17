@@ -64,6 +64,44 @@
                          (add-ball :white [3 2 1])
                          (add-ball :black [3 2 2])))
 
+(def full-board-square-top (-> four
+                         (add-ball :black [1 1 1]) 
+                         (add-ball :white [1 1 2]) 
+                         (add-ball :black [1 1 3]) 
+                         (add-ball :white [1 1 4]) 
+                         
+                         (add-ball :white [1 2 1])
+                         (add-ball :black [1 2 2])
+                         (add-ball :white [1 2 3])
+                         (add-ball :black [1 2 4])
+                         
+                         (add-ball :black [1 3 1]) 
+                         (add-ball :white [1 3 2])
+                         (add-ball :black [1 3 3])
+                         (add-ball :black [1 3 4])
+                         
+                         (add-ball :white [1 4 1])
+                         (add-ball :black [1 4 2])
+                         (add-ball :white [1 4 3])
+                         (add-ball :black [1 4 4])
+                         
+                         (add-ball :white [2 1 1])
+                         (add-ball :black [2 1 2])
+                         (add-ball :white [2 1 3])
+                         
+                         (add-ball :black [2 2 1])
+                         (add-ball :white [2 2 2])
+                         (add-ball :black [2 2 3])
+                         
+                         (add-ball :white [2 3 1])
+                         (add-ball :black [2 3 2])
+                         (add-ball :black [2 3 3])
+                         
+                         (add-ball :white [3 1 1])
+                         (add-ball :white [3 1 2])
+                         
+                         (add-ball :white [3 2 1])))
+
 (deftest is-in-board-test
   (testing "Is in board"
     (is (is-in-board four [1 1 1]))
@@ -193,3 +231,6 @@
                                     (add-ball :white [1 2 1]) 
                                     (add-ball :black [1 2 2])) [1 1 1] :white)))))
 
+(deftest full-square-on-top
+  (testing "Full square on top works"
+    (is (= 10 (count (moves {:board full-board-square-top :player :white}))))))

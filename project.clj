@@ -4,7 +4,8 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.7.0"]
-                 [io.aviso/pretty "0.1.18"]]
+                 [io.aviso/pretty "0.1.18"]
+                 [org.clojure/math.combinatorics "0.1.1"]]
   :main ^:skip-aot pylos.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}

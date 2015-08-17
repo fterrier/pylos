@@ -1,6 +1,7 @@
 (ns pylos.core
   (:gen-class)
   (:require [clojure.tools.namespace.repl :refer (refresh refresh-all)]
+            [clojure.math.combinatorics :as combo]
             [io.aviso.ansi :refer :all]))
 
 ; o o o o
@@ -182,11 +183,12 @@
   (let [square-positions       (:square-positions (meta board))
         ; TODO we could optimize this and not have to check all (prepare meta-data on position)
         empty-square-positions (remove #(has-ball board (position-on-top %)) square-positions)
-        ; TOOO change this concat reduce the other way around
-        low-positions-map      (reduce #(concat %1 (map (fn [low-position] {:low-position low-position :high-position (position-on-top %2)}) 
-                                                        (low-candidates-for-square-position board color %2)))
-                                       [] empty-square-positions)]
-    (into #{} low-positions-map)))
+        low-positions-map      (map (fn [position] {:low-positions (low-candidates-for-square-position board color position) 
+                                                    :high-position (position-on-top position)}) empty-square-positions)
+        low-high-position-map  (reduce #(concat %1 (map (fn [low-position] {:low-position low-position
+                                                                            :high-position (:high-position %2)}) 
+                                                        (:low-positions %2))) [] low-positions-map)]
+    (into #{} low-high-position-map)))
 
 (defn other-color [color]
   (if (= color :white) :black :white))
@@ -205,26 +207,24 @@
         new-full-squares (apply disj squares old-squares)]
     (if (empty? new-full-squares) [board]
       (let [removable-balls (removable-candidates board color)
-            combinations    (for [x removable-balls
-                                  y removable-balls] [x y])]
-        (apply concat 
-               (pmap
-                 (fn [[x y]] (if (= x y) (remove-ball board color x)
-                               (-> board
-                                   (remove-ball color x)
-                                   (remove-ball color y)))) combinations))))))
+            combinations    (combo/combinations removable-balls 2)]
+        (concat (map #(remove-ball board color %) removable-balls)
+                (map (fn [[x y]] (-> board
+                                     (remove-ball color x)
+                                     (remove-ball color y))) combinations))))))
 
 (defn moves [game]  
   (let [board       (:board game)
         player      (:player game)
         next-player (next-player game)
-        new-boards-with-new-ball      (pmap #(add-ball board player %)
-                                            (empty-positions board))
-        new-boards-with-risen-ball    (pmap #(add-ball (remove-ball board player (:low-position %)) 
-                                                       player (:high-position %))
-                                            (rise-candidates board player))
+        new-boards-with-new-ball      (map #(add-ball board player %)
+                                           (empty-positions board))
+        ; TODO we could optimize this and start from new-boards-with-new-ball and remove the possible lows
+        new-boards-with-risen-ball    (map #(add-ball (remove-ball board player (:low-position %)) 
+                                                      player (:high-position %))
+                                           (rise-candidates board player))
         new-boards                    (concat new-boards-with-new-ball new-boards-with-risen-ball)
-        new-boards-with-removed-balls (apply concat (pmap #(remove-balls-if-whole-square % board player) new-boards))]
+        new-boards-with-removed-balls (apply concat (map #(remove-balls-if-whole-square % board player) new-boards))]
     (map (fn [new-board] {:board new-board 
                           :player next-player}) new-boards-with-removed-balls)))
 
@@ -259,8 +259,8 @@
 (def four-square (-> four 
                      (add-ball :black [1 1 1]) 
                      (add-ball :white [1 2 1]) 
-                     (add-ball :black [1 1 2]) 
-                     (add-ball :white [1 2 2])
+                     (add-ball :white [1 1 2]) 
+                     (add-ball :black [1 2 2])
                      (add-ball :white [1 2 3])))
 (def three (starting-board 3))
 
@@ -279,7 +279,8 @@
           ball-difference    (- other-player-balls player-balls)]  
       ball-difference)))
 
-(defn negamax [game depth]
+(defn negamax 
+  ([game alpha beta depth]
   "For a game, applies the negamax algorithm on the tree up to depth,
   returns a game with a :score value and :next-game or :outcome value that 
   returns the next best game from which the value was calculated 
@@ -294,16 +295,33 @@
         ; else we go on with the negamax algorithm
         (if (= depth 0)
           (assoc game :score score)
-          (let [children-negamax (map #(negamax % (- depth 1)) (moves game))
-                children-sorted  (sort-by #(- (:score %)) children-negamax)
-                next-game        (last children-sorted)]
-            (assoc game :score (- (:score next-game)) :next-game next-game)))))))
+          (let [children-negamax  (map #(negamax %  (- depth 1)) (moves game))
+                negamax-best-game (reduce (fn [{:keys [alpha beta best-game best-score]} game] 
+                                            (let [child-negamax   (negamax game (- beta) (- alpha) (- depth 1))
+                                                  child-score     (- (:score child-negamax))
+                                                  next-best-game  (if (> child-score best-score) 
+                                                                    {:game child-negamax :score child-score}
+                                                                    {:game best-game     :score best-score})
+                                                  next-alpha      (max alpha child-score)]
+                                              (let [result {:alpha next-alpha 
+                                                            :beta beta 
+                                                            :best-game (:game next-best-game) 
+                                                            :best-score (:score next-best-game)}]
+                                                (if (>= next-alpha beta) (reduced result) result)
+                                                ;result
+                                                )))
+                                          {:alpha alpha :beta beta :best-score -1000} (moves game))]
+            (assoc game 
+              :score     (:best-score negamax-best-game) 
+              :next-game (:best-game  negamax-best-game))))))))
+  ([game depth]
+   (negamax game -1000 1000 depth)))
 
-(defn negamax-game [size first-player negamax-depth] 
-  (iterate #(:next-game (negamax % negamax-depth)) (initial-game size first-player)))
+(defn negamax-game [game negamax-depth] 
+  (iterate #(:next-game (negamax % negamax-depth)) game))
 
 (defn play-negamax [size first-player negamax-depth]
-  (map print-game (take-while (complement nil?) (negamax-game size first-player negamax-depth))))
+  (into [] (map print-game (take-while (complement nil?) (negamax-game (initial-game size first-player) negamax-depth)))))
 
 
 
