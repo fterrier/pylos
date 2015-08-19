@@ -65,42 +65,42 @@
                          (add-ball :black [3 2 2])))
 
 (def full-board-square-top (-> four
-                         (add-ball :black [1 1 1]) 
-                         (add-ball :white [1 1 2]) 
-                         (add-ball :black [1 1 3]) 
-                         (add-ball :white [1 1 4]) 
-                         
-                         (add-ball :white [1 2 1])
-                         (add-ball :black [1 2 2])
-                         (add-ball :white [1 2 3])
-                         (add-ball :black [1 2 4])
-                         
-                         (add-ball :black [1 3 1]) 
-                         (add-ball :white [1 3 2])
-                         (add-ball :black [1 3 3])
-                         (add-ball :black [1 3 4])
-                         
-                         (add-ball :white [1 4 1])
-                         (add-ball :black [1 4 2])
-                         (add-ball :white [1 4 3])
-                         (add-ball :black [1 4 4])
-                         
-                         (add-ball :white [2 1 1])
-                         (add-ball :black [2 1 2])
-                         (add-ball :white [2 1 3])
-                         
-                         (add-ball :black [2 2 1])
-                         (add-ball :white [2 2 2])
-                         (add-ball :black [2 2 3])
-                         
-                         (add-ball :white [2 3 1])
-                         (add-ball :black [2 3 2])
-                         (add-ball :black [2 3 3])
-                         
-                         (add-ball :white [3 1 1])
-                         (add-ball :white [3 1 2])
-                         
-                         (add-ball :white [3 2 1])))
+                               (add-ball :black [1 1 1]) 
+                               (add-ball :white [1 1 2]) 
+                               (add-ball :black [1 1 3]) 
+                               (add-ball :white [1 1 4]) 
+                               
+                               (add-ball :white [1 2 1])
+                               (add-ball :black [1 2 2])
+                               (add-ball :white [1 2 3])
+                               (add-ball :black [1 2 4])
+                               
+                               (add-ball :black [1 3 1]) 
+                               (add-ball :white [1 3 2])
+                               (add-ball :black [1 3 3])
+                               (add-ball :black [1 3 4])
+                               
+                               (add-ball :white [1 4 1])
+                               (add-ball :black [1 4 2])
+                               (add-ball :white [1 4 3])
+                               (add-ball :black [1 4 4])
+                               
+                               (add-ball :white [2 1 1])
+                               (add-ball :black [2 1 2])
+                               (add-ball :white [2 1 3])
+                               
+                               (add-ball :black [2 2 1])
+                               (add-ball :white [2 2 2])
+                               (add-ball :black [2 2 3])
+                               
+                               (add-ball :white [2 3 1])
+                               (add-ball :black [2 3 2])
+                               (add-ball :black [2 3 3])
+                               
+                               (add-ball :white [3 1 1])
+                               (add-ball :white [3 1 2])
+                               
+                               (add-ball :white [3 2 1])))
 
 (deftest is-in-board-test
   (testing "Is in board"
@@ -210,8 +210,8 @@
 
 (deftest next-player-test
   (testing "Next player"
-    (is (= :black (next-player {:board full-board-test :player :black})))
-    (is (= :black (next-player {:board full-board-test :player :white})))))
+    (is (= :black (next-player full-board-test :black)))
+    (is (= :black (next-player full-board-test :white)))))
 
 (deftest score-test
   (testing "Score"
@@ -234,3 +234,42 @@
 (deftest full-square-on-top
   (testing "Full square on top works"
     (is (= 10 (count (moves {:board full-board-square-top :player :white}))))))
+
+(deftest full-square-top-negamax-test
+  (testing "Negamax on full square top"
+    (is (= :square (:type (last (:past-moves (:next-game (negamax {:board full-board-square-top :player :white} 6)))))))))
+
+
+(def negamax-problem
+  (-> four 
+      (add-ball :white [1 1 1]) 
+      (add-ball :black [1 1 2]) 
+      (add-ball :black [1 1 3]) 
+      (add-ball :white [1 1 4]) 
+      
+      (add-ball :white [1 2 1])
+      (add-ball :black [1 2 2])
+      (add-ball :white [1 2 3])
+      (add-ball :black [1 2 4])
+      
+      (add-ball :white [1 3 1]) 
+      (add-ball :black [1 3 2])
+      (add-ball :white [1 3 3])
+      (add-ball :black [1 3 4])
+      
+      (add-ball :white [1 4 2])
+      (add-ball :black [1 4 3])
+      (add-ball :black [1 4 4])
+      
+      (add-ball :white [2 1 1])
+      (add-ball :black [2 1 2])
+      (add-ball :black [2 1 3])
+      
+      (add-ball :black [2 2 1])
+      (add-ball :white [2 2 2])
+      (add-ball :white [2 2 3])
+      
+      (add-ball :black [3 1 1])
+      (add-ball :black [3 1 2])
+                         ))
+
