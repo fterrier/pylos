@@ -218,24 +218,25 @@
         new-full-squares (apply disj squares old-squares)]
     (not (empty? new-full-squares))))
 
+(defn move-add [] nil)
+(defn move-rise [] nil)
+
+(defn move-square [board player original-move positions]
+  {:board (reduce #(remove-ball %1 player %2) board positions)
+   :move {:type :square 
+          :original-move original-move 
+          :positions (into #{} positions)
+          :color player}})
+
+
 (defn remove-balls-if-whole-square [{:keys [board move]} old-board color]
   "Generates all possible ball removal possibilities if there is a square
   of the same color as player"
   (if-not (has-new-full-square board old-board color) [{:board board :move move}]
     (let [removable-balls (removable-candidates board color)
           combinations    (combo/combinations removable-balls 2)]
-      (concat (map (fn [position] {:board (remove-ball board color position)
-                                   :move  {:type :square 
-                                           :original-move move 
-                                           :positions #{position}
-                                           :color color}}) removable-balls)
-              (map (fn [[position-1 position-2]] {:board (-> board
-                                                             (remove-ball color position-1)
-                                                             (remove-ball color position-2))
-                                                  :move {:type :square 
-                                                         :original-move move 
-                                                         :positions #{position-1 position-2}
-                                                         :color color}}) combinations)))))
+      (concat (map (fn [position] (move-square board color move [position])) removable-balls)
+              (map (fn [positions] (move-square board color move positions)) combinations)))))
 
 (defn create-next-game [game move new-board]
   (let [next-player (next-player new-board (:player game))]
@@ -243,6 +244,7 @@
      :player next-player
      :past-moves (conj (:past-moves game) move)}))
 
+; TODO write TESTs for this !
 (defn moves [game]  
   (let [board       (:board game)
         player      (:player game)
@@ -263,6 +265,7 @@
         new-moves-with-removed-balls (apply concat (map (fn [move] (remove-balls-if-whole-square move board player)) new-moves))]
     (map (fn [new-move] (create-next-game game (:move new-move) (:board new-move))) new-moves-with-removed-balls)))
 
+; TODO change this to "check if one player does not have ball"
 (defn game-over? [board]
   (empty? (empty-positions board)))
 
@@ -334,6 +337,7 @@
            player (:player game)
            score  (score-for-player board player)]
        (if (game-over? board)
+         ; TODO factor this out in "winner-if-done"
          {:next-best-score score :outcome (winner board)}
          ; else we go on with the negamax algorithm
          (if (= depth 0)
@@ -416,18 +420,36 @@
                 :position position
                 :color player}}))))
 
-(defn ask-human-to-remove-balls [game {:keys [board move]} number-of-balls-removed]
-  (if (or (= 2 number-of-balls-removed)
-          (not (has-new-full-square board (:board game) (:player game))))
-    {:board board :move move}
-    (let [position (ask-for-position board (str "Please enter a ball to remove" (if (not= 0 number-of-balls-removed) "or <enter> to finish" "")) 
-                                     (if (not= 0 number-of-balls-removed) false true))]
-      nil)))
+(defn ask-human-to-remove-balls [game {:keys [board move]} balls-removed]
+  (let [old-board               (:board game)
+        player                  (:player game)
+        number-of-balls-removed (count balls-removed)]
+    (if (not (has-new-full-square board old-board player))
+      {:board board :move move}
+      (if (= 2 number-of-balls-removed)
+        (move-square board player move balls-removed)
+        (let [position (ask-for-position board 
+                                         (str "Please enter a ball to remove [layer row col]" 
+                                              (if (not= 0 number-of-balls-removed) "or <enter> to finish" ""))
+                                         (not= 0 number-of-balls-removed))]
+          (if (nil? position)
+            (move-square board player move balls-removed)
+            ; TODO factor this check out (there is the same above)
+            (if (or (not (= player (cell board position)))
+                    (not (can-remove-ball board position)))
+              (do 
+                (println "Cannot remove that ball")
+                (recur game {:board board :move move} balls-removed))
+              (ask-human-to-remove-balls game {:board board :move move} (conj balls-removed position)))))))))
 
 (defn ask-human-and-play [game]
-  (let [new-move               (ask-human-to-place-or-rise-ball game)
-        new-move-without-balls (ask-human-to-remove-balls game new-move 0)]
-    {:next-game (create-next-game game (:move new-move) (:board new-move))}))
+  ; TODO factor this out in "winner-if-done"
+  (let [board (:board game)]
+    (if (game-over? board) 
+      {:outcome (winner board)}
+      (let [new-move               (ask-human-to-place-or-rise-ball game)
+            new-move-without-balls (ask-human-to-remove-balls game new-move [])]
+        {:next-game (create-next-game game (:move new-move-without-balls) (:board new-move-without-balls))}))))
 
 (defn play-human-game [game human-color negamax-depth]
   (let [player        (:player game)
