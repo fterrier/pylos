@@ -114,6 +114,10 @@
     (is (false? (is-in-board four [1 4 5])))
     (is (is-in-board four [1 4 4]))))
 
+(deftest squares-at-position-test
+  (testing "Squares at position"
+    (is (= [[1 1 1]] (squares-at-position four-square-test [1 1 1])))))
+
 (deftest position-opens-test
   (testing "Square opens layer above"
     (let [four-test (-> four 
@@ -167,8 +171,8 @@
 
 (deftest removable-candidates-test
   (testing "Removable candidates"
-    (is (= #{[2 2 2] [1 4 1] [2 1 2]} (removable-candidates two-layers-test :black)))
-    (is (= #{[2 2 1] [2 1 1]} (removable-candidates two-layers-test :white)))))
+    (is (= #{[1 4 1] [2 1 2] [2 2 2]} (removable-candidates two-layers-test :black)))
+    (is (= #{[2 1 1] [2 2 1]} (removable-candidates two-layers-test :white)))))
 
 (defn equal-with-meta [a b]
   (and (= a b)
@@ -231,45 +235,56 @@
                                     (add-ball :white [1 2 1]) 
                                     (add-ball :black [1 2 2])) [1 1 1] :white)))))
 
-(deftest full-square-on-top
-  (testing "Full square on top works"
-    (is (= 10 (count (moves {:board full-board-square-top :player :white}))))))
+
+(deftest moves-test
+  (testing "All moves test"
+    (is (= [(move-add two-layers-test :black [1 1 4])
+            (move-add two-layers-test :black [1 2 4])
+            (move-add two-layers-test :black [1 3 4])
+            (move-add two-layers-test :black [1 4 2])
+            (move-add two-layers-test :black [1 4 3])
+            (move-add two-layers-test :black [1 4 4])
+            (move-add two-layers-test :black [3 1 1])
+            (move-rise two-layers-test :black [1 4 1] [3 1 1])] (moves {:board two-layers-test :player :black})))
+    (is (= (into #{} (let [original-move (move-add full-board-square-top :white [3 2 2])]
+             [(move-square original-move [[3 1 1]])
+              (move-square original-move [[3 1 2]])
+              (move-square original-move [[3 2 1]])
+              (move-square original-move [[3 2 2]])
+              (move-square original-move [[3 1 1] [3 1 2]])
+              (move-square original-move [[3 1 1] [3 2 1]])
+              (move-square original-move [[3 1 1] [3 2 2]])
+              (move-square original-move [[3 1 2] [3 2 1]])
+              (move-square original-move [[3 1 2] [3 2 2]])
+              (move-square original-move [[3 2 1] [3 2 2]])]))
+           (into #{} (moves {:board full-board-square-top :player :white}))))
+    ))
+
 
 (deftest full-square-top-negamax-test
   (testing "Negamax on full square top"
     (is (= :square (:type (last (:past-moves (:next-game (negamax {:board full-board-square-top :player :white} 6)))))))))
 
+; w b w b     o o o     - -     -     
+; w b b b     o o -     - -         
+; w w b o     - - -             
+; w o o o 
 
-(def negamax-problem
+(def moves-optimize
   (-> four 
       (add-ball :white [1 1 1]) 
       (add-ball :black [1 1 2]) 
-      (add-ball :black [1 1 3]) 
-      (add-ball :white [1 1 4]) 
+      (add-ball :white [1 1 3]) 
+      (add-ball :black [1 1 4]) 
       
       (add-ball :white [1 2 1])
       (add-ball :black [1 2 2])
-      (add-ball :white [1 2 3])
+      (add-ball :black [1 2 3])
       (add-ball :black [1 2 4])
       
       (add-ball :white [1 3 1]) 
-      (add-ball :black [1 3 2])
-      (add-ball :white [1 3 3])
-      (add-ball :black [1 3 4])
+      (add-ball :white [1 3 2])
+      (add-ball :black [1 3 3])
       
-      (add-ball :white [1 4 2])
-      (add-ball :black [1 4 3])
-      (add-ball :black [1 4 4])
-      
-      (add-ball :white [2 1 1])
-      (add-ball :black [2 1 2])
-      (add-ball :black [2 1 3])
-      
-      (add-ball :black [2 2 1])
-      (add-ball :white [2 2 2])
-      (add-ball :white [2 2 3])
-      
-      (add-ball :black [3 1 1])
-      (add-ball :black [3 1 2])
-                         ))
+      (add-ball :white [1 4 1])))
 

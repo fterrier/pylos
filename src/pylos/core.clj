@@ -1,30 +1,53 @@
 (ns pylos.core
+  "game is {:player _ :board _ :past-moves _}
+  move is {:board _ :move _}"
   (:gen-class)
   (:require [clojure.tools.namespace.repl :refer (refresh refresh-all)]
             [clojure.math.combinatorics :as combo]
             [io.aviso.ansi :refer :all]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.core.reducers :as r]
+            [taoensso.timbre.profiling :as profiling
+             :refer (pspy pspy* profile defnp p p*)]))
 
-(defn cell [board [layer row col]]
+(defn cell-no-mem [board [layer row col]]
   (get-in board
           [(- layer 1)
            (- row 1)
            (- col 1)]))
 
+(def cell (memoize cell-no-mem))
+
 (defn size [board]
   (count board))
 
-(defn is-in-board [board position]
+(defn is-in-board-no-mem [board position]
   (not (nil? (cell board position))))
 
-(defn positions-around [[layer row col] ind]
-  [[layer (+ row ind) (+ col ind)]
-   [layer (+ row ind) col] 
-   [layer row (+ col ind)]       
-   [layer row col]])
+(def is-in-board (memoize is-in-board-no-mem))
 
+(defn is-square-position-no-mem [board [layer row col :as position]]
+  {:pre [(is-in-board board position)]}
+  (is-in-board board [layer (+ row 1) (+ col 1)]))
+
+(def is-square-position (memoize is-square-position-no-mem))
+
+(defn positions-around-no-mem [board [layer row col] ind]
+  (filter #(is-in-board board %) [[layer (+ row ind) (+ col ind)]
+                                  [layer (+ row ind) col] 
+                                  [layer row (+ col ind)]       
+                                  [layer row col]]))
+
+(def positions-around (memoize positions-around-no-mem))
+
+; TODO maybe have this function return something else when calling on the top position
 (defn position-on-top [position]
   (update position 0 inc))
+
+(defn square-position-below [position]
+  "Returns the position below or nil if we are at first layer"
+  (let [position-below (update position 0 dec)]
+    (if (< (position-below 0) 1) nil position-below)))
 
 (defn has-ball [board position]
   (let [cell (cell board position)]
@@ -38,8 +61,7 @@
     []))
 
 (defn can-remove-ball [board position]
-  (let [positions-to-check (map position-on-top (positions-around position -1))]
-    (not (some #(has-ball board %) positions-to-check))))
+  (contains? (:removable-positions (meta board)) position))
 
 (defn print-cell [board position last-move]
   (let [cell            (cell board position)
@@ -53,16 +75,19 @@
                   :open   (if bold? (inverse (black "o")) (black "o"))
                   "") " "))))
 
-(defn print-board [board last-move]
-  (println)
-  (doseq [row (range 1 (+ 1 (size board)))]
-    (doseq [layer (range 1 (+ 1 (size board)))]
-      (doseq [col (range 1 (+ 2 (- (size board) layer)))]
-        (let [position [layer row col]]
-          (when (is-in-board board position) (print-cell board position last-move))))
-      (print "    "))
-    (println))
-  (println))
+(defn print-board 
+  ([board last-move]
+   (println)
+   (doseq [row (range 1 (+ 1 (size board)))]
+     (doseq [layer (range 1 (+ 1 (size board)))]
+       (doseq [col (range 1 (+ 2 (- (size board) layer)))]
+         (let [position [layer row col]]
+           (when (is-in-board board position) (print-cell board position last-move))))
+       (print "    "))
+     (println))
+   (println))
+  ([board]
+   (print-board board nil)))
 
 (defn print-game [game]
   (println "====================")
@@ -103,17 +128,19 @@
      (change-cell partial-board partial-position new-cell)
      partial-board)))
 
-(defn square-corners [position]
-  (positions-around position 1))
+
+(defn square-corners [board position]
+  (positions-around board position 1))
 
 (defn has-square [board position]
-  (let [positions-to-check (square-corners position)]
+  (let [positions-to-check (square-corners board position)]
     (every? #(has-ball board %) positions-to-check)))
 
 (defn squares-at-position [board position]
   "Returns a list of positions that are corners of squares
   containing the given position in the given board"
-  (let [positions-to-try (positions-around position -1)]
+  (let [positions-to-try (positions-around board position -1)
+        positions-to-try (filter #(is-square-position board %) positions-to-try)]
     (filter #(has-square board %) positions-to-try)))
 
 (defn top-position [board]
@@ -128,7 +155,7 @@
     (not (= balls-per-player balls-of-color-in-play))))
 
 (defn is-full-square [board position color]
-  (every? #(= color (cell board %)) (square-corners position)))
+  (every? #(= color (cell board %)) (square-corners board position)))
 
 (defn full-squares [board color]
   (->> board
@@ -139,71 +166,46 @@
 (defn add-ball [board color [layer row col :as position]]
   {:pre [(= :open (cell board position))
          (has-balls-to-play board color)]}
-  (let [meta-infos           (meta board)
-        board-with-ball      (change-cell board position color)
-        new-square-positions (squares-at-position board-with-ball position)
-        new-full-squares     (filter #(is-full-square board-with-ball % color) new-square-positions)
-        new-open-positions   (map position-on-top new-square-positions)
-        new-empty-positions  (-> (apply conj (:empty-positions meta-infos) new-open-positions)
-                                 (disj position))]
-    (with-meta 
-      (reduce #(change-cell %1 %2 :open :no-acc) board-with-ball new-open-positions)
-      (assoc meta-infos
-        :square-positions (apply conj (:square-positions meta-infos) new-square-positions)
-        :empty-positions new-empty-positions
-        :full-squares   (update (:full-squares meta-infos) color #(apply conj % new-full-squares))
-        :balls-on-board (update (:balls-on-board meta-infos) color #(conj % position))))))
+  (p :add-ball 
+     (let [meta-infos                    (meta board)
+           board-with-ball               (change-cell board position color)
+           new-square-positions          (squares-at-position board-with-ball position)
+           new-full-squares              (filter #(is-full-square board-with-ball % color) new-square-positions)
+           new-open-positions            (map position-on-top new-square-positions)
+           new-empty-positions           (-> (apply conj (:empty-positions meta-infos) new-open-positions)
+                                             (disj position))
+           position-below                (square-position-below position)
+           removable-positions-to-remove (if-not (nil? position-below) (square-corners board-with-ball position-below) [])]
+       (with-meta 
+         (reduce #(change-cell %1 %2 :open :no-acc) board-with-ball new-open-positions)
+         (assoc meta-infos
+           :empty-positions new-empty-positions
+           :removable-positions (-> (apply disj (:removable-positions meta-infos) removable-positions-to-remove)
+                                    (conj position))
+           :full-squares   (update (:full-squares meta-infos) color #(apply conj % new-full-squares))
+           :balls-on-board (update (:balls-on-board meta-infos) color #(conj % position)))))))
 
 
 (defn remove-ball [board color [layer row col :as position]]
   {:pre [(= color (cell board position))
          (can-remove-ball board position)]}
-  (let [meta-infos                 (meta board)
-        board-without-ball         (change-cell board position :open)
-        square-positions-to-remove (squares-at-position board position)
-        open-positions-to-remove   (map position-on-top square-positions-to-remove)
-        new-empty-positions        (-> (apply disj (:empty-positions meta-infos) open-positions-to-remove)
-                                       (conj position))]
-    (with-meta
-      (reduce #(change-cell %1 %2 :no-acc :open) board-without-ball open-positions-to-remove)
-      (assoc meta-infos
-        :square-positions (apply disj (:square-positions meta-infos) square-positions-to-remove)
-        :empty-positions new-empty-positions
-        :full-squares   (update (:full-squares meta-infos) color #(apply disj % square-positions-to-remove))
-        :balls-on-board (update (:balls-on-board meta-infos) color #(disj % position))))))
-
-(defn removable-candidates 
-  ([board color layers]
-   (let [removable-candidates           (color (:balls-on-board (meta board)))
-         removable-candidates-in-layers (if (nil? layers) removable-candidates 
-                                          (filter (fn [[layer _ _]] (contains? layers layer)) 
-                                                  removable-candidates))
-         ; TODO we could optimize this and not have to check all (prepare meta-data on position)
-         candidates                     (filter #(can-remove-ball board %) removable-candidates-in-layers)]
-     (into #{} candidates)))
-  ([board color] (removable-candidates board color nil)))
-
-(defn low-candidates-for-square-position [board color [layer row col :as position]]
-  "Given a board, a color and a square position (*not* the position on top), returns
-  a list of candidates that can be used to rise to the position on top of that square"
-  {:pre [(has-square board position)]}
-  (let [lower-layers         (into #{} (range 1 (+ layer 1)))
-        removable-candidates (removable-candidates board color lower-layers)
-        candidates           (apply disj removable-candidates (square-corners position))]
-    candidates))
-
-(defn rise-candidates [board color]
-  "Returns a vector of {:low-position x, :high-position y} objects
-  that gives the potential candidates for rising a ball"
-  (let [square-positions       (:square-positions (meta board))
-        ; TODO we could optimize this and not have to check all (prepare meta-data on position)
-        empty-square-positions (remove #(has-ball board (position-on-top %)) square-positions)
-        low-positions-map      (map (fn [position] {:low-positions (low-candidates-for-square-position board color position) 
-                                                    :high-position (position-on-top position)}) empty-square-positions)
-        low-high-position-map  (reduce #(concat %1 (map (fn [low-position] {:low-position low-position
-                                                                            :high-position (:high-position %2)}) 
-                                                        (:low-positions %2))) [] low-positions-map)]
-    (into #{} low-high-position-map)))
+  (p :remove-ball 
+     (let [meta-infos                 (meta board)
+           board-without-ball         (change-cell board position :open)
+           square-positions-to-remove (squares-at-position board position)
+           open-positions-to-remove   (map position-on-top square-positions-to-remove)
+           new-empty-positions        (-> (apply disj (:empty-positions meta-infos) open-positions-to-remove)
+                                          (conj position))
+           position-below             (square-position-below position)
+           new-removable-positions    (if-not (nil? position-below) (square-corners board-without-ball position-below) [])]
+       (with-meta
+         (reduce #(change-cell %1 %2 :no-acc :open) board-without-ball open-positions-to-remove)
+         (assoc meta-infos
+           :empty-positions new-empty-positions
+           :removable-positions (-> (apply conj (:removable-positions meta-infos) new-removable-positions)
+                                    (disj position))
+           :full-squares   (update (:full-squares meta-infos) color #(apply disj % square-positions-to-remove))
+           :balls-on-board (update (:balls-on-board meta-infos) color #(disj % position)))))))
 
 (defn other-color [color]
   (if (= color :white) :black :white))
@@ -218,52 +220,108 @@
         new-full-squares (apply disj squares old-squares)]
     (not (empty? new-full-squares))))
 
-(defn move-add [] nil)
-(defn move-rise [] nil)
+(defn can-remove-positions? [board player positions]
+  (every? #(and (can-remove-ball board %)
+                (= player (cell board %))) positions))
 
-(defn move-square [board player original-move positions]
-  {:board (reduce #(remove-ball %1 player %2) board positions)
-   :move {:type :square 
-          :original-move original-move 
-          :positions (into #{} positions)
-          :color player}})
+(defn can-add? [board player position]
+  (= :open (cell board position)))
 
+(defn can-rise? [board player low-position high-position]
+  (and (can-remove-positions? board player [low-position])
+       (> (high-position 0) (low-position 0))
+       (can-add? board player high-position)
+       (not= high-position (position-on-top low-position))))
 
-(defn remove-balls-if-whole-square [{:keys [board move]} old-board color]
+; TODO test this
+(defn move-square [{:keys [board move]} positions]
+  {:pre [(can-remove-positions? board (:color move) positions)]}
+  (let [color (:color move)]
+    {:board (reduce #(remove-ball %1 color %2) board positions)
+     :move {:type :square 
+            :original-move move 
+            :positions (into #{} positions)
+            :color color}}))
+
+; TODO test this
+(defn move-add [board player position]
+  {:pre [(can-add? board player position)]}
+  {:board (add-ball board player position)
+   :move  {:type :add 
+           :position position
+           :color player}})
+
+; TODO test this
+(defn move-rise [board player low-position high-position]
+  {:pre [(can-rise? board player low-position high-position)]}
+  {:board (-> board
+              (remove-ball player low-position)
+              (add-ball    player high-position))
+   :move  {:type :rise 
+           :low-position low-position 
+           :high-position high-position 
+           :color player}})
+
+(defn removable-candidates 
+  ([board color layers]
+   (let [balls-of-player                (color (:balls-on-board (meta board)))
+         removable-candidates           (filter #(contains? balls-of-player %) (:removable-positions (meta board)))
+         removable-candidates-in-layers (if (nil? layers) removable-candidates 
+                                          (filter (fn [[layer _ _]] (contains? layers layer)) 
+                                                  removable-candidates))]
+     (into #{} removable-candidates-in-layers)))
+  ([board color] (removable-candidates board color nil)))
+
+(defn remove-balls-if-whole-square [{:keys [board move] :as original-move} old-board color]
   "Generates all possible ball removal possibilities if there is a square
   of the same color as player"
   (if-not (has-new-full-square board old-board color) [{:board board :move move}]
     (let [removable-balls (removable-candidates board color)
           combinations    (combo/combinations removable-balls 2)]
-      (concat (map (fn [position] (move-square board color move [position])) removable-balls)
-              (map (fn [positions] (move-square board color move positions)) combinations)))))
+      (concat (map (fn [position] (move-square original-move [position])) removable-balls)
+              (map (fn [positions] (move-square original-move positions)) combinations)))))
 
-(defn create-next-game [game move new-board]
-  (let [next-player (next-player new-board (:player game))]
-    {:board new-board
-     :player next-player
-     :past-moves (conj (:past-moves game) move)}))
+(defn low-candidates-for-high-position [board color [layer row col :as position]]
+  "Given a board, a color and a high position, returns
+  a list of candidates that can be used to rise to the position on top of that square"
+  (let [lower-layers         (into #{} (range 1 layer))
+        removable-candidates (removable-candidates board color lower-layers)
+        candidates           (apply disj removable-candidates (square-corners board (square-position-below position)))]
+    candidates))
 
-; TODO write TESTs for this !
+(defn rise-candidates [board color]
+  "Returns a vector of {:low-position x, :high-position y} objects
+  that gives the potential candidates for rising a ball"
+  (p :rise-candidates
+     (let [high-positions        (filter (fn [[layer _ _]] (> layer 1)) (empty-positions board))
+           low-positions-map     (map (fn [position] {:low-positions (low-candidates-for-high-position board color position) 
+                                                      :high-position position}) high-positions)
+           low-high-position-map (reduce #(concat %1 (map (fn [low-position] {:low-position low-position
+                                                                              :high-position (:high-position %2)}) 
+                                                          (:low-positions %2))) [] low-positions-map)]
+       (into #{} low-high-position-map))))
+
+; TODO make this a lazy sequence
 (defn moves [game]  
   (let [board       (:board game)
         player      (:player game)
-        new-moves-with-new-ball      (map (fn [position] {:board (add-ball board player position)
-                                                          :move  {:type :add 
-                                                                  :position position
-                                                                  :color player}}) (empty-positions board))
+        new-moves-with-new-ball      (map (fn [position] (move-add board player position)) (empty-positions board))
         ; TODO we could optimize this and start from new-boards-with-new-ball and remove the possible lows
-        new-moves-with-risen-ball    (map (fn [candidate] {:board (-> board
-                                                                      (remove-ball player (:low-position candidate))
-                                                                      (add-ball    player (:high-position candidate)))
-                                                           :move  {:type :rise 
-                                                                   :low-position (:low-position candidate) 
-                                                                   :high-position (:high-position candidate) 
-                                                                   :color player}})
+        new-moves-with-risen-ball    (map (fn [candidate] (move-rise board player (:low-position candidate) (:high-position candidate)))
                                           (rise-candidates board player))
         new-moves                    (concat new-moves-with-new-ball new-moves-with-risen-ball)
         new-moves-with-removed-balls (apply concat (map (fn [move] (remove-balls-if-whole-square move board player)) new-moves))]
-    (map (fn [new-move] (create-next-game game (:move new-move) (:board new-move))) new-moves-with-removed-balls)))
+    new-moves-with-removed-balls))
+
+(defn create-next-game [game {:keys [move board]}]
+  (let [next-player (next-player board (:player game))]
+    {:board board
+     :player next-player
+     :past-moves (conj (:past-moves game) move)}))
+
+(defn next-games [game]
+  (map (fn [new-move] 
+         (create-next-game game new-move)) (moves game)))
 
 ; TODO change this to "check if one player does not have ball"
 (defn game-over? [board]
@@ -284,7 +342,8 @@
                                           (into [] (repeat x (if (= size x) :open :no-acc)))))))]
     (with-meta board 
                {:number-of-positions (number-of-positions size)
-                :square-positions #{}
+                ;:square-positions #{}
+                :removable-positions #{}
                 :empty-positions (all-positions board 1)
                 :full-squares   {:black #{} :white #{}}
                 :balls-on-board {:black #{} :white #{}}})))
@@ -305,25 +364,11 @@
 
 (def game-four (initial-game 4 :white))
 
-; (defn initial-game-tree [size first-player]
-;   (tree-seq #(not (game-over? (:board %))) moves 
-;             (initial-game size first-player)))
-; (def tree-game-four (initial-game-tree 4 :white))
-
 (defn score-for-player [board player]
-  ; (if (game-over? board)
-  ;   (if (= (winner board) player) 100 -100)
   (let [player-balls       (balls-on-board board player)
         other-player-balls (balls-on-board board (other-color player))
         ball-difference    (- other-player-balls player-balls)]  
-    ball-difference)
-  ; )
-  )
-
-; (defn game-decided? [board]
-;   (let [balls-per-player (/ (:number-of-positions (meta board)) 2)]
-;     (or (= balls-per-player (balls-on-board board :white))
-;         (= balls-per-player (balls-on-board board :black)))))
+    ball-difference))
 
 (defn negamax 
   ([game alpha beta depth]
@@ -356,10 +401,8 @@
                                                              :beta beta 
                                                              :best-game (:game next-best-game) 
                                                              :best-score (:score next-best-game)}]
-                                                 (if (>= next-alpha beta) (reduced result) result)
-                                                 ; result
-                                                 )))
-                                           {:alpha alpha :beta beta :best-score -1000} (moves game))
+                                                 (if (>= next-alpha beta) (reduced result) result))))
+                                           {:alpha alpha :beta beta :best-score -1000} (next-games game))
                  game-with-score    {:next-best-score (:best-score negamax-best-game) 
                                      :next-game       (:best-game  negamax-best-game)}]
              game-with-score))))))
@@ -388,55 +431,37 @@
         player   (:player game)
         position (ask-for-position board "Please enter a valid position [layer row col]")]
     (if (has-ball board position)
-      (if (or (not (can-remove-ball board position))
-              (not= player (cell board position)))
+      (if (not (can-remove-positions? board player [position]))
         (do 
           (println "That ball cannot be removed")
           (recur game))
         (let [high-position (ask-for-position board "Please enter a position for rise [layer row col]")]
-          (if (or (<= (high-position 0) (position 0))
-                  (not= :open (cell board high-position))
-                  ; TODO one condition is missing - not rise a ball on top of itself
-                  )
+          (if (not (can-rise? board player position high-position))
             (do 
               (println "Invalid move, we start again")
               (recur game))
-            {:board (-> board 
-                        (remove-ball player position)
-                        (add-ball player high-position))
-             ; TODO factor create-next-game out and create 3 functions for each move
-             ; with is-valid-<move> preconditions
-             :move {:type :rise
-                    :low-position position
-                    :high-position high-position
-                    :color player}})))
-      (if (not= :open (cell board position))
+            (move-rise board player position high-position))))
+      (if (not (can-add? board player position))
         (do 
           (println "Invalid move, we start again")
           (recur game))
-        {:board (add-ball board player position)
-         ; TODO refactor this and create move-<move> and is-valid-<move> functions
-         :move {:type :add 
-                :position position
-                :color player}}))))
+        (move-add board player position)))))
 
-(defn ask-human-to-remove-balls [game {:keys [board move]} balls-removed]
+(defn ask-human-to-remove-balls [game {:keys [board move] :as original-move} balls-removed]
   (let [old-board               (:board game)
         player                  (:player game)
         number-of-balls-removed (count balls-removed)]
     (if (not (has-new-full-square board old-board player))
       {:board board :move move}
       (if (= 2 number-of-balls-removed)
-        (move-square board player move balls-removed)
+        (move-square original-move balls-removed)
         (let [position (ask-for-position board 
                                          (str "Please enter a ball to remove [layer row col]" 
                                               (if (not= 0 number-of-balls-removed) "or <enter> to finish" ""))
                                          (not= 0 number-of-balls-removed))]
           (if (nil? position)
-            (move-square board player move balls-removed)
-            ; TODO factor this check out (there is the same above)
-            (if (or (not (= player (cell board position)))
-                    (not (can-remove-ball board position)))
+            (move-square original-move balls-removed)
+            (if (can-remove-positions? board [position])
               (do 
                 (println "Cannot remove that ball")
                 (recur game {:board board :move move} balls-removed))
@@ -449,7 +474,7 @@
       {:outcome (winner board)}
       (let [new-move               (ask-human-to-place-or-rise-ball game)
             new-move-without-balls (ask-human-to-remove-balls game new-move [])]
-        {:next-game (create-next-game game (:move new-move-without-balls) (:board new-move-without-balls))}))))
+        {:next-game (create-next-game game new-move-without-balls)}))))
 
 (defn play-human-game [game human-color negamax-depth]
   (let [player        (:player game)
@@ -465,10 +490,11 @@
   (play-human-game (initial-game size first-player) human-color negamax-depth))
 
 (defn play-negamax-game [game negamax-depth]
-  (let [negamax-result (negamax game negamax-depth)]
-    (cons game 
-          (if (:outcome negamax-result) []
-            (lazy-seq (play-negamax-game (:next-game negamax-result) negamax-depth))))))
+  (cons game 
+        (lazy-seq 
+          (let [negamax-result (negamax game negamax-depth)]
+            (if (:outcome negamax-result) []
+              (play-negamax-game (:next-game negamax-result) negamax-depth))))))
 
 (defn play-negamax [size first-player negamax-depth]
   (play-negamax-game (initial-game size first-player) negamax-depth))
