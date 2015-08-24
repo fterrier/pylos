@@ -288,3 +288,49 @@
       
       (add-ball :white [1 4 1])))
 
+; [{:type :add, :position [1 1 1], :color :white} 
+;  {:type :add, :position [1 1 2], :color :black} 
+;  {:type :add, :position [1 1 3], :color :white} 
+;  {:type :add, :position [1 1 4], :color :black}
+;  {:type :add, :position [1 2 1], :color :white} 
+;  {:type :add, :position [1 2 3], :color :black} 
+;  {:type :add, :position [1 3 1], :color :white} 
+;  {:type :add, :position [1 3 2], :color :black} 
+;  {:type :add, :position [1 2 2], :color :white} 
+;  {:type :add, :position [1 3 3], :color :black} 
+;  {:type :rise, :low-position [1 1 3], :high-position [2 1 1], :color :white} 
+;  {:type :add, :position [1 1 3], :color :black} 
+;  {:type :add, :position [1 2 4], :color :white} 
+;  {:type :rise, :low-position [1 2 3], :high-position [2 2 1], :color :black} 
+;  {:type :add, :position [1 4 2], :color :white} 
+;  {:type :add, :position [1 2 3], :color :black} 
+;  {:type :rise, :low-position [1 2 4], :high-position [2 1 2], :color :white} 
+;  {:type :square, :original-move {:type :add, :position [1 2 4], :color :black}, :positions #{[2 2 1]}, :color :black} 
+;  {:type :rise, :low-position [1 2 2], :high-position [2 1 3], :color :white}]
+
+;  {:type :square, :original-move {:type :add, :position [1 2 2], :color :black}, :positions #{[1 3 2]}, :color :black}
+
+(def moves-bug-add
+  (-> four 
+      (add-ball :white [1 1 1]) 
+      (add-ball :black [1 1 2]) 
+      (add-ball :white [1 1 3]) 
+      (add-ball :black [1 1 4]) 
+      (add-ball :white [1 2 1])
+      (add-ball :black [1 2 3])
+      (add-ball :white [1 3 1]) 
+      (add-ball :black [1 3 2])
+      (add-ball :white [1 2 2])
+      (add-ball :black [1 3 3])
+      (remove-ball :white [1 1 3]) (add-ball :white [2 1 1])
+      (add-ball :black [1 1 3])
+      (add-ball :white [1 2 4])
+      (remove-ball :black [1 2 3]) (add-ball :black [2 2 1])
+      (add-ball :white [1 4 2])
+      (add-ball :black [1 2 3])
+      (remove-ball :white [1 2 4]) (add-ball :white [2 1 2])
+      ;(add-ball :black [1 2 4]) (remove-ball :black [2 2 1])
+      ;(remove-ball :white [1 2 2]) (add-ball :white [2 1 3])
+      ))
+      
+      
