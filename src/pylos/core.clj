@@ -10,13 +10,13 @@
             [clojure.core.reducers :as r]
             [clojure.math.numeric-tower :as math]))
 
-(defn cell-no-mem [board [layer row col]]
+(defn cell [board [layer row col]]
   (get-in board
           [(- layer 1)
            (- row 1)
            (- col 1)]))
 
-(def cell (memoize cell-no-mem))
+; (def cell (memoize cell-no-mem))
 
 (defn size [board]
   (count board))
@@ -113,7 +113,8 @@
       (println "Initial board")
       (println "====================")))
   (print-board (:board game) (last (:past-moves game)))
-  (println "Next move is for" (:player game))
+  (when (:player game) (println "Next move is for" (:player game)))
+  (when (:outcome game) (println "We have a winner:" (:outcome game)))
   (println))
 
 (defn empty-positions [board]
@@ -155,9 +156,6 @@
         positions-to-try (filter #(is-square-position board %) positions-to-try)]
     (filter #(has-square board %) positions-to-try)))
 
-(defn top-position [board]
-  [(size board) 1 1])
-
 (defn balls-on-board [board color]
   (count (color (:balls-on-board (meta board)))))
 
@@ -185,7 +183,7 @@
         new-open-positions            (map position-on-top new-square-positions)
         new-empty-positions           (-> (apply conj (:empty-positions meta-infos) new-open-positions)
                                           (disj position))
-        position-below                (square-position-below position)
+        ; position-below                (square-position-below position)
         ; removable-positions-to-remove (if-not (nil? position-below) (square-corners board-with-ball position-below) [])
         ]
     (with-meta 
@@ -207,7 +205,7 @@
         open-positions-to-remove   (map position-on-top square-positions-to-remove)
         new-empty-positions        (-> (apply disj (:empty-positions meta-infos) open-positions-to-remove)
                                        (conj position))
-        position-below             (square-position-below position)
+        ; position-below             (square-position-below position)
         ; new-removable-positions    (if-not (nil? position-below) 
         ;                              (filter #(can-remove-ball board-without-ball %) (square-corners board-without-ball position-below)) [])
         ]
@@ -314,30 +312,25 @@
         new-moves-with-removed-balls (mapcat (fn [move] (remove-balls-if-whole-square move board player)) new-moves)]
     new-moves-with-removed-balls))
 
-(defn create-next-game [game {:keys [move board]}]
-  (when-not (every? #(= :open (cell board %)) (empty-positions board))
-    (println game)
-    (println (meta (:board game)))
-    (println move)
-    (println board)
-    (println "=="))
-  
-  (let [next-player (next-player board (:player game))]
-    {:board board
-     :player next-player
-     :past-moves (conj (:past-moves game) move)}))
+(defn game-over? [board]
+  (or (not (has-balls-to-play board :white))
+      (not (has-balls-to-play board :black))))
+
+(defn winner [board]
+  {:pre [(game-over? board)]}
+  (if (has-balls-to-play board :white) :white :black))
+
+(defn create-next-game [game {:keys [move board]}]  
+  (let [next-game   {:board board
+                     :past-moves (conj (:past-moves game) move)}]
+    (if (game-over? board)
+      (assoc next-game :outcome (winner board))
+      (let [next-player (next-player board (:player game))] 
+        (assoc next-game :player next-player)))))
 
 (defn next-games [game]
   (map (fn [new-move] 
          (create-next-game game new-move)) (moves game)))
-
-; TODO change this to "check if one player does not have ball"
-(defn game-over? [board]
-  (empty? (empty-positions board)))
-
-(defn winner [board]
-  {:pre [(game-over? board)]}
-  (cell board (top-position board)))
 
 (defn number-of-positions [size]
   (let [layers (range 1 (+ 1 size))]
@@ -374,63 +367,71 @@
 
 (defn balls-in-middle [board player]
   (let [middle-positions (for [layer (range 1 (- (size board) 1))]
-                            (let [size-of-layer (count (board (- layer 1)))
-                                  middle        (math/ceil  (/ size-of-layer 2))
-                                  one-ball      (= 1 (mod size-of-layer 2))]
-                              (if one-ball [[layer middle middle]]
-                                (positions-around board [layer middle middle] 1))))
+                           (let [size-of-layer (count (board (- layer 1)))
+                                 middle        (math/ceil  (/ size-of-layer 2))
+                                 one-ball      (= 1 (mod size-of-layer 2))]
+                             (if one-ball [[layer middle middle]]
+                               (positions-around board [layer middle middle] 1))))
         middle-positions (into #{} (apply concat middle-positions))]
     (filter #(contains? middle-positions %) (player (:balls-on-board (meta board))))))
 
-(defn score-for-player [board player]
-  (let [other-player  (other-color player)
-        player-balls       (balls-on-board board player)
-        other-player-balls (balls-on-board board other-player)
-        ball-difference    (- other-player-balls player-balls)
-        player-balls-in-middle (count (balls-in-middle board player))
-        other-player-balls-in-middle (count (balls-in-middle board other-player))
-        balls-in-middle-difference (- player-balls-in-middle other-player-balls-in-middle)]
-    (+ ball-difference (/ balls-in-middle-difference 1))))
+(defn score-for-player [board player winner]
+  (if-not (nil? winner) 100
+    (let [other-player                 (other-color player)
+          player-balls                 (balls-on-board board player)
+          other-player-balls           (balls-on-board board other-player)
+          ball-difference              (- other-player-balls player-balls)
+          player-balls-in-middle       (count (balls-in-middle board player))
+          other-player-balls-in-middle (count (balls-in-middle board other-player))
+          balls-in-middle-difference   (- player-balls-in-middle other-player-balls-in-middle)]
+      (+ ball-difference (/ balls-in-middle-difference 1)))))
 
-(defn negamax
-  ([game alpha beta depth]
+(defn negamax-no-mem
+  [game alpha beta depth]
    "For a game, applies the negamax algorithm on the tree up to depth,
    returns an object with a :next-best-score value and :next-game or :outcome value that 
    returns the next best game from which the value was calculated 
    or an :outcome value if the game is won."
-   (when 
-     (nil? (:outcome game))
-     (let [board  (:board game)
-           player (:player game)
-           score  (score-for-player board player)]
-       (if (game-over? board)
-         ; TODO factor this out in "winner-if-done"
-         {:next-best-score score :outcome (winner board)}
-         ; else we go on with the negamax algorithm
-         (if (= depth 0)
-           {:next-best-score score}
-           (let [negamax-best-game (reduce (fn [{:keys [alpha beta best-game best-score]} game] 
-                                             (let [next-player     (:player game)
-                                                   child-negamax   (if (not= next-player player) 
-                                                                     (negamax game (- beta) (- alpha) (- depth 1))
-                                                                     (negamax game alpha beta (- depth 1)))
-                                                   child-score     (if (not= next-player player) (- (:next-best-score child-negamax)) (:next-best-score child-negamax))
-                                                   next-best-game  (if (> child-score best-score) 
-                                                                     {:game game      :score child-score}
-                                                                     {:game best-game :score best-score})
-                                                   next-alpha      (max alpha child-score)]
-                                               (let [result {:alpha next-alpha 
-                                                             :beta beta 
-                                                             :best-game (:game next-best-game) 
-                                                             :best-score (:score next-best-game)}]
-                                                 (if (>= next-alpha beta) (reduced result) result))))
-                                           {:alpha alpha :beta beta :best-score -1000} (next-games game))
-                 game-with-score    {:next-best-score (:best-score negamax-best-game) 
-                                     :next-game       (:best-game  negamax-best-game)}]
-             game-with-score))))))
+   (let [board  (:board game)
+         score  (score-for-player board (:player game) (:outcome game))]
+     (if (or (game-over? board) (= depth 0))
+       ; else we go on with the negamax algorithm
+       {:next-best-score score}
+       (let [negamax-best-game (reduce (fn [{:keys [alpha beta best-game best-score]} game] 
+                                         (let [child-negamax   (negamax-no-mem game (- beta) (- alpha) (- depth 1))
+                                               child-score     (- (:next-best-score child-negamax))
+                                               next-best-game  (if (> child-score best-score) 
+                                                                 {:game game      :score child-score}
+                                                                 {:game best-game :score best-score})
+                                               next-alpha      (max alpha child-score)]
+                                           (let [result {:alpha next-alpha 
+                                                         :beta beta 
+                                                         :best-game (:game next-best-game) 
+                                                         :best-score (:score next-best-game)}]
+                                             (if (>= next-alpha beta) (reduced result) result))))
+                                       {:alpha alpha :beta beta :best-score -1000} (next-games game))
+             game-with-score    {:next-best-score (:best-score negamax-best-game) 
+                                 :next-game       (:best-game  negamax-best-game)}]
+         game-with-score))))
+
+(defn negamax 
+  ([game alpha beta depth]
+   ;   (let [mem (atom {})]
+   ;  (fn [& args]
+   ;    (if-let [e (find @mem args)]
+   ;      (val e)
+   ;      (let [ret (apply f args)]
+   ;        (swap! mem assoc args ret)
+   ;        ret)))))
+   
+   ; (let [board (:board game)
+   ;       mem   (get mem board)]
+   ;   (if-not (nil? mem) mem 
+   ;     ))
+   
+   (negamax-no-mem game alpha beta depth))
   ([game depth]
    (negamax game -1000 1000 depth)))
-
 
 (defn to-int [array]
   (into [] (map #(try (Integer/parseInt %) (catch Exception e -1)) array)))
@@ -505,8 +506,8 @@
         play-function (if human? ask-human-and-play negamax)
         parameters    (if human? [game] [game negamax-depth])]
     (cons game
-          (lazy-seq (let [game-result (apply play-function parameters)]
-                      (if (:outcome game-result) []
+          (if (:outcome game) []
+            (lazy-seq (let [game-result (apply play-function parameters)]
                         (play-human-game (:next-game game-result) human-color negamax-depth)))))))
 
 (defn play-human [size human-color first-player negamax-depth]
@@ -514,9 +515,9 @@
 
 (defn play-negamax-game [game negamax-depth]
   (cons game 
-        (lazy-seq 
-          (let [negamax-result (negamax game negamax-depth)]
-            (if (:outcome negamax-result) []
+        (if (:outcome game) []
+          (lazy-seq 
+            (let [negamax-result (negamax game negamax-depth)]
               (play-negamax-game (:next-game negamax-result) negamax-depth))))))
 
 (defn play-negamax [size first-player negamax-depth]
