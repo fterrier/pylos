@@ -2,13 +2,15 @@
   "game is {:player _ :board _ :past-moves _}
   move is {:board _ :move _}"
   (:gen-class)
-  (:require [clojure.tools.namespace.repl :refer (refresh refresh-all)]
+  (:require [clojure.tools.namespace.repl :as repl]
             [clojure.math.combinatorics :as combo]
             [io.aviso.ansi :refer :all]
             [clojure.string :as str]
             [clojure.test :refer (is)]
             [clojure.core.reducers :as r]
             [clojure.math.numeric-tower :as math]))
+
+
 
 (defn cell [board [layer row col]]
   (get-in board
@@ -344,7 +346,7 @@
     (with-meta board 
                {:number-of-positions (number-of-positions size)
                 ;:square-positions #{}
-                :removable-positions #{}
+                ;:removable-positions #{}
                 :empty-positions (all-positions board 1)
                 :full-squares   {:black #{} :white #{}}
                 :balls-on-board {:black #{} :white #{}}})))
@@ -386,50 +388,58 @@
           balls-in-middle-difference   (- player-balls-in-middle other-player-balls-in-middle)]
       (+ ball-difference (/ balls-in-middle-difference 1)))))
 
-(defn negamax-no-mem
-  [game alpha beta depth]
-   "For a game, applies the negamax algorithm on the tree up to depth,
-   returns an object with a :next-best-score value and :next-game or :outcome value that 
-   returns the next best game from which the value was calculated 
-   or an :outcome value if the game is won."
-   (let [board  (:board game)
-         score  (score-for-player board (:player game) (:outcome game))]
-     (if (or (game-over? board) (= depth 0))
-       ; else we go on with the negamax algorithm
-       {:next-best-score score}
-       (let [negamax-best-game (reduce (fn [{:keys [alpha beta best-game best-score]} game] 
-                                         (let [child-negamax   (negamax-no-mem game (- beta) (- alpha) (- depth 1))
-                                               child-score     (- (:next-best-score child-negamax))
-                                               next-best-game  (if (> child-score best-score) 
-                                                                 {:game game      :score child-score}
-                                                                 {:game best-game :score best-score})
-                                               next-alpha      (max alpha child-score)]
-                                           (let [result {:alpha next-alpha 
-                                                         :beta beta 
-                                                         :best-game (:game next-best-game) 
-                                                         :best-score (:score next-best-game)}]
-                                             (if (>= next-alpha beta) (reduced result) result))))
-                                       {:alpha alpha :beta beta :best-score -1000} (next-games game))
-             game-with-score    {:next-best-score (:best-score negamax-best-game) 
-                                 :next-game       (:best-game  negamax-best-game)}]
-         game-with-score))))
+(defn memoize-negamax
+  [f]
+  (let [mem (atom {})]
+    (fn [game alpha beta depth]
+      (if-let [e (find @mem (:board game))]
+        (do (println e)
+          (val e))
+        (let [ret (f game alpha beta depth)]          
+          (swap! mem assoc (:board game) ret)
+          ret)))))
 
-(defn negamax 
+(def negamax-table (atom {}))
+
+(defn negamax
   ([game alpha beta depth]
-   ;   (let [mem (atom {})]
-   ;  (fn [& args]
-   ;    (if-let [e (find @mem args)]
-   ;      (val e)
-   ;      (let [ret (apply f args)]
-   ;        (swap! mem assoc args ret)
-   ;        ret)))))
-   
-   ; (let [board (:board game)
-   ;       mem   (get mem board)]
-   ;   (if-not (nil? mem) mem 
-   ;     ))
-   
-   (negamax-no-mem game alpha beta depth))
+   (let [calculate-and-save (fn [{:keys [board player] :as game} alpha beta depth] 
+                              (let [ret             (negamax game alpha beta depth)
+                                    next-best-score (:next-best-score ret)]
+                                (swap! negamax-table assoc [board player] {:next-best-score next-best-score :depth depth})
+                                next-best-score))
+         negamax-lookup-and-save (fn [{:keys [board player] :as game} alpha beta depth]
+                                   (if-let [e (find @negamax-table [board player])]
+                                     (let [saved-depth (:depth (val e))]
+                                       (if (>= saved-depth depth) 
+                                         (:next-best-score (val e))
+                                         (calculate-and-save game alpha beta depth)
+                                         ))
+                                     (calculate-and-save game alpha beta depth)))]
+     "For a game, applies the negamax algorithm on the tree up to depth,
+     returns an object with a :next-best-score value and :next-game or :outcome value that 
+     returns the next best game from which the value was calculated 
+     or an :outcome value if the game is won."
+     (let [board  (:board game)
+           score  (score-for-player board (:player game) (:outcome game))]
+       (if (or (game-over? board) (= depth 0))
+         ; else we go on with the negamax algorithm
+         {:next-best-score score}
+         (let [negamax-best-game (reduce (fn [{:keys [alpha beta best-game best-score]} game] 
+                                           (let [child-score     (- (negamax-lookup-and-save game (- beta) (- alpha) (- depth 1)))
+                                                 next-best-game  (if (> child-score best-score) 
+                                                                   {:game game      :score child-score}
+                                                                   {:game best-game :score best-score})
+                                                 next-alpha      (max alpha child-score)]
+                                             (let [result {:alpha next-alpha 
+                                                           :beta beta 
+                                                           :best-game (:game next-best-game) 
+                                                           :best-score (:score next-best-game)}]
+                                               (if (>= next-alpha beta) (reduced result) result))))
+                                         {:alpha alpha :beta beta :best-score -1000} (next-games game))
+               game-with-score    {:next-best-score (:best-score negamax-best-game) 
+                                   :next-game       (:best-game  negamax-best-game)}]
+           game-with-score)))))
   ([game depth]
    (negamax game -1000 1000 depth)))
 
@@ -517,7 +527,7 @@
   (cons game 
         (if (:outcome game) []
           (lazy-seq 
-            (let [negamax-result (negamax game negamax-depth)]
+            (let [negamax-result (negamax game -1000 1000 negamax-depth)]
               (play-negamax-game (:next-game negamax-result) negamax-depth))))))
 
 (defn play-negamax [size first-player negamax-depth]
@@ -527,4 +537,8 @@
   (into [] (map print-game play)))
 
 
+(defn refresh []
+  (do 
+    (repl/refresh)
+    (reset! negamax-table {})))
 
