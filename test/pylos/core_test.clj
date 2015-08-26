@@ -136,16 +136,16 @@
 
 (deftest all-positions-test
   (testing "All positions"
-    (is (= (all-positions four 1) #{[1 1 1] [1 1 2] [1 1 3] [1 1 4]
+    (is (= (all-positions four) [[1 1 1] [1 1 2] [1 1 3] [1 1 4]
                                     [1 2 1] [1 2 2] [1 2 3] [1 2 4]
                                     [1 3 1] [1 3 2] [1 3 3] [1 3 4]
-                                    [1 4 1] [1 4 2] [1 4 3] [1 4 4]}))
-    (is (= (all-positions four 2) #{[2 1 1] [2 1 2] [2 1 3]
+                                    [1 4 1] [1 4 2] [1 4 3] [1 4 4]
+                                    [2 1 1] [2 1 2] [2 1 3]
                                     [2 2 1] [2 2 2] [2 2 3]
-                                    [2 3 1] [2 3 2] [2 3 3]}))
-    (is (= (all-positions four 3) #{[3 1 1] [3 1 2]
-                                    [3 2 1] [3 2 2]}))
-    (is (= (all-positions four 4) #{[4 1 1]}))))
+                                    [2 3 1] [2 3 2] [2 3 3]
+                                    [3 1 1] [3 1 2]
+                                    [3 2 1] [3 2 2]
+                                    [4 1 1]]))))
 
 (deftest can-remove-test
   (testing "Can remove ball"

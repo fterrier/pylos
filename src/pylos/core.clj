@@ -10,37 +10,28 @@
             [clojure.core.reducers :as r]
             [clojure.math.numeric-tower :as math]))
 
+(defn ind [board position]
+  ((:positions-map (meta board)) position))
 
-
-(defn cell [board [layer row col]]
-  (get-in board
-          [(- layer 1)
-           (- row 1)
-           (- col 1)]))
-
-; (def cell (memoize cell-no-mem))
+(defn cell [board position]
+  (let [ind (ind board position)]
+    (get board ind)))
 
 (defn size [board]
-  (count board))
+  (:size (meta board)))
 
 (defn is-in-board [board position]
   (not (nil? (cell board position))))
 
-; (def is-in-board (memoize is-in-board-no-mem))
-
 (defn is-square-position [board [layer row col :as position]]
   {:pre [(is-in-board board position)]}
   (is-in-board board [layer (+ row 1) (+ col 1)]))
-
-; (def is-square-position (memoize is-square-position-no-mem))
 
 (defn positions-around [board [layer row col] ind]
   (filter #(is-in-board board %) [[layer (+ row ind) (+ col ind)]
                                   [layer (+ row ind) col] 
                                   [layer row (+ col ind)]       
                                   [layer row col]]))
-
-; (def positions-around (memoize positions-around-no-mem))
 
 ; TODO maybe have this function return something else when calling on the top position
 (defn position-on-top [position]
@@ -122,27 +113,23 @@
 (defn empty-positions [board]
   (sort (:empty-positions (meta board))))
 
-(defn all-positions [board layer]
-  (let [max-size (+ 2 (- (size board) layer))]
-    (into #{} (for [x (range 1 max-size) 
-                    y (range 1 max-size)] 
-                [layer x y]))))
+(defn all-positions [size]
+  (into [] (apply concat (for [layer (range 1 (+ 1 size))]
+                           (let [max-size (+ 2 (- size layer))]
+                             (for [x     (range 1 max-size) 
+                                   y     (range 1 max-size)] 
+                               [layer x y]))))))
 
 (defn change-cell 
-  ([partial-board partial-position new-cell]
+  ([board position new-cell]
    "Changes a cell to a new cell"
-   (if (empty? partial-position)
-     new-cell
-     (let [position (- (partial-position 0) 1)]
-       (assoc partial-board 
-         position
-         (change-cell (partial-board position) (into [] (rest partial-position)) new-cell)))))
+   (let [ind (ind board position)]
+     (assoc board ind new-cell)))
   ([partial-board partial-position new-cell cell-to-replace]
    "Changes a cell to a new cell only if the cell contains cell-to-replace"
    (if (= cell-to-replace (cell partial-board partial-position))
      (change-cell partial-board partial-position new-cell)
      partial-board)))
-
 
 (defn square-corners [board position]
   (positions-around board position 1))
@@ -334,20 +321,19 @@
   (map (fn [new-move] 
          (create-next-game game new-move)) (moves game)))
 
-(defn number-of-positions [size]
-  (let [layers (range 1 (+ 1 size))]
-    (reduce + (map #(* % %) layers))))
-
 (defn starting-board [size]
-  {:pre [(even? (number-of-positions size))]}
-  (let [board (into [] (for [x (range size 0 -1)]
-                         (into [] (repeat x 
-                                          (into [] (repeat x (if (= size x) :open :no-acc)))))))]
+  {:pre [(even? (count (all-positions size)))]}
+  (let [all-positions       (all-positions size)
+        number-of-positions (count all-positions)
+        board               (into [] (map (fn [ind] (if (< ind (* size size)) :open :no-acc)) (range number-of-positions)))
+        positions-map       (into {} (map (fn [ind] [(all-positions ind) ind]) (range number-of-positions)))]
     (with-meta board 
-               {:number-of-positions (number-of-positions size)
+               {:number-of-positions number-of-positions
+                :size size
                 ;:square-positions #{}
                 ;:removable-positions #{}
-                :empty-positions (all-positions board 1)
+                :positions-map positions-map
+                :empty-positions (into #{} (filter (fn [[layer _ _]] (= 1 layer)) all-positions))
                 :full-squares   {:black #{} :white #{}}
                 :balls-on-board {:black #{} :white #{}}})))
 
@@ -369,7 +355,8 @@
 
 (defn balls-in-middle [board player]
   (let [middle-positions (for [layer (range 1 (- (size board) 1))]
-                           (let [size-of-layer (count (board (- layer 1)))
+                           (let [size          (size board)
+                                 size-of-layer (- size (- layer 1))
                                  middle        (math/ceil  (/ size-of-layer 2))
                                  one-ball      (= 1 (mod size-of-layer 2))]
                              (if one-ball [[layer middle middle]]
@@ -436,7 +423,7 @@
                                                            :best-game (:game next-best-game) 
                                                            :best-score (:score next-best-game)}]
                                                (if (>= next-alpha beta) (reduced result) result))))
-                                         {:alpha alpha :beta beta :best-score -1000} (next-games game))
+                                         {:alpha alpha :beta beta :best-score -1000 :stats {}} (next-games game))
                game-with-score    {:next-best-score (:best-score negamax-best-game) 
                                    :next-game       (:best-game  negamax-best-game)}]
            game-with-score)))))
@@ -527,7 +514,8 @@
   (cons game 
         (if (:outcome game) []
           (lazy-seq 
-            (let [negamax-result (negamax game -1000 1000 negamax-depth)]
+            (let [reset (reset! negamax-table {})
+                  negamax-result (negamax game negamax-depth)]
               (play-negamax-game (:next-game negamax-result) negamax-depth))))))
 
 (defn play-negamax [size first-player negamax-depth]
