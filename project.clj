@@ -7,7 +7,11 @@
                  [io.aviso/pretty "0.1.18"]
                  [org.clojure/math.combinatorics "0.1.1"]
                  [org.clojure/math.numeric-tower "0.0.4"]
-                 [com.taoensso/timbre "4.1.1"]]
+                 [com.taoensso/timbre "4.1.1"]
+                 [clj-stacktrace "0.2.8"]
+                 [org.clojure/data.int-map "0.2.1"]]
+  :repl-options {:init (do (require 'clj-stacktrace.repl))
+                 :caught clj-stacktrace.repl/pst+}
   :main ^:skip-aot pylos.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}
