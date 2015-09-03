@@ -11,6 +11,8 @@ Several strategies are implemented :
 | NegamaxStrategy | [negamax.clj](src/strategy/negamax.clj) | The negamax algorithm with alpha-beta pruning and transposition tables |
 | HumanStrategy | [human.clj](src/pylos/human.clj) | Lets a human play |
 
+More will be added in the future so we can let them play against each other.
+
 ## Installation
 
 Clone and run
