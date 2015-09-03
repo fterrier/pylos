@@ -33,6 +33,28 @@ In the REPL, you can call the following shortcut commands:
 (output (play-human 4 :white :black 8))
 ```
 
+You should see stuff like this:
+```
+====================
+Board after move of :black
+====================
+
+Move: {:type :add, :position 20, :color :black}
+Time: 772.270422
+
+o o o o     - - -     - -     -
+o w b o     - b -     - -
+o b w o     - - -
+o o o o
+
+Balls remaining :
+ - :white 13
+ - :black 12
+
+{:negamax-values {:best-possible-score 1/2, :outcome nil}, :stats {:calculated-moves 14176, :lookup-moves 16234}}
+Calculated moves per ms:  18.35626432938798
+```
+
 ### Bugs
 
 Open Github issue and don't hesitate to PR.
