@@ -2,7 +2,7 @@
 
 This is an attempt at providing an AI for the board game [Pylos](https://boardgamegeek.com/boardgame/1419/pylos) in Clojure.
 
-For now, the game is played on the terminal only ...
+For now, a UI is provided for the terminal.
 
 Several strategies are implemented :
 
