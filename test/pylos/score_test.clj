@@ -8,6 +8,6 @@
   (testing "Score"
     (is (= 0 (score-middle-blocked {:board four-square-test :player :black})))
     (is (= 0 (score-middle-blocked {:board four-square-test :player :white})))
-    (is (= 3/2 (score-middle-blocked {:board two-layers-test :player :white})))
-    (is (= -3/2 (score-middle-blocked {:board two-layers-test :player :black})))))
+    (is (= 11/6 (score-middle-blocked {:board two-layers-test :player :white})))
+    (is (= -11/6 (score-middle-blocked {:board two-layers-test :player :black})))))
 

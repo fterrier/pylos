@@ -32,25 +32,6 @@
   (testing "Can rise"
     (is (false? (can-rise? full-board-test :white (ind four [3 1 2]) (ind four [3 2 1]))))))
 
-; (deftest rise-candidates-test
-;   (testing "Rise candidates"
-;     (is (= (rise-candidates four-square-test :white) #{{:low-position (ind four [1 2 3]) :high-position (ind four [2 1 1])}}))
-;     (is (= (rise-candidates four-square-test :black) #{}))
-;     (is (= (rise-candidates full-board-test :white) #{}))
-;     (is (= (rise-candidates full-board-test :black) #{}))
-;     (is (= (rise-candidates (-> four-square-test 
-;                                 (add-ball :black (ind four [1 3 1])) 
-;                                 (add-ball :black (ind four [1 3 2]))) :black) #{{:low-position (ind four [1 1 1]) :high-position (ind four [2 2 1])}
-;                                                                                 {:low-position (ind four [1 1 2]) :high-position (ind four [2 2 1])}
-;                                                                                 {:low-position (ind four [1 3 1]) :high-position (ind four [2 1 1])}
-;                                                                                 {:low-position (ind four [1 3 2]) :high-position (ind four [2 1 1])}}))
-;     (is (= (rise-candidates (-> four-square-test 
-;                                 (add-ball :black (ind four [1 3 1])) 
-;                                 (add-ball :black (ind four [1 3 2]))) :white) #{{:low-position (ind four [1 2 3]) :high-position (ind four [2 1 1])}
-;                                                                                 {:low-position (ind four [1 2 3]) :high-position (ind four [2 2 1])}}))
-;     (is (= (rise-candidates two-layers-test :black) #{{:low-position (ind four [1 4 1]) :high-position (ind four [3 1 1])}}))
-;     (is (= (rise-candidates two-layers-test :wite) #{}))))
-
 (deftest removable-candidates-test
   (testing "Removable candidates"
     (is (= #{(ind four [1 4 1]) (ind four [2 1 2]) (ind four [2 2 2])} (removable-candidates two-layers-test :black)))
@@ -110,14 +91,14 @@
 
 (deftest board-move-map-test
   (testing "All board-move-map test"
-    (is (= [(move-add two-layers-test :black (ind four [1 1 4]))
+    (is (= (into #{} [(move-add two-layers-test :black (ind four [1 1 4]))
             (move-add two-layers-test :black (ind four [1 2 4]))
             (move-add two-layers-test :black (ind four [1 3 4]))
             (move-add two-layers-test :black (ind four [1 4 2]))
             (move-add two-layers-test :black (ind four [1 4 3]))
             (move-add two-layers-test :black (ind four [1 4 4]))
             (move-add two-layers-test :black (ind four [3 1 1]))
-            (move-rise two-layers-test :black (ind four [1 4 1]) (ind four [3 1 1]))] (board-move-map {:board two-layers-test :player :black})))
+            (move-rise two-layers-test :black (ind four [1 4 1]) (ind four [3 1 1]))]) (into #{} (board-move-map {:board two-layers-test :player :black}))))
     (is (= (into #{} (let [original-move (move-add full-board-square-top :white (ind four [3 2 2]))]
                        [(move-square original-move [(ind four [3 1 1])])
                         (move-square original-move [(ind four [3 1 2])])

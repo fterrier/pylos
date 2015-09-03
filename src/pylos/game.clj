@@ -176,7 +176,7 @@
               (map (fn [position] (move-square original-move [position])) removable-balls)))))
 
 (defn calculate-next-move [{:keys [board player]} position]
-  (let [{new-board :board {:keys [high-position]} :move
+  (let [{new-board :board {high-position :position} :move
          :as new-move-with-added-ball} (move-add board player position)
         new-moves-with-risen-ball      (map #(move-rise-no-add new-board player % high-position) 
                                             (removable-candidates new-board player position))]
