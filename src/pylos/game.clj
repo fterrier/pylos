@@ -190,6 +190,10 @@
 (defn board-move-map [game-position]
   (mapcat #(calculate-next-move game-position %) (best-order (:board game-position))))
 
+; (defn board-move-map [game-position]
+;   (mapcat #(calculate-next-move game-position %) (empty-positions (:board game-position))))
+
+
 (defn game-over? [board]
   (or (not (has-balls-to-play board :white))
       (not (has-balls-to-play board :black))))

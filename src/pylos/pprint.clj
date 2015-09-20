@@ -2,7 +2,8 @@
   (:require [io.aviso.ansi :refer :all]
             [pylos.board :refer :all]
             [pylos.game :refer [can-remove-ball balls-on-board]]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.pprint :as pprint]))
 
 
 (defn- bold-positions-from-move [last-move]
@@ -39,7 +40,9 @@
   ([board]
    (print-board board nil)))
 
-(defn print-game [{:keys [board player outcome]} last-move additional-infos time]
+; (:game-position %) (:last-move %) (:additional-infos %) (:time %)
+
+(defn print-game [{{:keys [board player outcome]} :game-position, last-move :last-move, additional-infos :additional-infos, time :time :as play}]
   (let [time-ms (when time (/ time 1000000))]
   (println "====================")
   (if-not (nil? last-move)
@@ -59,10 +62,11 @@
     (println " - :black" (- number-of-balls (count (balls-on-board board :black)))))
   (println)
   (when additional-infos 
-    (println additional-infos)
-    (println "Calculated moves per ms: " (double (/ (:calculated-moves (:stats additional-infos)) time-ms)))
+    (pprint/pprint additional-infos)    
+    ; (println "Calculated moves per ms: " (double (/ (:calculated-moves (:stats additional-infos)) time-ms)))
     (println))
   (if outcome 
     (println "We have a winner:" outcome)
     (println "Next move is for" player))
-  (println)))
+  (println))
+  play)

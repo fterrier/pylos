@@ -19,7 +19,16 @@
                       :outcome nil}))
 
 (defn output [play]
-  (into [] (map #(print-game (:game-position %) (:last-move %) (:additional-infos %) (:time %)) play)))
+  (map #(print-game %) play))
+
+(defn output-and-compare [play path]
+  ; TODO implement
+  )
+
+(defn save-to-disk [play path]
+  (with-open [w (clojure.java.io/writer path)]
+    (binding [*print-length* false *out* w]
+      (pr play))))
 
 (defn refresh []
   (do 
@@ -34,4 +43,4 @@
 
 (defn play-negamax [size first-player negamax-depth]
   (let [negamax-strategy (negamax score-middle-blocked negamax-depth)]
-  (play size {:black negamax-strategy :white negamax-strategy} first-player)))
+    (play size {:black negamax-strategy :white negamax-strategy} first-player)))
