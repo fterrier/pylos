@@ -27,8 +27,8 @@
 (defn empty-positions [board]
   (:empty-positions (meta board)))
 
-(defn middle-positions [board]
-  (:middle-positions (:helper-meta-board (meta board))))
+(defn number-of-positions-around [board]
+  (:number-of-positions-around (:helper-meta-board (meta board))))
 
 (defn positions-around [board position direction]
   {:pre [(or (= :left-up direction) (= :right-down direction))]}
@@ -123,6 +123,9 @@
         middle-positions (apply concat middle-positions)]
     middle-positions))
 
+(defn- calculate-all-positions-around [position positions-left-up positions-right-down]
+  (apply conj (positions-left-up position) (positions-right-down position)))
+
 (defn vec-from-map [m size]
   (into [] (let [ind (range 0 size)]
              (map #(m %) ind))))
@@ -144,53 +147,57 @@
 ; optimize data structure
 (defn- create-position-map-one [fun positions positions-map]
   (vec-from-map 
-    (into {} (map (fn [position] [(positions-map position) (positions-map (fun position))]) positions)) 
+    (into {} (map (fn [position] [(positions-map position) (positions-map (fun position))]) positions))
     (count positions-map)))
 
 ; optimize data structure
 (defn- create-position-set [positions positions-map]
   (into #{} (map positions-map positions)))
 
-(defn starting-board [size]
-  {:pre [(even? (count (calculate-all-positions size)))]}
-  (let [all-positions        (calculate-all-positions size)
-        number-of-positions  (count all-positions)
-        ; TODO optimize data structure
-        board                        (into [] (map (fn [ind] (if (< ind (* size size)) :open :no-acc)) (range number-of-positions)))
-        
+(defn helper-meta-board [size]
+  (let [all-positions                (calculate-all-positions size)
+        number-of-positions          (count all-positions)
         positions-map                (into {} (map (fn [ind] [(all-positions ind) ind]) (range number-of-positions)))
         
         positions-above-first-layer-no-ind (calculate-positions-above-first-layer all-positions)
         positions-right-down-no-ind  (into {} (map (fn [position] [position (calculate-positions-around positions-map position 1)]) all-positions))
         positions-left-up-no-ind     (into {} (map (fn [position] [position (calculate-positions-around positions-map position -1)]) all-positions))
         
-        positions-above-first-layer  (create-position-set positions-above-first-layer-no-ind  positions-map)
+        positions-above-first-layer  (create-position-set positions-above-first-layer-no-ind positions-map)
         positions-right-down-map     (create-position-map #(calculate-positions-around positions-map % 1) all-positions positions-map)
         positions-left-up-map        (create-position-map #(calculate-positions-around positions-map % -1) all-positions positions-map)
         square-positions-below-map   (create-position-map-one #(calculate-square-positions-below %) all-positions positions-map)
         square-positions-at-position-map (create-position-map #(calculate-square-positions-at-position positions-left-up-no-ind positions-right-down-no-ind %) all-positions positions-map)
         positions-under-position-map (create-position-map #(calculate-positions-under-position all-positions %) positions-above-first-layer-no-ind positions-map)
         position-on-top-map          (create-position-map-one #(calculate-position-on-top %) all-positions positions-map)
-        middle-positions             (create-position-set (calculate-middle-positions positions-right-down-no-ind size) positions-map)
-        empty-positions              (create-position-set (calculate-empty-positions all-positions) positions-map)]
+        positions-around             (create-position-map #(calculate-all-positions-around % positions-left-up-no-ind positions-right-down-no-ind) 
+                                                          all-positions positions-map)]
+    {:number-of-positions number-of-positions
+     :size size
+     :positions-right-down-map positions-right-down-map
+     :positions-left-up-map positions-left-up-map
+     :position-on-top-map position-on-top-map
+     :square-positions-below-map square-positions-below-map
+     :square-positions-at-position-map square-positions-at-position-map
+     :positions-above-first-layer positions-above-first-layer
+     :positions-under-position-map positions-under-position-map
+     :number-of-positions-around (into [] (map (fn [positions-around] (count positions-around)) positions-around))
+     ; this map is only used to translate a position in coordinates into the integer                
+     :positions-map positions-map
+     :all-positions all-positions}))
+
+(defn starting-board [size]
+  {:pre [(even? (count (calculate-all-positions size)))]}
+  (let [helper-meta-board   (helper-meta-board size)
+        number-of-positions (:number-of-positions helper-meta-board)
+        positions-map       (:positions-map helper-meta-board)
+        all-positions       (:all-positions helper-meta-board)
+        ; TODO optimize data structure
+        board               (into [] (map (fn [ind] (if (< ind (* size size)) :open :no-acc)) (range number-of-positions)))
+        empty-positions     (create-position-set (calculate-empty-positions all-positions) positions-map)]
     (with-meta board (map->MetaBoard 
-                       {:helper-meta-board 
-                        (map->HelperMetaBoard
-                          {:number-of-positions number-of-positions
-                           :size size
-                           :positions-right-down-map positions-right-down-map
-                           :positions-left-up-map positions-left-up-map
-                           :position-on-top-map position-on-top-map
-                           :square-positions-below-map square-positions-below-map
-                           :square-positions-at-position-map square-positions-at-position-map
-                           :positions-above-first-layer positions-above-first-layer
-                           :positions-under-position-map positions-under-position-map
-                           :middle-positions middle-positions
-                           ; this map is only used to translate a position in coordinates into the integer                
-                           :positions-map positions-map})
-                        
+                       {:helper-meta-board (map->HelperMetaBoard helper-meta-board)
                         :empty-positions empty-positions
-                        ; :square-positions #{}
                         :removable-positions #{}
                         :full-squares   {:black #{} :white #{}}
                         :balls-on-board {:black #{} :white #{}}}))))

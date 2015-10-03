@@ -3,7 +3,7 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :jvm-opts [] 
+  ; :jvm-opts []
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [io.aviso/pretty "0.1.18"]
                  [org.clojure/math.combinatorics "0.1.1"]

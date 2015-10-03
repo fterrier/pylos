@@ -4,6 +4,7 @@
   (:gen-class)
   (:require [clojure.tools.namespace.repl :as repl]
             [strategy.negamax :refer :all]
+            [strategy.compare :refer :all]
             [game.game :refer :all]
             [pylos.board :refer :all]
             [pylos.game :refer :all]
@@ -21,9 +22,23 @@
 (defn output [play]
   (map #(print-game %) play))
 
+(defn output-and-compare-games [[game1 & rest1] [game2 & rest2]]
+  (if (nil? game1) []
+    (do
+      (print-game (dissoc game1 :additional-infos))
+      ; (print-game (assoc-in game2 
+      ;                       [:game-position :board] 
+      ;                       (with-meta (:board (:game-position game2))
+      ;                                  ; TODO change this 4 here
+      ;                                  {:helper-meta-board (helper-meta-board 4)})))
+      (if (not= (:game-position game1) (:game-position game2))
+        (println "Game positions differ")
+        (display-compare-additional-infos (:additional-infos game1) (:additional-infos game2)))
+      
+      (cons game1 (output-and-compare-games rest1 rest2)))))
+
 (defn output-and-compare [play path]
-  ; TODO implement
-  )
+  (output-and-compare-games play (read-string (slurp path))))
 
 (defn save-to-disk [play path]
   (with-open [w (clojure.java.io/writer path)]

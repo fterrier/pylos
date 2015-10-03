@@ -23,6 +23,7 @@
     (println "  - calculated        |" (format-infos infos #(:calculated-moves (:stats %)) 20 false))
     (println "  - lookup            |" (format-infos infos #(:lookup-moves (:stats %)) 20 false))
     (println "Moves per ms          |" (format-infos infos #(:moves-per-ms %) 20 true))
+    (println "Total time            |" (format-infos infos #(:time %) 20 false))
     (println )))
 
 

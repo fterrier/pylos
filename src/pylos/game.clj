@@ -183,16 +183,15 @@
     (mapcat #(remove-balls-if-whole-square % board player) (conj new-moves-with-risen-ball new-move-with-added-ball))))
 
 (defn best-order [board]
-  (let [empty-positions  (empty-positions board)
-        middle-positions (middle-positions board)]
-    (sort-by #(not (contains? middle-positions %)) empty-positions)))
+  (let [empty-positions            (empty-positions board)
+        number-of-positions-around (number-of-positions-around board)]
+    (sort-by #(-(number-of-positions-around %)) empty-positions)))
 
 (defn board-move-map [game-position]
   (mapcat #(calculate-next-move game-position %) (best-order (:board game-position))))
 
 ; (defn board-move-map [game-position]
 ;   (mapcat #(calculate-next-move game-position %) (empty-positions (:board game-position))))
-
 
 (defn game-over? [board]
   (or (not (has-balls-to-play board :white))
