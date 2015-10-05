@@ -59,8 +59,7 @@
   (:positions-above-first-layer (:helper-meta-board (meta board))))
 
 (defn square-corners [board position]
-  (let [positions-around (positions-around board position :right-down)]
-    (if (= 4 (count positions-around)) positions-around #{})))
+  (positions-around board position :right-down))
 
 (defn square-positions-at-position [board position]
   "Returns a list of positions that are corners of squares

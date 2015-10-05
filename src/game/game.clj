@@ -3,8 +3,9 @@
 (defprotocol Game
   (board [this])
   (player [this])
-  (next-game-positions [this])
-  (outcome [this]))
+  (outcome [this])
+  (generate-moves [this])
+  (make-move [this move]))
 
 (defprotocol Strategy
   (choose-next-move [this game-position] "Chooses the next move for the given game, returns a {:next-game-position :next-move} map"))

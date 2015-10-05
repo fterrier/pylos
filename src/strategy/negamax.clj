@@ -1,5 +1,7 @@
 (ns strategy.negamax
-  (:require [game.game :refer :all]))
+  (:require [game.game :refer :all]
+            [pylos.board :refer :all]))
+; TODO remove that pylos.board ref
 
 (def negamax-table (atom {}))
 
@@ -17,22 +19,15 @@
 
 (defn merge-and-add-stats [stats next-stats]
   (let [calculated-moves (+ (:calculated-moves stats) (:calculated-moves next-stats))
-        lookup-moves     (+ (:lookup-moves stats) (:lookup-moves next-stats))
-        considered-moves (+ (:considered-moves stats) (:considered-moves next-stats))]
+        lookup-moves     (+ (:lookup-moves stats) (:lookup-moves next-stats))]
     {:calculated-moves calculated-moves
      :lookup-moves     lookup-moves
-     :total-moves      (+ calculated-moves lookup-moves)
-     :considered-moves considered-moves}))
+     :total-moves      (+ calculated-moves lookup-moves)}))
 
 ;{:game-position next-game-position :move move}
-(defn order-game-positions [game-positions]
-  (let [result (sort-by (fn [{{:keys [board player]} :game-position move :move}]
-                          (if-let [e (negamax-tt-lookup board)]
-                            (cond (= (:type e) :exact) (- (+ 1000 (:score e)))
-                                  ;(= (:type e) :lowerbound) (- (+ 500 (:score e)))
-                                  :else 1000)
-                            1000)) game-positions)]
-    result))
+(defn order-moves-tt [moves first-move]
+  (if (nil? first-move) moves
+    (cons first-move (remove #(= first-move %) moves))))
 
 (defn negamax-tt-lookup-with-depth [board depth]
   (when-let [saved-negamax-value (negamax-tt-lookup board)]
@@ -56,11 +51,12 @@
 (declare negamax-choose-move)
 
 (defn negamax-step [{:keys [alpha beta best-negamax-values best-game-position best-move best-principal-variation stats]} 
-                    {next-game-position :game-position, next-move :move} depth score-fun]
-  (let [{next-negamax-values      :negamax-values
+                    game-position next-move depth score-fun principal-variation]
+  (let [next-game-position      (make-move game-position next-move)
+        {next-negamax-values      :negamax-values
          next-stats               :stats
          next-principal-variation :principal-variation}     
-                                (negamax-choose-move next-game-position (- beta) (- alpha) (- depth 1) score-fun)
+        (negamax-choose-move next-game-position (- beta) (- alpha) (- depth 1) score-fun (rest principal-variation))
         next-negamax-values     (assoc next-negamax-values :best-possible-score (- (:best-possible-score next-negamax-values)))
         next-best-game-position (if (> (:best-possible-score next-negamax-values) (:best-possible-score best-negamax-values)) 
                                   {:game-position next-game-position   :move next-move 
@@ -78,7 +74,7 @@
       (if (>= next-alpha beta) (reduced result) result))))
 
 (defn negamax-choose-move
-  ([{:keys [board outcome] :as game-position} alpha beta depth score-fun]
+  ([{:keys [board outcome] :as game-position} alpha beta depth score-fun principal-variation]
    "For a game, applies the negamax algorithm on the tree up to depth,
    returns an object with a :next-move value and :next-game-position that 
    returns the next best game-position from which the value was calculated."
@@ -95,7 +91,7 @@
        
        ; we found a match and return
        {:negamax-values {:best-possible-score (:score saved-negamax-value)}
-        :stats          {:calculated-moves 0 :lookup-moves 1 :considered-moves 0}}
+        :stats          {:calculated-moves 0 :lookup-moves 1}}
        
        ; we go on
        (if (or outcome (= depth 0))
@@ -104,18 +100,16 @@
            (negamax-tt-save-with-bounds! board score depth next-alpha next-beta)
            {:negamax-values {:best-possible-score score
                              :outcome outcome}
-            :stats          {:calculated-moves 1 :lookup-moves 0 :considered-moves 0}})
+            :stats          {:calculated-moves 1 :lookup-moves 0}})
          ; else we go on with negamax checking all the moves
-         (let [
-               next-games                 (order-game-positions (next-game-positions game-position))
-               ;snext-games                 (next-game-positions game-position)
-               negamax-best-game-position (reduce #(negamax-step %1 %2 depth score-fun)
+         (let [next-moves                 (order-moves-tt (generate-moves game-position) (first principal-variation))
+               negamax-best-game-position (reduce #(negamax-step %1 game-position %2 depth score-fun principal-variation)
                                                   {:alpha next-alpha 
                                                    :beta next-beta 
                                                    :best-negamax-values {:best-possible-score -1000} 
-                                                   :stats {:calculated-moves 0 :lookup-moves 0 :considered-moves (count next-games)}} next-games)
+                                                   :stats {:calculated-moves 0 :lookup-moves 0}} next-moves)
                negamax-values             (:best-negamax-values negamax-best-game-position)
-               game-position-with-score   {:principal-variation (cons (:best-game-position negamax-best-game-position) 
+               game-position-with-score   {:principal-variation (cons (:best-move negamax-best-game-position) 
                                                                       (:best-principal-variation negamax-best-game-position))
                                            :next-game-position  (:best-game-position  negamax-best-game-position)
                                            :next-move           (:best-move           negamax-best-game-position)
@@ -126,16 +120,25 @@
                                          (:alpha negamax-best-game-position) 
                                          (:beta negamax-best-game-position))
            game-position-with-score)))))
-  ([game-position depth score-fun]
-   (negamax-choose-move game-position -1000 1000 depth score-fun)))
+  ([game-position depth score-fun principal-variation]
+   (negamax-choose-move game-position -1000 1000 depth score-fun principal-variation)))
+
+
+(defn tt-purge-entries [number-of-empty-positions]
+  (doseq [[board _] @negamax-table]
+    (when (> (count (empty-positions board)) (+ 0 number-of-empty-positions)))
+    (swap! negamax-table dissoc board)))
 
 (defrecord NegamaxStrategy [score-fun depth]
   Strategy
   (choose-next-move [this game-position] 
-                    (reset! negamax-table {})
+                    ; TODO purge too old entries
+                    (println (count @negamax-table))
+                    (tt-purge-entries (count (empty-positions (:board game-position))))
                     (reduce (fn [step-result current-depth]
                               (let [start-time    (System/nanoTime)
-                                    result        (negamax-choose-move game-position current-depth score-fun)
+                                    result        (negamax-choose-move game-position current-depth score-fun 
+                                                                       (:principal-variation (:additional-infos step-result)))
                                     end-time      (System/nanoTime)
                                     time-at-depth (double (/ (- end-time start-time) 1000000))]
                                 
@@ -144,15 +147,15 @@
                                     (dissoc :negamax-values)
                                     (assoc :additional-infos 
                                       (conj (:additional-infos step-result)  
-                                            {:depth          current-depth
+                                            {:principal-variation (:principal-variation result)
+                                             :depth          current-depth
                                              :negamax-values (:negamax-values result)
                                              :time           time-at-depth
                                              :moves-per-ms   (double (/ (:total-moves (:stats result)) time-at-depth))
                                              :stats          (:stats result)})))))
                             {:additional-infos []} 
-                            (range 1 (+ 1 depth))
-                            ; [depth]
-                            )))
+                            (range 1 (+ 1 depth)))))
 
 (defn negamax [score-fun depth]
+  (reset! negamax-table {})
   (->NegamaxStrategy score-fun depth))

@@ -8,7 +8,7 @@
 
 (defn- bold-positions-from-move [last-move]
   (case (:type last-move)
-    :rise   [(:low-position last-move) (:high-position last-move)]
+    :rise   [(:low-position last-move) (:position last-move)]
     :add    [(:position last-move)]
     :square [concat (:positions last-move) (bold-positions-from-move (:original-move last-move))]
     []))

@@ -26,11 +26,14 @@
     (is (false? (can-remove-ball two-layers-test (ind four [1 1 1]))))
     (is (can-remove-ball two-layers-test (ind four [1 4 1])))
     (is (can-remove-ball full-board-test (ind four [3 2 2])))
-    (is (can-remove-ball full-board-test (ind four [3 1 1])))))
+    (is (can-remove-ball full-board-test (ind four [3 1 1])))
+    (is (can-remove-ball (-> four-square-test 
+                             (add-ball :white (ind four [2 1 1])) 
+                             (remove-ball :white (ind four [2 1 1]))) (ind four [1 1 1])))))
 
-(deftest can-rise
-  (testing "Can rise"
-    (is (false? (can-rise? full-board-test :white (ind four [3 1 2]) (ind four [3 2 1]))))))
+; (deftest can-rise
+;   (testing "Can rise"
+;     (is (false? (can-rise? full-board-test :white (ind four [3 1 2]) (ind four [3 2 1]))))))
 
 (deftest removable-candidates-test
   (testing "Removable candidates"
@@ -56,38 +59,46 @@
                                   (remove-ball :black (ind four [1 1 2]))
                                   (remove-ball :black (ind four [1 2 2])))))))
 
-(deftest full-squares-test
-  (testing "Full squares"
-    (is (= #{(ind four [1 1 1])} (full-squares (-> four
-                                                   (add-ball    :black (ind four [1 1 1]))
-                                                   (add-ball    :black (ind four [1 2 1]))
-                                                   (add-ball    :black (ind four [1 1 2]))
-                                                   (add-ball    :black (ind four [1 2 2]))) :black)))
-    (is (= #{} (full-squares (-> four
-                                 (add-ball    :black (ind four [1 1 1]))
-                                 (add-ball    :black (ind four [1 2 1]))
-                                 (add-ball    :black (ind four [1 1 2]))
-                                 (add-ball    :black (ind four [1 2 2]))) :white)))
-    (is (= #{} (full-squares (-> four
-                                 (add-ball    :black (ind four [1 1 1]))
-                                 (add-ball    :black (ind four [1 2 1]))
-                                 (add-ball    :black (ind four [1 1 2]))
-                                 (add-ball    :black (ind four [1 2 2]))
-                                 (remove-ball :black (ind four [1 1 1]))) :black)))))
+; (deftest full-squares-test
+  ; (testing "Full squares"
+  ;   (is (= #{(ind four [1 1 1])} (full-squares (-> four
+  ;                                                  (add-ball    :black (ind four [1 1 1]))
+  ;                                                  (add-ball    :black (ind four [1 2 1]))
+  ;                                                  (add-ball    :black (ind four [1 1 2]))
+  ;                                                  (add-ball    :black (ind four [1 2 2]))) :black)))
+  ;   (is (= #{} (full-squares (-> four
+  ;                                (add-ball    :black (ind four [1 1 1]))
+  ;                                (add-ball    :black (ind four [1 2 1]))
+  ;                                (add-ball    :black (ind four [1 1 2]))
+  ;                                (add-ball    :black (ind four [1 2 2]))) :white)))
+  ;   (is (= #{} (full-squares (-> four
+  ;                                (add-ball    :black (ind four [1 1 1]))
+  ;                                (add-ball    :black (ind four [1 2 1]))
+  ;                                (add-ball    :black (ind four [1 1 2]))
+  ;                                (add-ball    :black (ind four [1 2 2]))
+  ;                                (remove-ball :black (ind four [1 1 1]))) :black)))))
 
-(deftest is-full-square-test
-  (testing "Is full square"
-    (is (is-full-square (-> four 
-                            (add-ball :white (ind four [1 1 1])) 
-                            (add-ball :white (ind four [1 1 2]))
-                            (add-ball :white (ind four [1 2 1])) 
-                            (add-ball :white (ind four [1 2 2]))) (ind four [1 1 1]) :white))
-    (is (false? (is-full-square (-> four 
-                                    (add-ball :white (ind four [1 1 1])) 
-                                    (add-ball :white (ind four [1 1 2]))
-                                    (add-ball :white (ind four [1 2 1])) 
-                                    (add-ball :black (ind four [1 2 2]))) (ind four [1 1 1]) :white)))))
+; (deftest is-full-square-test
+;   (testing "Is full square"
+;     (is (is-full-square (-> four 
+;                             (add-ball :white (ind four [1 1 1])) 
+;                             (add-ball :white (ind four [1 1 2]))
+;                             (add-ball :white (ind four [1 2 1])) 
+;                             (add-ball :white (ind four [1 2 2]))) (ind four [1 1 1]) :white))
+;     (is (false? (is-full-square (-> four 
+;                                     (add-ball :white (ind four [1 1 1])) 
+;                                     (add-ball :white (ind four [1 1 2]))
+;                                     (add-ball :white (ind four [1 2 1])) 
+;                                     (add-ball :black (ind four [1 2 2]))) (ind four [1 1 1]) :white)))))
 
+
+(deftest has-new-full-square-test 
+  (testing "Has new full square"
+    (is (has-new-full-square (add-ball four-square-test :white [1 3 2]) [1 3 1] :white))
+    (is (false? (has-new-full-square (add-ball four-square-test :white [1 3 2]) [1 3 1] :black)))
+    (is (has-new-full-square (add-ball four-square-test :white [1 3 2]) [1 3 3] :white))
+    (is (false? (has-new-full-square (add-ball four-square-test :white [1 3 2]) [1 3 3] :black)))
+    (is (false? (has-new-full-square (add-ball four-square-test :white [1 3 2]) [1 3 4] :white)))))
 
 (deftest board-move-map-test
   (testing "All board-move-map test"
@@ -98,7 +109,7 @@
             (move-add two-layers-test :black (ind four [1 4 3]))
             (move-add two-layers-test :black (ind four [1 4 4]))
             (move-add two-layers-test :black (ind four [3 1 1]))
-            (move-rise two-layers-test :black (ind four [1 4 1]) (ind four [3 1 1]))]) (into #{} (board-move-map {:board two-layers-test :player :black}))))
+            (move-rise two-layers-test :black (ind four [1 4 1]) (ind four [3 1 1]))]) (into #{} (generate-all-moves {:board two-layers-test :player :black}))))
     (is (= (into #{} (let [original-move (move-add full-board-square-top :white (ind four [3 2 2]))]
                        [(move-square original-move [(ind four [3 1 1])])
                         (move-square original-move [(ind four [3 1 2])])
@@ -110,5 +121,5 @@
                         (move-square original-move [(ind four [3 1 2]) (ind four [3 2 1])])
                         (move-square original-move [(ind four [3 1 2]) (ind four [3 2 2])])
                         (move-square original-move [(ind four [3 2 1]) (ind four [3 2 2])])]))
-           (into #{} (board-move-map {:board full-board-square-top :player :white}))))))
+           (into #{} (generate-all-moves {:board full-board-square-top :player :white}))))))
 
