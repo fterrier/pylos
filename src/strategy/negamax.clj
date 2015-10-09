@@ -124,17 +124,21 @@
    (negamax-choose-move game-position -1000 1000 depth score-fun principal-variation)))
 
 
-(defn tt-purge-entries [number-of-empty-positions]
-  (doseq [[board _] @negamax-table]
-    (when (> (count (empty-positions board)) (+ 0 number-of-empty-positions)))
-    (swap! negamax-table dissoc board)))
+(defn tt-purge-entries [number-of-balls-on-board-limit table count-map]
+  (if (empty? table) count-map
+    (let [[board _]                        (first table)
+          current-number-of-balls-on-board (number-of-balls-on-board board)]
+      (when (< current-number-of-balls-on-board (+ 2 number-of-balls-on-board-limit))
+        (swap! negamax-table dissoc board))
+      (recur number-of-balls-on-board-limit (rest table) (update count-map current-number-of-balls-on-board inc)))))
 
 (defrecord NegamaxStrategy [score-fun depth]
   Strategy
   (choose-next-move [this game-position] 
                     ; TODO purge too old entries
-                    (println (count @negamax-table))
-                    (tt-purge-entries (count (empty-positions (:board game-position))))
+                    (println "Before purge" (count @negamax-table))
+                    (let [count-map (tt-purge-entries (number-of-balls-on-board (:board game-position)) @negamax-table (into [] (repeat (number-of-positions (:board game-position)) 0)))]
+                      (println "After purge" (count @negamax-table) count-map))
                     (reduce (fn [step-result current-depth]
                               (let [start-time    (System/nanoTime)
                                     result        (negamax-choose-move game-position current-depth score-fun 

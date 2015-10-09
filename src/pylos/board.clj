@@ -27,6 +27,9 @@
 (defn empty-positions [board]
   (:empty-positions (meta board)))
 
+(defn number-of-balls-on-board [board]
+  (apply + (map #(count (second %)) (:balls-on-board (meta board)))))
+
 (defn number-of-positions-around [board]
   (:number-of-positions-around (:helper-meta-board (meta board))))
 
