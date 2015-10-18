@@ -13,14 +13,14 @@
 
 ; state
 (defonce app-state
-  (atom {:board-infos {:board (initial-board 4)
-                       :balls-remaining {:white 15 :black 15}
-                       }}))
+  (atom {:game-infos {:board (initial-board 4)
+                      :balls-remaining {:white 15 :black 15}
+                      }}))
 
 ; get state
-(defn board-infos []
-  (om/ref-cursor (:board-infos (om/root-cursor app-state))))
+(defn game-infos []
+  (om/ref-cursor (:game-infos (om/root-cursor app-state))))
 
 ; mutate state
 (defn app-change-cell [position new-cell]
-  (swap! app-state (fn [state] (update-in state [:board :board-infos] #(change-cell % position new-cell)))))
+  (swap! app-state (fn [state] (update-in state [:board :game-infos] #(change-cell % position new-cell)))))

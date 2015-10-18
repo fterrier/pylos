@@ -21,8 +21,8 @@
 
 (defmulti handle-event-msg (fn [v] (get v 0)))
 
-(defmethod handle-event-msg :pylos/board [[id {:keys [board balls-remaining] :as board-infos}]]
-  (swap! app-state #(assoc % :board-infos board-infos)))
+(defmethod handle-event-msg :pylos/game-infos [[id {:keys [board balls-remaining next-player] :as game-infos}]]
+  (swap! app-state #(assoc % :game-infos game-infos)))
 
 (defmulti event-msg-handler :id)
 

@@ -21,16 +21,17 @@
                                                         (cell board (ind board [(inc layer) (inc row) (inc col)]))))))))]
     frontend-board))
 
-(defn send-board [chsk user-id board]
+(defn send-game-infos [chsk user-id board player]
   ((:chsk-send! chsk) :sente/all-users-without-uid
-                      [:pylos/board
+                      [:pylos/game-infos
                        {:board (transform-board board)
                         :balls-remaining {:white (balls-remaining board :white)
-                                          :black (balls-remaining board :black)}}]))
+                                          :black (balls-remaining board :black)}
+                        :next-player player}]))
 
 (defn create-broadcast-game [chsk]
   (defn broadcast-game [{{:keys [board player outcome]} :game-position, last-move :last-move, additional-infos :additional-infos, time :time :as play}]
-    (send-board chsk nil board)))
+    (send-game-infos chsk nil board player)))
 
 (defn event-msg-handler [test]
   (println "GOT EVENT")

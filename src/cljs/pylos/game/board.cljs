@@ -3,7 +3,7 @@
             [om.core :as om]
             [om-tools.core :refer-macros [defcomponent]]
             [om-tools.dom :as dom :include-macros true]
-            [pylos.game.state :refer [board-infos]]))
+            [pylos.game.state :refer [game-infos]]))
 
 (defn indexed-vector [m attrs]
   "[a b c] []    -> [[[0]     a] [[1]     b] [[2]     c]]
@@ -48,26 +48,28 @@
                        (om/build-all hurmpf-row-comp (indexed-vector layer [level]))
                        (om/build hurmpf-layer-comp [(rest board) (+ level 1)]))))))
 
-(defcomponent balls-remaining-comp [[color remaining-balls] owner]
+(defcomponent balls-remaining-comp [[color remaining-balls next-player] owner]
   (render [_]
           (dom/div {:class (str "pylos-remaining-balls-color pylos-remaining-balls-" (name color))}
+                   (dom/span {:class (str "pylos-remaining-balls-label " (name next-player))} (if (= next-player color)  "PLAY" "WAIT"))
            (for [i (range 0 remaining-balls)]
              (dom/div {:class (str "pylos-cell pylos-cell-" (name color))}
-                      (dom/div {:class "pylos-cell-content"} i)
+                      (dom/div {:class "pylos-cell-content"} (inc i))
                       (circle))))))
 
 (defcomponent board-comp [_ owner]
   (render [_]
-          (let [board-infos     (om/observe owner (board-infos))
-                board           (:board board-infos)
-                balls-remaining (:balls-remaining board-infos)]
+          (let [game-infos      (om/observe owner (game-infos))
+                next-player     (:next-player game-infos)
+                board           (:board game-infos)
+                balls-remaining (:balls-remaining game-infos)]
             (println "Rendering board" board)
             (dom/div {:class "main"}
                      (dom/div {:class "pylos clearfix"}
                               (dom/div {:class "pylos-board"}
-                                       (om/build hurmpf-layer-comp [board 0])))
-                     (dom/div {:class "pylos-remaining-balls"}
-                              (om/build balls-remaining-comp [:white (:white balls-remaining)])
-                              (om/build balls-remaining-comp [:black (:black balls-remaining)]))
+                                       (om/build hurmpf-layer-comp [board 0]))
+                              (dom/div {:class "pylos-remaining-balls clearfix"}
+                                       (om/build balls-remaining-comp [:white (:white balls-remaining) next-player])
+                                       (om/build balls-remaining-comp [:black (:black balls-remaining) next-player])))
                      (dom/div {:class "board"}
                               (om/build-all layer-comp (indexed-vector board [])))))))

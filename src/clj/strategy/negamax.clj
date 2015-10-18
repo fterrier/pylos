@@ -103,6 +103,7 @@
             :stats          {:calculated-moves 1 :lookup-moves 0}})
          ; else we go on with negamax checking all the moves
          (let [next-moves                 (order-moves-tt (generate-moves game-position) (first principal-variation))
+               ;test (println game-position (empty-positions (:board game-position)) (generate-moves game-position))
                negamax-best-game-position (reduce #(negamax-step %1 game-position %2 depth score-fun principal-variation)
                                                   {:alpha next-alpha
                                                    :beta next-beta
@@ -146,7 +147,6 @@
                                                                        (:principal-variation (:additional-infos step-result)))
                                     end-time      (System/nanoTime)
                                     time-at-depth (double (/ (- end-time start-time) 1000000))]
-
                                 (-> step-result
                                     (merge result)
                                     (dissoc :negamax-values)

@@ -179,6 +179,8 @@
   Assumes the given move has not been generated on the given board."
   (if-not (has-new-full-square board position color) [move]
     (let [removable-balls (removable-candidates board color position)
+          ; (output (play-negamax 4 :white 3)) to reproduce bug in this function
+          test (println removable-balls)
           ; we remove the low position if it is a rise
           removable-balls (if (= :rise type) (disj removable-balls (:low-position move)) removable-balls)
           combinations    (combo/combinations removable-balls 2)]
@@ -186,10 +188,13 @@
               (map (fn [position] (move-square move [position])) removable-balls)))))
 
 (defn calculate-next-move [{:keys [board player]} position]
+  (println board position)
   (let [move-with-ball-added  (move-add player position)
         moves-with-ball-risen (map #(move-rise player % position)
-                                   (removable-candidates-under-position board player position))]
-    (mapcat #(remove-balls-if-whole-square % board player) (conj moves-with-ball-risen move-with-ball-added))))
+                                   (removable-candidates-under-position board player position))
+        next-move             (mapcat #(remove-balls-if-whole-square % board player) (conj moves-with-ball-risen move-with-ball-added))]
+    (println (conj moves-with-ball-risen move-with-ball-added))
+    next-move))
 
 ; (defn best-order [board]
 ;   (let [empty-positions            (empty-positions board)

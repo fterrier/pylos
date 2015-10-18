@@ -124,8 +124,14 @@ body {
 
 .pylos-remaining-balls-color {
 	display: flex;
+	float: left;
+	clear: both;
+	line-height: 100px;
 }
 
+.pylos-remaining-balls-label {
+	width: 100px;
+}
 .pylos-remaining-balls-color .pylos-cell {
 	margin-right: -80px;
 }
@@ -136,9 +142,16 @@ body {
 	width: 100%;
 	left: 0;
 	top: 0;
-	line-height: 100px;
 }
 
 .pylos-cell-black {
 	color: white;
+}
+
+.pylos-remaining-balls-white .black {
+	opacity: 0.2;
+}
+
+.pylos-remaining-balls-black .white {
+	opacity: 0.2;
 }
