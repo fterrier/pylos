@@ -1,5 +1,6 @@
 body {
-
+	font-size: 24px;
+	font-family: "Helvetica Neue" "arial";
 }
 
 .board {
@@ -76,6 +77,7 @@ body {
 }
 
 .pylos-cell {
+	position: relative;
 	width: 100px;
 	height: 100px;
 	border: 0px solid gray;
@@ -126,4 +128,17 @@ body {
 
 .pylos-remaining-balls-color .pylos-cell {
 	margin-right: -80px;
+}
+
+.pylos-cell-content {
+	position: absolute;
+	text-align: center;
+	width: 100%;
+	left: 0;
+	top: 0;
+	line-height: 100px;
+}
+
+.pylos-cell-black {
+	color: white;
 }

@@ -52,7 +52,9 @@
   (render [_]
           (dom/div {:class (str "pylos-remaining-balls-color pylos-remaining-balls-" (name color))}
            (for [i (range 0 remaining-balls)]
-             (dom/div {:class (str "pylos-cell pylos-cell-" (name color))} (circle))))))
+             (dom/div {:class (str "pylos-cell pylos-cell-" (name color))}
+                      (dom/div {:class "pylos-cell-content"} i)
+                      (circle))))))
 
 (defcomponent board-comp [_ owner]
   (render [_]
