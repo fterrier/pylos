@@ -4,6 +4,7 @@
 (enable-console-print!)
 
 (defn fig-reload []
+  (ui/stop)
   (ui/main))
 
 (ui/main)

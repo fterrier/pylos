@@ -11,24 +11,22 @@
                  [com.taoensso/timbre "4.1.1"]
                  [clj-stacktrace "0.2.8"]
                  [org.clojure/clojurescript "1.7.122"]
-                 [org.clojure/data.int-map "0.2.1"]]
-  :repl-options {:init (do (require 'clj-stacktrace.repl))
+                 [org.omcljs/om "0.9.0"]
+                 [prismatic/om-tools "0.3.12"]
+                 [com.stuartsierra/component "0.3.0"]
+                 [http-kit "2.1.18"]]
+  :repl-options {:port 7888
+                 :init (do (require 'clj-stacktrace.repl))
                  :caught clj-stacktrace.repl/pst+}
-  :main ^:skip-aot pylos.core
+  :main ^:skip-aot system.init-dev
   :target-path "target/%s"
-  
+  :source-paths ["src/clj" "src/cljs"]
+
   :cljsbuild {:builds {:app {:source-paths ["src/cljs"]}}}
-  
+
   :profiles {:uberjar {:aot :all}
-             :dev {:dependencies [[org.clojure/tools.namespace "0.2.3"]]
-                   :plugins [[lein-figwheel "0.4.1"]]
-                   :cljsbuild {:builds {:app {:source-paths []
-                                              :figwheel { :websocket-host "localhost" 
-                                                          :on-jsload "pylos.core/fig-reload"}
-                                              :compiler {:main "pylos.core"
-                                                         :asset-path "js/out"
-                                                         :output-to "resources/public/js/dev.js"
-                                                         :output-dir "resources/public/js/out"
-                                                         :optimizations :none
-                                                         :pretty-print true
-                                                         :source-map "resources/public/js/dev.js.map"}}}}}})
+             :dev {:dependencies [[org.clojure/tools.namespace "0.2.3"]
+                                  [figwheel-sidecar "0.4.1"]
+                                  ;[alembic "0.3.2"]
+                                  ]
+                   :plugins [[lein-figwheel "0.4.1"]]}})

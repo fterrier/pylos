@@ -1,9 +1,7 @@
 (ns pylos.core
   "game is {:player _ :board _ :past-moves _}
   move is {:board _ :move _}"
-  (:gen-class)
-  (:require [clojure.tools.namespace.repl :as repl]
-            [strategy.negamax :refer :all]
+  (:require [strategy.negamax :refer :all]
             [strategy.compare :refer :all]
             [game.game :refer :all]
             [pylos.board :refer :all]
@@ -44,11 +42,6 @@
   (with-open [w (clojure.java.io/writer path)]
     (binding [*print-length* false *out* w]
       (pr play))))
-
-(defn refresh []
-  (do 
-    (repl/refresh)
-    (reset! negamax-table {})))
 
 (defn play [size {:keys [white black] :as strategies} first-player]
   (play-game {:game-position (initial-game size first-player)} strategies))

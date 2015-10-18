@@ -1,6 +1,5 @@
 (ns pylos.board
-  (:require [clojure.math.numeric-tower :as math]
-            [clojure.data.int-map :as i]))
+  (:require [clojure.math.numeric-tower :as math]))
 
 (defrecord HelperMetaBoard [size number-of-positions
                             positions-right-down-map

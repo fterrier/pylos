@@ -1,0 +1,42 @@
+body {
+
+}
+
+.board {
+	display: flex;
+	align-items: center;
+}
+
+.board-cell {
+	width: 40px;
+	height: 40px;
+	border: 1px solid gray;
+	text-align: center;
+	padding: 4px;
+}
+
+.board-cell-open {
+	cursor: pointer;
+}
+
+.board-cell-content {
+	width: 100%;
+	height: 100%;
+}
+
+.board-cell-content-no-acc {
+	background-color: lightgrey;
+}
+
+.board-cell-content-white {
+	background-color: green;
+}
+
+.board-cell-content-black {
+	background-color: red;
+}
+
+.board-layer {
+	display: inline;
+	margin-right: 10px;
+}
