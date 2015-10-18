@@ -15,11 +15,12 @@
         strategy      (get strategies player)]
     (cons game
           (if (:outcome game-position) []
-            (lazy-seq 
+            (lazy-seq
               (let [start-time  (System/nanoTime)
+                    print       (println "Player" player "to move")
                     game-result (choose-next-move strategy game-position)
                     end-time    (System/nanoTime)]
-                (play-game {:game-position (:next-game-position game-result) 
+                (play-game {:game-position (:next-game-position game-result)
                             :last-move (:next-move game-result)
                             :additional-infos (:additional-infos game-result)
                             :time (- end-time start-time)} strategies)))))))

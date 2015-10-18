@@ -119,3 +119,11 @@ body {
 .pylos-cell-no-acc {
 	visibility: hidden;
 }
+
+.pylos-remaining-balls-color {
+	display: flex;
+}
+
+.pylos-remaining-balls-color .pylos-cell {
+	margin-right: -80px;
+}

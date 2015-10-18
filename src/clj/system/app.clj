@@ -1,6 +1,7 @@
 (ns system.app
   (:require [clojure.core.async :refer [<! >! put! close! go-loop]]
             [pylos.board :refer :all]
+            [pylos.game :refer :all]
             [ring.middleware.defaults :refer [site-defaults]]
             [system.system :refer [system]]
             [compojure.core :refer [routes GET ANY]]
@@ -21,7 +22,11 @@
     frontend-board))
 
 (defn send-board [chsk user-id board]
-  ((:chsk-send! chsk) :sente/all-users-without-uid [:pylos/board (transform-board board)]))
+  ((:chsk-send! chsk) :sente/all-users-without-uid
+                      [:pylos/board
+                       {:board (transform-board board)
+                        :balls-remaining {:white (balls-remaining board :white)
+                                          :black (balls-remaining board :black)}}]))
 
 (defn create-broadcast-game [chsk]
   (defn broadcast-game [{{:keys [board player outcome]} :game-position, last-move :last-move, additional-infos :additional-infos, time :time :as play}]

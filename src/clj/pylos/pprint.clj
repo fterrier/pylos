@@ -1,7 +1,7 @@
 (ns pylos.pprint
   (:require [io.aviso.ansi :refer :all]
             [pylos.board :refer :all]
-            [pylos.game :refer [can-remove-ball balls-on-board]]
+            [pylos.game :refer [can-remove-ball balls-remaining]]
             [clojure.string :as str]
             [clojure.pprint :as pprint]))
 
@@ -25,7 +25,7 @@
                   :open   (if bold? (inverse "o") "o")
                   "") " "))))
 
-(defn print-board 
+(defn print-board
   ([board last-move]
    (println)
    (doseq [row (range 1 (+ 1 (size board)))]
@@ -56,16 +56,15 @@
       (println "Initial board")
       (println "====================")))
   (print-board board last-move)
-  (let [number-of-balls (/ (number-of-positions board) 2)]
-    (println "Balls remaining :")
-    (println " - :white" (- number-of-balls (count (balls-on-board board :white))))
-    (println " - :black" (- number-of-balls (count (balls-on-board board :black)))))
+  (println "Balls remaining :")
+  (println " - :white" (balls-remaining board :white))
+  (println " - :black" (balls-remaining board :white))
   (println)
-  (when additional-infos 
-    (pprint/pprint additional-infos)    
+  (when additional-infos
+    (pprint/pprint additional-infos)
     ; (println "Calculated moves per ms: " (double (/ (:calculated-moves (:stats additional-infos)) time-ms)))
     (println))
-  (if outcome 
+  (if outcome
     (println "We have a winner:" outcome)
     (println "Next move is for" player))
   (println))
