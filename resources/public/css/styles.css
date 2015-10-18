@@ -58,6 +58,7 @@ body {
 	padding: 10px;
 	background-color: lightgrey;
 	float: left;
+	pointer-events: none;
 }
 
 .pylos-layer {
@@ -80,6 +81,11 @@ body {
 	border: 0px solid gray;
 }
 
+.pylos-cell-open svg circle {
+	pointer-events: all;
+	cursor: pointer;
+}
+
 .pylos-cell svg circle {
 	stroke: gray;
 	stroke-width: 1;
@@ -89,11 +95,13 @@ body {
 .pylos-cell-black svg circle {
 	stroke: white;
 	fill: black;
+	stroke-width: 2;
 }
 
 .pylos-cell-white svg circle {
 	stroke: black;
 	fill: white;
+	stroke-width: 2;
 }
 
 .pylos-cell svg circle:hover {

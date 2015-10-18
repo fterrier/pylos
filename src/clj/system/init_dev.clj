@@ -16,7 +16,8 @@
                                 ; :app-server (jetty-server {:app {:handler handler}, :port 3000})
                                 :figwheel   (map->Figwheel figwheel-config)
                                 :websockets (new-channel-sockets event-msg-handler sente-web-server-adapter)
-                                :web-server (new-web-server 8080 pylos-app)))))
+                                ;:web-server (new-web-server 8080 pylos-app)
+                                ))))
 
 (defn start []
   (alter-var-root #'system component/start))

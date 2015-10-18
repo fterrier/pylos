@@ -43,7 +43,8 @@
   (let [{:keys [chsk ch-recv send-fn state]}
         (sente/make-channel-socket! "/chsk" ; Note the same path as before
                                     {:type :auto ; e/o #{:auto :ajax :ws}
-                                     :host "localhost:8080"})]
+                                     ;:host "localhost:8080"
+                                     })]
     (swap! app-state #(assoc % :chsk chsk))
     ; (swap! app-state #(assoc % :ch-chsk ch-recv))
     (swap! app-state #(assoc % :chsk-send! send-fn))
