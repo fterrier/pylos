@@ -16,8 +16,8 @@
   (stop [component]
     (when server (server) component)))
 
-(def allowed-opts
-  [:ip :port :thread :worker-name-prefix :queue-size :max-body :max-line])
+; (def allowed-opts
+;   [:ip :port :thread :worker-name-prefix :queue-size :max-body :max-line])
 
 (defn new-web-server
   ([port] (map->WebServer {:options {:port port}}))

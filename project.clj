@@ -14,7 +14,10 @@
                  [org.omcljs/om "0.9.0"]
                  [prismatic/om-tools "0.3.12"]
                  [com.stuartsierra/component "0.3.0"]
-                 [http-kit "2.1.18"]]
+                 [http-kit "2.1.18"]
+                 [compojure "1.4.0"]
+                 [com.taoensso/sente "1.6.0"]
+                 [ring/ring-defaults "0.1.5"]]
   :repl-options {:port 7888
                  :init (do (require 'clj-stacktrace.repl))
                  :caught clj-stacktrace.repl/pst+}
