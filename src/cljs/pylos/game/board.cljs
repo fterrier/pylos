@@ -9,6 +9,8 @@
   (name cell))
 
 (defn indexed-vector [m attrs]
+  "[a b c] []    -> [[[0]     a] [[1]     b] [[2]     c]]
+   [a b c] [1 2] -> [[[1 2 0] a] [[1 2 1] b] [[1 2 2] c]]"
   (map-indexed (fn [idx item] [(conj attrs idx) item]) m))
 
 (defcomponent cell-comp [[position cell] owner]
