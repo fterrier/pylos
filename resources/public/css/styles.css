@@ -62,13 +62,16 @@ body {
 
 .pylos-layer {
 	position: relative;
-	display: flex;
 }
 
 .pylos-layer .pylos-layer {
 	position: absolute;
 	top: 50px;
 	left: 50px;
+}
+
+.pylos-row {
+	display: flex;
 }
 
 .pylos-cell {
