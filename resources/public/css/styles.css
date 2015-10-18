@@ -40,3 +40,71 @@ body {
 	display: inline;
 	margin-right: 10px;
 }
+
+.clearfix:after {
+	visibility: hidden;
+	display: block;
+	font-size: 0;
+	content: " ";
+	clear: both;
+	height: 0;
+}
+
+.pylos {
+	padding: 10px;
+}
+
+.pylos-board {
+	padding: 10px;
+	background-color: lightgrey;
+	float: left;
+}
+
+.pylos-layer {
+	position: relative;
+	display: flex;
+}
+
+.pylos-layer .pylos-layer {
+	position: absolute;
+	top: 50px;
+	left: 50px;
+}
+
+.pylos-cell {
+	width: 100px;
+	height: 100px;
+	border: 0px solid gray;
+}
+
+.pylos-cell svg circle {
+	stroke: gray;
+	stroke-width: 1;
+	fill: transparent;
+}
+
+.pylos-cell-black svg circle {
+	stroke: black;
+	fill: black;
+}
+
+.pylos-cell-white svg circle {
+	stroke: white;
+	fill: white;
+}
+
+.pylos-cell svg circle:hover {
+	stroke-width: 3;
+}
+
+.pylos-cell-black svg circle:hover {
+	stroke: #222222;
+}
+
+.pylos-cell-white svg circle:hover {
+	stroke: #DDDDDD;
+}
+
+.pylos-cell-no-acc {
+	display: none;
+}
