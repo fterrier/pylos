@@ -28,7 +28,3 @@
    (map->ChannelSockets {:server-adapter server-adapter
                          :event-msg-handler event-msg-handler
                          :options options})))
-
-
-(defn broadcast [chsk]
-  ((:chsk-send! chsk) :sente/all-users-without-uid [:my-event/event "test"]))

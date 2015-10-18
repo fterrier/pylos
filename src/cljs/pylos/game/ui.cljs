@@ -19,9 +19,25 @@
   ; (put! ws-ch (str "Action: " control))
   (println control)))
 
-(defn event-msg-handler [test]
-  (println "got event")
-  )
+(defmulti handle-event-msg (fn [v] (get v 0)))
+
+(defmethod handle-event-msg :pylos/board [[id board]]
+  (swap! app-state #(assoc % :board board)))
+
+(defmulti event-msg-handler :id)
+
+(defmethod event-msg-handler :default ; Fallback
+  [{:as ev-msg :keys [event]}]
+  (println "Unhandled event: %s" event))
+
+(defmethod event-msg-handler :chsk/recv
+  [{:as ev-msg :keys [?data]}]
+  (println "Push event from server: %s" ?data)
+  (handle-event-msg ?data))
+
+(defn event-msg-handler* [{:as ev-msg :keys [id ?data event]}]
+  (println "Event: %s" event)
+  (event-msg-handler ev-msg))
 
 (defn init-server-connection []
   (let [{:keys [chsk ch-recv send-fn state]}
@@ -32,7 +48,7 @@
     ; (swap! app-state #(assoc % :ch-chsk ch-recv))
     (swap! app-state #(assoc % :chsk-send! send-fn))
     (swap! app-state #(assoc % :chsk-state state))
-    (swap! app-state #(assoc % :router (sente/start-chsk-router! ch-recv event-msg-handler)))))
+    (swap! app-state #(assoc % :router (sente/start-chsk-router! ch-recv event-msg-handler*)))))
 
 (defn main []
   (init-server-connection)

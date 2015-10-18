@@ -87,12 +87,12 @@ body {
 }
 
 .pylos-cell-black svg circle {
-	stroke: black;
+	stroke: white;
 	fill: black;
 }
 
 .pylos-cell-white svg circle {
-	stroke: white;
+	stroke: black;
 	fill: white;
 }
 
@@ -109,5 +109,5 @@ body {
 }
 
 .pylos-cell-no-acc {
-	display: none;
+	visibility: hidden;
 }
