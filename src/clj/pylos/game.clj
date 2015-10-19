@@ -35,6 +35,8 @@
 (defn removable-balls [board position]
   "Gives all balls that can be removed assuming the given position is filled."
   (let [removable-positions   (:removable-positions (meta board))
+        ; we re-add the given position since it can be removed
+        removable-positions   (conj removable-positions position)
         square-position-below (square-position-below board position)]
     (if (nil? square-position-below)
       removable-positions
@@ -52,9 +54,11 @@
 (defn removable-candidates
   "Gives all the candidates on the board that can be removed,
   assuming the given position would be filled by the given color on the board."
-  [board color position]
-  (let [removable-balls (removable-balls board position)]
-    (into #{} (filter #(contains? removable-balls %) (balls-on-board board color)))))
+  [board color position-with-ball]
+  (let [removable-balls (removable-balls board position-with-ball)
+        removable-balls (into #{} (filter #(contains? removable-balls %) (balls-on-board board color)))]
+    ; we conj the given position since it can be removed
+    (conj removable-balls position-with-ball)))
 
 (defn change-cell
   ([board position new-cell]
@@ -178,14 +182,15 @@
   of the same color as player.
   Assumes the given move has not been generated on the given board."
   (if-not (has-new-full-square board position color) [move]
-    (let [removable-balls (removable-candidates board color position)
+    (let [removable-balls              (removable-candidates board color position)
+          removable-balls              (if (= :rise type) (disj removable-balls (:low-position move)) removable-balls) ; we remove the low position if rise
+          moves-with-one-ball-removed  (map (fn [position] (move-square move [position])) removable-balls)
+
+          combinations                 (combo/combinations removable-balls 2)
+          moves-with-two-balls-removed (map (fn [positions] (move-square move positions)) combinations)
           ; (output (play-negamax 4 :white 3)) to reproduce bug in this function
-          test (println removable-balls)
-          ; we remove the low position if it is a rise
-          removable-balls (if (= :rise type) (disj removable-balls (:low-position move)) removable-balls)
-          combinations    (combo/combinations removable-balls 2)]
-      (concat (map (fn [positions] (move-square move positions)) combinations)
-              (map (fn [position] (move-square move [position])) removable-balls)))))
+          test (println removable-balls)]
+      (concat moves-with-two-balls-removed moves-with-one-ball-removed))))
 
 (defn calculate-next-move [{:keys [board player]} position]
   (println board position)

@@ -6,9 +6,9 @@
 
 (deftest position-opens-test
   (testing "Square opens layer above"
-    (let [four-test (-> four 
-                        (add-ball :black (ind four [1 1 1])) 
-                        (add-ball :white (ind four [1 2 1])) 
+    (let [four-test (-> four
+                        (add-ball :black (ind four [1 1 1]))
+                        (add-ball :white (ind four [1 2 1]))
                         (add-ball :black (ind four [1 1 2]))
                         (add-ball :black (ind four [1 2 2])))]
       (is (= :open (cell four-test (ind four [2 1 1])))))))
@@ -27,8 +27,8 @@
     (is (can-remove-ball two-layers-test (ind four [1 4 1])))
     (is (can-remove-ball full-board-test (ind four [3 2 2])))
     (is (can-remove-ball full-board-test (ind four [3 1 1])))
-    (is (can-remove-ball (-> four-square-test 
-                             (add-ball :white (ind four [2 1 1])) 
+    (is (can-remove-ball (-> four-square-test
+                             (add-ball :white (ind four [2 1 1]))
                              (remove-ball :white (ind four [2 1 1]))) (ind four [1 1 1])))))
 
 ; (deftest can-rise
@@ -39,6 +39,12 @@
   (testing "Removable candidates"
     (is (= #{(ind four [1 4 1]) (ind four [2 1 2]) (ind four [2 2 2])} (removable-candidates two-layers-test :black)))
     (is (= #{(ind four [2 1 1]) (ind four [2 2 1])} (removable-candidates two-layers-test :white)))))
+
+(deftest calculate-next-move-test
+  (testing "Next move"
+    (is (= [{:type :square :color :white :original-move {:type :add :color :white :position (ind four [2 1 3])} :positions #{(ind four [2 1 3])}}
+            {:type :square :color :white :original-move {:type :add :color :white :position (ind four [2 1 3])} :positions #{(ind four [2 1 3]) (ind four [1 1 4])}}]
+           (calculate-next-move {:player :white :board square-level2-test} (ind four [2 1 3]))))))
 
 (defn equal-with-meta [a b]
   (and (= a b)
@@ -80,19 +86,19 @@
 
 ; (deftest is-full-square-test
 ;   (testing "Is full square"
-;     (is (is-full-square (-> four 
-;                             (add-ball :white (ind four [1 1 1])) 
+;     (is (is-full-square (-> four
+;                             (add-ball :white (ind four [1 1 1]))
 ;                             (add-ball :white (ind four [1 1 2]))
-;                             (add-ball :white (ind four [1 2 1])) 
+;                             (add-ball :white (ind four [1 2 1]))
 ;                             (add-ball :white (ind four [1 2 2]))) (ind four [1 1 1]) :white))
-;     (is (false? (is-full-square (-> four 
-;                                     (add-ball :white (ind four [1 1 1])) 
+;     (is (false? (is-full-square (-> four
+;                                     (add-ball :white (ind four [1 1 1]))
 ;                                     (add-ball :white (ind four [1 1 2]))
-;                                     (add-ball :white (ind four [1 2 1])) 
+;                                     (add-ball :white (ind four [1 2 1]))
 ;                                     (add-ball :black (ind four [1 2 2]))) (ind four [1 1 1]) :white)))))
 
 
-(deftest has-new-full-square-test 
+(deftest has-new-full-square-test
   (testing "Has new full square"
     (is (has-new-full-square (add-ball four-square-test :white [1 3 2]) [1 3 1] :white))
     (is (false? (has-new-full-square (add-ball four-square-test :white [1 3 2]) [1 3 1] :black)))
@@ -102,7 +108,7 @@
 
 (deftest board-move-map-test
   (testing "All board-move-map test"
-    (is (= (into #{} [(move-add two-layers-test :black (ind four [1 1 4]))
+    (is (= (into #{} [(move-add :black (ind four [1 1 4]))
             (move-add two-layers-test :black (ind four [1 2 4]))
             (move-add two-layers-test :black (ind four [1 3 4]))
             (move-add two-layers-test :black (ind four [1 4 2]))
@@ -110,7 +116,7 @@
             (move-add two-layers-test :black (ind four [1 4 4]))
             (move-add two-layers-test :black (ind four [3 1 1]))
             (move-rise two-layers-test :black (ind four [1 4 1]) (ind four [3 1 1]))]) (into #{} (generate-all-moves {:board two-layers-test :player :black}))))
-    (is (= (into #{} (let [original-move (move-add full-board-square-top :white (ind four [3 2 2]))]
+    (is (= (into #{} (let [original-move (move-add :white (ind four [3 2 2]))]
                        [(move-square original-move [(ind four [3 1 1])])
                         (move-square original-move [(ind four [3 1 2])])
                         (move-square original-move [(ind four [3 2 1])])
@@ -122,4 +128,3 @@
                         (move-square original-move [(ind four [3 1 2]) (ind four [3 2 2])])
                         (move-square original-move [(ind four [3 2 1]) (ind four [3 2 2])])]))
            (into #{} (generate-all-moves {:board full-board-square-top :player :white}))))))
-
