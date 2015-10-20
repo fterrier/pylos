@@ -37,13 +37,13 @@
 
 (deftest removable-candidates-test
   (testing "Removable candidates"
-    (is (= #{(ind four [1 4 1]) (ind four [2 1 2]) (ind four [2 2 2])} (removable-candidates two-layers-test :black)))
-    (is (= #{(ind four [2 1 1]) (ind four [2 2 1])} (removable-candidates two-layers-test :white)))))
+    (is (= #{(ind four [1 4 1]) (ind four [2 1 2]) (ind four [2 2 2]) (ind four [1 4 2])} (removable-candidates two-layers-test :black (ind four [1 4 2]))))
+    (is (= #{(ind four [2 1 1]) (ind four [2 2 1]) (ind four [1 4 2])} (removable-candidates two-layers-test :white (ind four [1 4 2]))))))
 
 (deftest calculate-next-move-test
   (testing "Next move"
-    (is (= [{:type :square :color :white :original-move {:type :add :color :white :position (ind four [2 1 3])} :positions #{(ind four [2 1 3])}}
-            {:type :square :color :white :original-move {:type :add :color :white :position (ind four [2 1 3])} :positions #{(ind four [2 1 3]) (ind four [1 1 4])}}]
+    (is (= [{:type :square :color :white :original-move {:type :add :color :white :position (ind four [2 1 3])} :positions #{(ind four [2 1 3]) (ind four [1 1 4])}}
+            {:type :square :color :white :original-move {:type :add :color :white :position (ind four [2 1 3])} :positions #{(ind four [2 1 3])}}]
            (calculate-next-move {:player :white :board square-level2-test} (ind four [2 1 3]))))))
 
 (defn equal-with-meta [a b]
@@ -100,22 +100,23 @@
 
 (deftest has-new-full-square-test
   (testing "Has new full square"
-    (is (has-new-full-square (add-ball four-square-test :white [1 3 2]) [1 3 1] :white))
-    (is (false? (has-new-full-square (add-ball four-square-test :white [1 3 2]) [1 3 1] :black)))
-    (is (has-new-full-square (add-ball four-square-test :white [1 3 2]) [1 3 3] :white))
-    (is (false? (has-new-full-square (add-ball four-square-test :white [1 3 2]) [1 3 3] :black)))
-    (is (false? (has-new-full-square (add-ball four-square-test :white [1 3 2]) [1 3 4] :white)))))
+    (is (false? (has-new-full-square (-> four (add-ball :white (ind four [1 1 2])) (add-ball :white (ind four [1 2 1])) (add-ball :black (ind four [1 2 2]))) (ind four [1 1 1]) :white)))
+    (is (has-new-full-square (add-ball four-square-test :white (ind four [1 3 2])) (ind four [1 3 1]) :white))
+    (is (false? (has-new-full-square (add-ball four-square-test :white (ind four [1 3 2])) (ind four [1 3 1]) :black)))
+    (is (has-new-full-square (add-ball four-square-test :white (ind four [1 3 2])) (ind four [1 3 3]) :white))
+    (is (false? (has-new-full-square (add-ball four-square-test :white (ind four [1 3 2])) (ind four [1 3 3]) :black)))
+    (is (false? (has-new-full-square (add-ball four-square-test :white (ind four [1 3 2])) (ind four [1 3 4]) :white)))))
 
 (deftest board-move-map-test
   (testing "All board-move-map test"
     (is (= (into #{} [(move-add :black (ind four [1 1 4]))
-            (move-add two-layers-test :black (ind four [1 2 4]))
-            (move-add two-layers-test :black (ind four [1 3 4]))
-            (move-add two-layers-test :black (ind four [1 4 2]))
-            (move-add two-layers-test :black (ind four [1 4 3]))
-            (move-add two-layers-test :black (ind four [1 4 4]))
-            (move-add two-layers-test :black (ind four [3 1 1]))
-            (move-rise two-layers-test :black (ind four [1 4 1]) (ind four [3 1 1]))]) (into #{} (generate-all-moves {:board two-layers-test :player :black}))))
+            (move-add :black (ind four [1 2 4]))
+            (move-add :black (ind four [1 3 4]))
+            (move-add :black (ind four [1 4 2]))
+            (move-add :black (ind four [1 4 3]))
+            (move-add :black (ind four [1 4 4]))
+            (move-add :black (ind four [3 1 1]))
+            (move-rise :black (ind four [1 4 1]) (ind four [3 1 1]))]) (into #{} (generate-all-moves {:board two-layers-test :player :black}))))
     (is (= (into #{} (let [original-move (move-add :white (ind four [3 2 2]))]
                        [(move-square original-move [(ind four [3 1 1])])
                         (move-square original-move [(ind four [3 1 2])])

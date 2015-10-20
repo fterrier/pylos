@@ -60,7 +60,7 @@
 (defcomponent board-comp [_ owner]
   (render [_]
           (let [game-infos      (om/observe owner (game-infos))
-                next-player     (:next-player game-infos)
+                next-player     (or (:next-player game-infos) :white)
                 board           (:board game-infos)
                 balls-remaining (:balls-remaining game-infos)]
             (println "Rendering board" board)

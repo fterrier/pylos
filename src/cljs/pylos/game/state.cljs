@@ -23,4 +23,4 @@
 
 ; mutate state
 (defn app-change-cell [position new-cell]
-  (swap! app-state (fn [state] (update-in state [:board :game-infos] #(change-cell % position new-cell)))))
+  (swap! app-state (fn [state] (update-in state [:game-infos :board] #(change-cell % position new-cell)))))
