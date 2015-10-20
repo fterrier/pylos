@@ -6,6 +6,7 @@
   :jvm-opts ["-Xmx4G"]
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [io.aviso/pretty "0.1.18"]
+                 [org.clojure/math.numeric-tower "0.0.4"]
                  [com.taoensso/timbre "4.1.1"]
                  [clj-stacktrace "0.2.8"]
                  [org.clojure/clojurescript "1.7.122"]
