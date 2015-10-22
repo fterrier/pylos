@@ -74,7 +74,8 @@
 
 (defcomponent additional-infos-comp [additional-infos owner]
   (render [_]
-          (dom/pre (om/build-all additional-infos-iteration-comp additional-infos))))
+          (dom/div
+           (om/build-all additional-infos-iteration-comp additional-infos))))
 
 (defcomponent board-comp [_ owner]
   (render [_]
@@ -92,7 +93,8 @@
                               (dom/div {:class "pylos-remaining-balls clearfix"}
                                        (om/build balls-remaining-comp [:white (:white balls-remaining) next-player])
                                        (om/build balls-remaining-comp [:black (:black balls-remaining) next-player])))
-                     (dom/div {:class "infos clearfix"}
+                     (dom/pre {:class "infos clearfix"}
+                              (dom/div "Last move: " (name (:color (:move game-infos))))
                               (dom/div (str "Time: " (gstring/format "%.2fs" (/ (:time game-infos) 1000000))))
                               (om/build additional-infos-comp (:additional-infos game-infos)))
                      (dom/div {:class "board"}
