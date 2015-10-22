@@ -21,21 +21,24 @@
                                                         (cell board (ind board [(inc layer) (inc row) (inc col)]))))))))]
     frontend-board))
 
-(defn send-game-infos [chsk user-id board player]
+(defn send-game-infos [chsk user-id board player move additional-infos time]
   ((:chsk-send! chsk) :sente/all-users-without-uid
                       [:pylos/game-infos
                        {:board (transform-board board)
                         :balls-remaining {:white (balls-remaining board :white)
                                           :black (balls-remaining board :black)}
-                        :next-player player}]))
+                        :next-player player
+                        :move move
+                        :time time
+                        :additional-infos additional-infos}]))
 
 (defn create-broadcast-game [chsk]
   (defn broadcast-game [{{:keys [board player outcome]} :game-position, last-move :last-move, additional-infos :additional-infos, time :time :as play}]
-    (send-game-infos chsk nil board player)))
+    (send-game-infos chsk nil board player last-move additional-infos time)))
 
 (defn event-msg-handler [test]
-  (println "GOT EVENT")
-  (println test))
+  ;(println "TODO got event")
+  )
 
 (defroutes pylos-routes
   ;;

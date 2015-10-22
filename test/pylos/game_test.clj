@@ -44,7 +44,7 @@
   (testing "Next move"
     (is (= [{:type :square :color :white :original-move {:type :add :color :white :position (ind four [2 1 3])} :positions #{(ind four [2 1 3]) (ind four [1 1 4])}}
             {:type :square :color :white :original-move {:type :add :color :white :position (ind four [2 1 3])} :positions #{(ind four [2 1 3])}}]
-           (calculate-next-move {:player :white :board square-level2-test} (ind four [2 1 3]))))))
+           (calculate-next-moves {:player :white :board square-level2-test} (ind four [2 1 3]))))))
 
 (defn equal-with-meta [a b]
   (and (= a b)

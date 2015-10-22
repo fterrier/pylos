@@ -3,7 +3,9 @@
             [om.core :as om]
             [om-tools.core :refer-macros [defcomponent]]
             [om-tools.dom :as dom :include-macros true]
-            [pylos.game.state :refer [game-infos]]))
+            [goog.string :as gstring]
+            [pylos.game.state :refer [game-infos current-index]]
+            [pylos.game.util :refer [circle]]))
 
 (defn indexed-vector [m attrs]
   "[a b c] []    -> [[[0]     a] [[1]     b] [[2]     c]]
@@ -25,13 +27,9 @@
   (render [_]
           (dom/table {:class (str "board-layer layer-" layer)} (om/build-all row-comp (indexed-vector rows position)))))
 
-(defn circle []
-  (dom/svg {:width 100 :height 100}
-           (dom/circle {:cx 50 :cy 50 :r 47})))
-
 (defcomponent hurmpf-cell-comp [[[layer row col :as position] cell] owner]
   (render [_]
-          (dom/div {:class (str "pylos-cell col-" col " pylos-cell-" (name cell) " position-" layer "-" row "-" col)
+          (dom/div {:class (str "circle col-" col " circle-" (name cell) " position-" layer "-" row "-" col)
                     :data-position (str layer " " row " " col)}
                    (circle))))
 
@@ -53,13 +51,36 @@
           (dom/div {:class (str "pylos-remaining-balls-color pylos-remaining-balls-" (name color))}
                    (dom/span {:class (str "pylos-remaining-balls-label " (name next-player))} (if (= next-player color)  "PLAY" "WAIT"))
            (for [i (range 0 remaining-balls)]
-             (dom/div {:class (str "pylos-cell pylos-cell-" (name color))}
-                      (dom/div {:class "pylos-cell-content"} (inc i))
+             (dom/div {:class (str "circle circle-" (name color))}
+                      (dom/div {:class "circle-content"} (inc i))
                       (circle))))))
+
+(defcomponent additional-infos-iteration-comp [iteration owner]
+  (render [_]
+          (dom/div {:class "infos-move-stats-iteration"}
+            (dom/table
+              (dom/tr
+               (dom/td {:class "infos-move-stats-left"}
+                (dom/div "Depth " (:depth iteration))
+                (dom/table {:class "infos-move-stats"}
+                          (dom/tr (dom/td " - lookup: ") (dom/td (:lookup-moves (:stats iteration))))
+                          (dom/tr (dom/td " - calculated: ") (dom/td (:calculated-moves (:stats iteration))))
+                          (dom/tr (dom/td " - total: ") (dom/td (:total-moves (:stats iteration))))))
+               (dom/td
+                (dom/div "Time at depth: " (gstring/format "%.2fms" (:time iteration)))
+                (dom/div "Moves per ms: " (gstring/format "%.1f" (:moves-per-ms iteration)))
+                (dom/div "Best score: " (gstring/format "%.4f" (:best-possible-score (:negamax-values iteration))))
+                (when (:outcome (:negamax-values iteration)) (dom/div "Winner: " (name (:outcome (:negamax-values iteration)))))))))))
+
+(defcomponent additional-infos-comp [additional-infos owner]
+  (render [_]
+          (dom/pre (om/build-all additional-infos-iteration-comp additional-infos))))
 
 (defcomponent board-comp [_ owner]
   (render [_]
-          (let [game-infos      (om/observe owner (game-infos))
+          (let [all-game-infos  (om/observe owner (game-infos))
+                current-index   (om/observe owner (current-index))
+                game-infos      (if (empty? current-index) (last all-game-infos) (get all-game-infos (current-index 0)) )
                 next-player     (or (:next-player game-infos) :white)
                 board           (:board game-infos)
                 balls-remaining (:balls-remaining game-infos)]
@@ -71,5 +92,8 @@
                               (dom/div {:class "pylos-remaining-balls clearfix"}
                                        (om/build balls-remaining-comp [:white (:white balls-remaining) next-player])
                                        (om/build balls-remaining-comp [:black (:black balls-remaining) next-player])))
+                     (dom/div {:class "infos clearfix"}
+                              (dom/div (str "Time: " (gstring/format "%.2fs" (/ (:time game-infos) 1000000))))
+                              (om/build additional-infos-comp (:additional-infos game-infos)))
                      (dom/div {:class "board"}
                               (om/build-all layer-comp (indexed-vector board [])))))))

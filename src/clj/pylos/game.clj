@@ -113,7 +113,6 @@
                                              (square-corners board position-below)) [])]
     new-removable-positions))
 
-; TODO merge this with the one above, could make it faster to check first the color
 (defn removable-positions-of-color-below [board position color]
   (let [removable-positions-below (removable-positions-below board position)
         balls-of-color            (balls-on-board board color)]
@@ -189,11 +188,10 @@
 (defn all-tails [col]
   (map reverse (remove empty? (reductions conj [] col))))
 
-(defn remove-balls-if-whole-square [{:keys [position type] :as move} board color]
-  "Generates all possible ball removal possibilities if there is a square
-  of the same color as player.
+(defn remove-balls-when-square [{:keys [position type] :as move} board color]
+  "Generates all possible ball removal possibilities given taht there is a square
+  of the same color as player at the given position
   Assumes the given move has not been generated on the given board."
-  (if-not (has-new-full-square board position color) [move]
     (let [removable-balls              (removable-candidates board color position)
           removable-balls              (if (= :rise type) (disj removable-balls (:low-position move)) removable-balls) ; we remove the low position if rise
           moves-with-one-ball-removed  (map (fn [position] (move-square move [position])) removable-balls)
@@ -202,14 +200,17 @@
                                                        new-removable-balls (apply conj new-removable-balls (removable-positions-of-color-below board position color))]
                                                    (map (fn [second-position]
                                                           (move-square move [position second-position])) new-removable-balls))) (all-tails removable-balls))]
-      (concat moves-with-two-balls-removed moves-with-one-ball-removed))))
+      (concat moves-with-two-balls-removed moves-with-one-ball-removed)))
 
-(defn calculate-next-move [{:keys [board player]} position]
-  (let [move-with-ball-added  (move-add player position)
-        moves-with-ball-risen (map #(move-rise player % position)
-                                   (removable-candidates-under-position board player position))
-        next-move             (mapcat #(remove-balls-if-whole-square % board player) (conj moves-with-ball-risen move-with-ball-added))]
-    next-move))
+(defn calculate-next-moves [{:keys [board player]} empty-position]
+  (let [move-with-ball-added  (move-add player empty-position)
+        moves-with-ball-risen (map #(move-rise player % empty-position)
+                                   (removable-candidates-under-position board player empty-position))
+        next-moves            (reduce (fn [all-moves {:keys [position type] :as move}]
+                                        (if-not (has-new-full-square board position player) (conj all-moves move)
+                                                             (concat all-moves (remove-balls-when-square move board player))))
+                                      [] (conj moves-with-ball-risen move-with-ball-added))]
+    next-moves))
 
 ; (defn best-order [board]
 ;   (let [empty-positions            (empty-positions board)
@@ -247,7 +248,7 @@
   (sort (compare-moves board) moves))
 
 (defn generate-all-moves [game-position]
-  (mapcat #(calculate-next-move game-position %) (empty-positions (:board game-position))))
+  (mapcat #(calculate-next-moves game-position %) (empty-positions (:board game-position))))
 
 (defn game-over? [board]
   (or (not (has-balls-to-play board :white))

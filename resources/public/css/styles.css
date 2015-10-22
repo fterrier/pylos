@@ -1,5 +1,4 @@
 body {
-	font-size: 24px;
 	font-family: "Helvetica Neue" "arial";
 }
 
@@ -52,14 +51,19 @@ body {
 }
 
 .pylos {
+	font-size: 24px;
 	padding: 10px;
+	float: left;
+
+	margin-right: 50px;
 }
 
 .pylos-board {
 	padding: 10px;
 	background-color: lightgrey;
-	float: left;
+	display: inline-block;
 	pointer-events: none;
+	margin-bottom: 10px;
 }
 
 .pylos-layer {
@@ -76,55 +80,8 @@ body {
 	display: flex;
 }
 
-.pylos-cell {
-	position: relative;
-	width: 100px;
-	height: 100px;
-	border: 0px solid gray;
-}
-
-.pylos-cell-open svg circle {
-	pointer-events: all;
-	cursor: pointer;
-}
-
-.pylos-cell svg circle {
-	stroke: gray;
-	stroke-width: 1;
-	fill: transparent;
-}
-
-.pylos-cell-black svg circle {
-	stroke: white;
-	fill: black;
-	stroke-width: 2;
-}
-
-.pylos-cell-white svg circle {
-	stroke: black;
-	fill: white;
-	stroke-width: 2;
-}
-
-.pylos-cell svg circle:hover {
-	stroke-width: 3;
-}
-
-.pylos-cell-black svg circle:hover {
-	stroke: #222222;
-}
-
-.pylos-cell-white svg circle:hover {
-	stroke: #DDDDDD;
-}
-
-.pylos-cell-no-acc {
-	visibility: hidden;
-}
-
 .pylos-remaining-balls-color {
 	display: flex;
-	float: left;
 	clear: both;
 	line-height: 100px;
 }
@@ -132,20 +89,8 @@ body {
 .pylos-remaining-balls-label {
 	width: 100px;
 }
-.pylos-remaining-balls-color .pylos-cell {
+.pylos-remaining-balls-color .circle {
 	margin-right: -80px;
-}
-
-.pylos-cell-content {
-	position: absolute;
-	text-align: center;
-	width: 100%;
-	left: 0;
-	top: 0;
-}
-
-.pylos-cell-black {
-	color: white;
 }
 
 .pylos-remaining-balls-white .black {
@@ -154,4 +99,116 @@ body {
 
 .pylos-remaining-balls-black .white {
 	opacity: 0.2;
+}
+
+.circle {
+	position: relative;
+	width: 100px;
+	height: 100px;
+	border: 0px solid gray;
+}
+
+.circle-open svg circle {
+	pointer-events: all;
+	cursor: pointer;
+}
+
+.circle svg circle {
+	stroke: gray;
+	stroke-width: 1;
+	fill: transparent;
+}
+
+.circle-black svg circle {
+	stroke: white;
+	fill: black;
+	stroke-width: 2;
+}
+
+.circle-white svg circle {
+	stroke: black;
+	fill: white;
+	stroke-width: 2;
+}
+
+.circle svg circle:hover {
+	stroke-width: 3;
+}
+
+.circle-black svg circle:hover {
+	stroke: #222222;
+}
+
+.circle-white svg circle:hover {
+	stroke: #DDDDDD;
+}
+
+.circle-no-acc {
+	visibility: hidden;
+}
+
+.circle-black {
+	color: white;
+}
+
+.circle-content {
+	position: absolute;
+	text-align: center;
+	width: 100%;
+	left: 0;
+	top: 0;
+}
+
+.history {
+	font-size: 10px;
+	line-height: 20px;
+}
+
+.history-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.history-list .circle {
+	width: 20px;
+	height: 20px;
+	margin: 2px;
+	float: left;
+	/* fix this shiet */
+	cursor: pointer;
+}
+
+.history-list .circle svg circle {
+	stroke-width: 1;
+}
+
+.history-move-1 {
+	opacity: 0.2;
+}
+
+.infos {
+	display: float;
+	/*margin-right: 10px;*/
+}
+
+.infos-move-stats {
+	border-spacing: 0;
+	margin-left: 10px;
+}
+
+.infos-move-stats td:last-child {
+	text-align: right;
+}
+
+.infos td {
+	vertical-align: top;
+}
+
+.infos-move-stats-iteration {
+	padding-bottom: 4px;
+}
+
+.infos-move-stats-left {
+	width: 220px;
 }
