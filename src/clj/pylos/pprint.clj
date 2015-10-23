@@ -61,7 +61,7 @@
   (println " - :black" (balls-remaining board :white))
   (println)
   (when additional-infos
-    (pprint/pprint additional-infos)
+    ; (pprint/pprint additional-infos)
     ; (println "Calculated moves per ms: " (double (/ (:calculated-moves (:stats additional-infos)) time-ms)))
     (println))
   (if outcome

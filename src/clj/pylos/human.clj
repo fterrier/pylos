@@ -7,7 +7,7 @@
 (defn to-int [array]
   (into [] (map #(try (Integer/parseInt %) (catch Exception e -1)) array)))
 
-(defn ask-for-position 
+(defn ask-for-position
   ([board text allow-enter]
    (println text)
    (let [position-string (read-line)]
@@ -25,17 +25,18 @@
   (let [position (ask-for-position board "Please enter a valid position [layer row col]")]
     (if (has-ball board position)
       (if (not (can-remove-position? board player position))
-        (do 
+        (do
           (println "That ball cannot be removed")
           (recur game-position))
         (let [high-position (ask-for-position board "Please enter a position for rise [layer row col]")]
-          (if (not (can-remove-position? (add-ball board player high-position) player position))
-            (do 
+          (if (not (and (can-remove-position? (add-ball board player high-position) player position)
+                        (contains? (positions-under-position board high-position) position)))
+            (do
               (println "Invalid move, we start again")
               (recur game-position))
             (move-rise player position high-position))))
       (if (not (can-add? board player position))
-        (do 
+        (do
           (println "Invalid move, we start again")
           (recur game-position))
         (move-add player position)))))
@@ -46,25 +47,25 @@
       original-move
       (if (= 2 number-of-balls-removed)
         (move-square original-move balls-removed)
-        (let [position-to-remove (ask-for-position 
-                                   board 
-                                   (str "Please enter a ball to remove [layer row col]" 
+        (let [position-to-remove (ask-for-position
+                                   board
+                                   (str "Please enter a ball to remove [layer row col]"
                                         (if (not= 0 number-of-balls-removed) " or <enter> to finish" ""))
                                    (not= 0 number-of-balls-removed))]
           (if (nil? position-to-remove)
             (move-square original-move balls-removed)
             (if (not (can-remove-position? new-board player position-to-remove))
-              (do 
+              (do
                 (println "Cannot remove that ball")
                 (recur game-position original-move balls-removed new-board))
-              (ask-human-to-remove-balls game-position original-move 
-                                         (conj balls-removed position-to-remove) 
+              (ask-human-to-remove-balls game-position original-move
+                                         (conj balls-removed position-to-remove)
                                          (remove-ball new-board player position-to-remove)))))))))
 
-(defn ask-human-and-play [{:keys [board] :as game-position}]  
+(defn ask-human-and-play [{:keys [board] :as game-position}]
   (let [new-move               (ask-human-to-place-or-rise-ball game-position)
         new-move-without-balls (ask-human-to-remove-balls game-position new-move [] (make-move-on-board board new-move))
-        next-game-position     (next-game-position game-position new-move-without-balls 
+        next-game-position     (next-game-position game-position new-move-without-balls
                                                    (make-move-on-board board new-move-without-balls))]
     {:next-game-position next-game-position
      :next-move new-move-without-balls}))
