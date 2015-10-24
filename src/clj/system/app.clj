@@ -32,7 +32,7 @@
                         :time time
                         :additional-infos additional-infos}]))
 
-(defn create-broadcast-game [chsk]
+(defn create-websocket-broadcast [chsk]
   (defn broadcast-game [{{:keys [board player outcome]} :game-position, last-move :last-move, additional-infos :additional-infos, time :time :as play}]
     (send-game-infos chsk nil board player last-move additional-infos time)))
 

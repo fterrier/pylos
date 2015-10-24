@@ -11,7 +11,7 @@
     (filter #(not (can-remove-ball board %)) balls-on-board)))
 
 (defn score-middle-blocked [{:keys [player board]}]
-  ; (if outcome 100 
+  ; (if outcome 100
     (let [other-player                 (other-color player)
           player-balls                 (count (balls-on-board board player))
           other-player-balls           (count (balls-on-board board other-player))
@@ -23,8 +23,6 @@
           other-player-balls-blocked   (count (balls-blocked board other-player))
           balls-blocked-difference     (- player-balls-blocked other-player-balls-blocked)
           ]
-      (- 
+      (-
         (+ ball-difference (/ balls-around-difference 276))
-         (/ balls-blocked-difference 4)
-         )
-    ))
+        (/ balls-blocked-difference 4))))
