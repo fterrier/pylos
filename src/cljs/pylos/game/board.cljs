@@ -94,7 +94,7 @@
                                        (om/build balls-remaining-comp [:white (:white balls-remaining) next-player])
                                        (om/build balls-remaining-comp [:black (:black balls-remaining) next-player])))
                      (dom/pre {:class "infos clearfix"}
-                              (dom/div "Last move: " (name (:color (:move game-infos))))
+                              (when (:move game-infos) (dom/div "Last move: " (name (:color (:move game-infos)))))
                               (dom/div (str "Time: " (gstring/format "%.2fs" (/ (:time game-infos) 1000000))))
                               (om/build additional-infos-comp (:additional-infos game-infos)))
                      (dom/div {:class "board"}

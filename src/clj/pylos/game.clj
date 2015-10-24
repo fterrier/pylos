@@ -18,7 +18,7 @@
     (or (= :black cell) (= :white cell))))
 
 (defn can-remove-ball [board position]
-  (contains? (:removable-positions (meta board)) position))
+  (contains? (removable-positions board) position))
 
 (defn has-new-full-square-at-square-position [board square-position position color]
   (let [square-corners                  (square-corners board square-position)
@@ -33,7 +33,7 @@
 
 (defn removable-balls [board position]
   "Gives all balls that can be removed assuming the given position is filled."
-  (let [removable-positions   (:removable-positions (meta board))
+  (let [removable-positions   (removable-positions board)
         ; we re-add the given position since it can be removed
         removable-positions   (conj removable-positions position)
         square-position-below (square-position-below board position)]
