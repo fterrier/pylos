@@ -1,5 +1,5 @@
 (ns pylos.board
-  (:require [clojure.math.numeric-tower :as math]))
+    #?(:clj (:require [clojure.math.numeric-tower :as math])))
 
 (defrecord HelperMetaBoard [size number-of-positions
                             positions-right-down-map
@@ -7,12 +7,13 @@
                             position-on-top-map
                             square-positions-below-map
                             square-positions-at-position-map
+                            number-of-positions-around
                             positions-above-first-layer
                             positions-under-position-map
-                            middle-positions
-                            positions-map])
+                            positions-map all-positions])
 
-(defrecord MetaBoard [helper-meta-board empty-positions full-squares balls-on-board])
+(defrecord MetaBoard [helper-meta-board empty-positions balls-on-board removable-positions])
+
 
 (defn cell [board position]
   (get board position))
@@ -110,7 +111,7 @@
 (defn- calculate-middle-positions [positions-right-down size]
   (let [middle-positions (for [layer (range 1 (- size 1))]
                            (let [size-of-layer (- size (- layer 1))
-                                 middle        (math/ceil  (/ size-of-layer 2))
+                                 middle        #?(:clj (math/ceil  (/ size-of-layer 2)) :cljs nil)
                                  one-ball      (= 1 (mod size-of-layer 2))]
                              (if one-ball [[layer middle middle]]
                                (positions-right-down [layer middle middle]))))
@@ -194,3 +195,16 @@
                         :empty-positions empty-positions
                         :removable-positions #{}
                         :balls-on-board {:black #{} :white #{}}}))))
+
+(defn transform-board [board size]
+  (let [board          (with-meta board {:helper-meta-board (helper-meta-board size)})
+        size           4
+        frontend-board (into [] (for [layer (range 0 size)]
+                                  (into [] (for [row (range 0 (- size layer))]
+                                             (into [] (for [col (range 0 (- size layer))]
+                                                        (cell board (ind board [(inc layer) (inc row) (inc col)]))))))))]
+    frontend-board))
+
+(defn meta-board [board]
+  "Create all meta data for a board and attach to it"
+  )

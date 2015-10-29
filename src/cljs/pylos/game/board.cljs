@@ -4,6 +4,7 @@
             [om-tools.core :refer-macros [defcomponent]]
             [om-tools.dom :as dom :include-macros true]
             [goog.string :as gstring]
+            [pylos.board :refer [transform-board]]
             [pylos.game.state :refer [game-infos current-index]]
             [pylos.game.util :refer [circle]]))
 
@@ -12,20 +13,21 @@
    [a b c] [1 2] -> [[[1 2 0] a] [[1 2 1] b] [[1 2 2] c]]"
   (map-indexed (fn [idx item] [(conj attrs idx) item]) m))
 
-(defcomponent cell-comp [[position cell] owner]
-  (render [_]
-          (dom/td {:class (str "board-cell board-cell-" (name cell))
-                   :on-click #(put! (:control-ch (om/get-shared owner)) {:action :select-cell :position position})}
-                  (dom/div {:class (str "board-cell-content board-cell-content-" (name cell))}))))
 
-(defcomponent row-comp [[[layer row :as position] cells] owner]
-  (render [_]
-          (dom/tr (om/build-all cell-comp (indexed-vector cells position)))))
-
-
-(defcomponent layer-comp [[[layer :as position] rows] owner]
-  (render [_]
-          (dom/table {:class (str "board-layer layer-" layer)} (om/build-all row-comp (indexed-vector rows position)))))
+; (defcomponent cell-comp [[position cell] owner]
+;   (render [_]
+;           (dom/td {:class (str "board-cell board-cell-" (name cell))
+;                    :on-click #(put! (:control-ch (om/get-shared owner)) {:action :select-cell :position position})}
+;                   (dom/div {:class (str "board-cell-content board-cell-content-" (name cell))}))))
+;
+; (defcomponent row-comp [[[layer row :as position] cells] owner]
+;   (render [_]
+;           (dom/tr (om/build-all cell-comp (indexed-vector cells position)))))
+;
+;
+; (defcomponent layer-comp [[[layer :as position] rows] owner]
+;   (render [_]
+;           (dom/table {:class (str "board-layer layer-" layer)} (om/build-all row-comp (indexed-vector rows position)))))
 
 (defcomponent hurmpf-cell-comp [[[layer row col :as position] cell] owner]
   (render [_]
@@ -83,7 +85,8 @@
                 current-index   (om/observe owner (current-index))
                 game-infos      (if (empty? current-index) (last all-game-infos) (get all-game-infos (current-index 0)) )
                 next-player     (or (:next-player game-infos) :white)
-                board           (:board game-infos)
+                board           (transform-board (:board game-infos) 4)
+                possible-moves  (possible-moves board) ; TODO move generation function
                 balls-remaining (:balls-remaining game-infos)]
             (println "Rendering board" board)
             (dom/div {:class "main"}
@@ -97,5 +100,6 @@
                               (when (:move game-infos) (dom/div "Last move: " (name (:color (:move game-infos)))))
                               (dom/div (str "Time: " (gstring/format "%.2fs" (/ (:time game-infos) 1000000))))
                               (om/build additional-infos-comp (:additional-infos game-infos)))
-                     (dom/div {:class "board"}
-                              (om/build-all layer-comp (indexed-vector board [])))))))
+                    ;  (dom/div {:class "board"}
+                            ;   (om/build-all layer-comp (indexed-vector board [])))
+                     ))))

@@ -1,18 +1,19 @@
 (ns pylos.game.state
-  (:require [om.core :as om]))
+  (:require [om.core :as om]
+            [pylos.board :refer [starting-board transform-board]]))
 
-; board methods
-(defn initial-board [size]
-  (let [board (into [] (for [x (range size 0 -1)]
-                         (into [] (repeat x
-                                          (into [] (repeat x (if (= size x) :open :no-acc)))))))]
-    board))
+; ; board methods
+; (defn initial-board [size]
+;   (let [board (into [] (for [x (range size 0 -1)]
+;                          (into [] (repeat x
+;                                           (into [] (repeat x (if (= size x) :open :no-acc)))))))]
+;     board))
 
 (defn change-cell [board position new-cell]
   (assoc-in board position new-cell))
 
-(def initial-state {:game-infos [{:board (initial-board 4)
-                                   :balls-remaining {:white 15 :black 15}}]
+(def initial-state {:game-infos [{:board (starting-board 4)
+                                  :balls-remaining {:white 15 :black 15}}]
                     :current-index []})
 
 ; state

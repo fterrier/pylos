@@ -22,9 +22,9 @@
                  :caught clj-stacktrace.repl/pst+}
   :main ^:skip-aot system.init-dev
   :target-path "target/%s"
-  :source-paths ["src/clj" "src/cljs"]
+  :source-paths ["src/clj" "src/cljs" "src/cljc"]
 
-  :cljsbuild {:builds {:app {:source-paths ["src/cljs"]}}}
+  :cljsbuild {:builds {:app {:source-paths ["src/cljs" "src/cljc"]}}}
 
   :profiles {:uberjar {:aot :all}
              :dev {:dependencies [[org.clojure/tools.namespace "0.2.3"]

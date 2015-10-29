@@ -13,18 +13,10 @@
 ; (defn broadcast [chsk]
 ;   ((:chsk-send! chsk) :sente/all-users-without-uid [:my-event/event "test"]))
 
-(defn transform-board [board]
-  (let [size           (size board)
-        frontend-board (into [] (for [layer (range 0 size)]
-                                  (into [] (for [row (range 0 (- size layer))]
-                                             (into [] (for [col (range 0 (- size layer))]
-                                                        (cell board (ind board [(inc layer) (inc row) (inc col)]))))))))]
-    frontend-board))
-
 (defn send-game-infos [chsk user-id board player move additional-infos time]
   ((:chsk-send! chsk) :sente/all-users-without-uid
                       [:pylos/game-infos
-                       {:board (transform-board board)
+                       {:board board
                         :balls-remaining {:white (balls-remaining board :white)
                                           :black (balls-remaining board :black)}
                         :next-player player
