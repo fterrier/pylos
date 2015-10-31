@@ -1,24 +1,13 @@
 (ns pylos.game
   "game is {:player _ :board _ :past-moves _}
   move is {:board _ :move _}"
-  (:require [game.game :refer :all]
-            [pylos.board :refer :all]
-            [clojure.test :refer (is)]))
+  (:require
+            [pylos.board :refer [square-corners number-of-positions removable-positions
+                                 cell square-positions-at-position square-position-below
+                                 positions-under-position position-on-top
+                                 empty-positions number-of-positions-around
+                                 has-ball balls-on-board can-remove-ball]]))
 
-; Starting functions that access the state
-(defn balls-on-board [board color]
-  (color (:balls-on-board (meta board))))
-
-(defn balls-remaining [board color]
-  (let [number-of-balls (/ (number-of-positions board) 2)]
-    (- number-of-balls (count (balls-on-board board color)))))
-
-(defn has-ball [board position]
-  (let [cell (cell board position)]
-    (or (= :black cell) (= :white cell))))
-
-(defn can-remove-ball [board position]
-  (contains? (removable-positions board) position))
 
 (defn has-new-full-square-at-square-position [board square-position position color]
   (let [square-corners                  (square-corners board square-position)
@@ -257,21 +246,3 @@
 (defn winner [board]
   ; {:pre [(game-over? board)]}
   (if (has-balls-to-play board :white) :white :black))
-
-(declare next-game-position)
-
-(defrecord GamePosition [board player outcome]
-  Game
-  (generate-moves [game-position]
-                  (order-moves board (generate-all-moves game-position)))
-  (make-move [game-position move]
-             (next-game-position game-position move (make-move-on-board board move))))
-
-
-(defn next-game-position [{:keys [player] :as game-position} move board]
-  {:pre [(= player (:color move))]}
-  (let [game-over?         (game-over? board)
-        next-game-position (map->GamePosition {:board board
-                                               :player (other-color player)
-                                               :outcome (if game-over? (winner board) nil)})]
-    next-game-position))

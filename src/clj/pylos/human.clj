@@ -2,6 +2,7 @@
   (:require [game.game :refer :all]
             [clojure.string :as str]
             [pylos.game :refer :all]
+            [pylos.pylos :refer :all]
             [pylos.board :refer :all]))
 
 (defn to-int [array]

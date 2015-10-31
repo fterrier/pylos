@@ -15,7 +15,7 @@ body {
 	padding: 4px;
 }
 
-.board-cell-open {
+.board-cell {
 	cursor: pointer;
 }
 
@@ -120,12 +120,14 @@ body {
 }
 
 .circle-black svg circle {
+	pointer-events: all;
 	stroke: white;
 	fill: black;
 	stroke-width: 2;
 }
 
 .circle-white svg circle {
+	pointer-events: all;
 	stroke: black;
 	fill: white;
 	stroke-width: 2;
@@ -141,6 +143,14 @@ body {
 
 .circle-white svg circle:hover {
 	stroke: #DDDDDD;
+}
+
+.circle-low-position svg circle {
+	stroke: green;
+}
+
+.circle-position svg circle {
+	stroke: red;
 }
 
 .circle-no-acc {

@@ -4,18 +4,13 @@
   (:require [strategy.negamax :refer :all]
             [strategy.compare :refer :all]
             [game.game :refer :all]
-            [pylos.board :refer :all]
+            [pylos.pylos :refer :all]
             [pylos.game :refer :all]
             [pylos.score :refer :all]
             [pylos.human :refer :all]
             [pylos.pprint :refer :all]))
 
 (set! *warn-on-reflection* true)
-
-(defn initial-game [size first-player]
-  (map->GamePosition {:board (starting-board size)
-                      :player first-player
-                      :outcome nil}))
 
 (defn output-with-fn [play output-fn]
   (map #(output-fn %) play))

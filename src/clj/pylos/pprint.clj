@@ -1,7 +1,6 @@
 (ns pylos.pprint
   (:require [io.aviso.ansi :refer :all]
             [pylos.board :refer :all]
-            [pylos.game :refer [can-remove-ball balls-remaining]]
             [clojure.string :as str]
             [clojure.pprint :as pprint]))
 

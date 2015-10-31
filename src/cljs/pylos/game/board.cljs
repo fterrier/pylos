@@ -4,8 +4,9 @@
             [om-tools.core :refer-macros [defcomponent]]
             [om-tools.dom :as dom :include-macros true]
             [goog.string :as gstring]
-            [pylos.board :refer [transform-board]]
-            [pylos.game.state :refer [game-infos current-index]]
+            [pylos.board :refer [cell]]
+            [pylos.game.state :refer [game-infos move-info
+                                      current-index current-game-infos]]
             [pylos.game.util :refer [circle]]))
 
 (defn indexed-vector [m attrs]
@@ -29,24 +30,38 @@
 ;   (render [_]
 ;           (dom/table {:class (str "board-layer layer-" layer)} (om/build-all row-comp (indexed-vector rows position)))))
 
-(defcomponent hurmpf-cell-comp [[[layer row col :as position] cell] owner]
-  (render [_]
-          (dom/div {:class (str "circle col-" col " circle-" (name cell) " position-" layer "-" row "-" col)
-                    :data-position (str layer " " row " " col)}
-                   (circle))))
+(defn is-low-position [move-info position]
+  (when move-info
+  (some #(= (:low-position %) position) (:moves move-info))))
 
-(defcomponent hurmpf-row-comp [[[layer row :as position] cells] owner]
+(defn is-position [move-info position]
+  (when move-info
+  (some #(= (:position %) position) (:moves move-info))))
+
+(defcomponent hurmpf-cell-comp [[[board layer row col] position] owner]
+  (render [_]
+          (let [move-info       (om/observe owner (move-info))
+                cell            (cell board position)
+                is-low-position (is-low-position move-info position)
+                is-position     (is-position move-info position)]
+            (println position is-position move-info)
+            (dom/div {:class (str "circle col-" col " circle-" (name cell) " " (when is-low-position "circle-low-position") " " (when is-position "circle-position"))
+                      :data-position (str layer " " row " " col)
+                      :on-mouse-over (fn [e] (put! (:control-ch (om/get-shared owner)) {:action :hover-cell :position position}) (. e preventDefault))}
+                     (circle)))))
+
+(defcomponent hurmpf-row-comp [[[board layer row] positions] owner]
   (render [_]
           (dom/div {:class (str "pylos-row row-" row)}
-                   (om/build-all hurmpf-cell-comp (indexed-vector cells position)))))
+                   (om/build-all hurmpf-cell-comp (indexed-vector positions [board layer row])))))
 
-(defcomponent hurmpf-layer-comp [[board level] owner]
+(defcomponent hurmpf-layer-comp [[board layers level] owner]
   (render [_]
-          (when-not (empty? board)
-            (let [layer (first board)]
+          (when-not (empty? layers)
+            (let [layer (first layers)]
               (dom/div {:class (str "pylos-layer layer-" level)}
-                       (om/build-all hurmpf-row-comp (indexed-vector layer [level]))
-                       (om/build hurmpf-layer-comp [(rest board) (+ level 1)]))))))
+                       (om/build-all hurmpf-row-comp (indexed-vector layer [board level]))
+                       (om/build hurmpf-layer-comp [board (rest layers) (+ level 1)]))))))
 
 (defcomponent balls-remaining-comp [[color remaining-balls next-player] owner]
   (render [_]
@@ -74,32 +89,41 @@
                 (dom/div "Best score: " (gstring/format "%.4f" (:best-possible-score (:negamax-values iteration))))
                 (when (:outcome (:negamax-values iteration)) (dom/div "Winner: " (name (:outcome (:negamax-values iteration)))))))))))
 
-(defcomponent additional-infos-comp [additional-infos owner]
+(defcomponent additional-infos-comp [current-game-infos owner]
   (render [_]
           (dom/div
-           (om/build-all additional-infos-iteration-comp additional-infos))))
+           (om/build-all additional-infos-iteration-comp (:additional-infos current-game-infos)))))
+
+(defcomponent move-info-comp [_ owner]
+  (render [_]
+          (let [move-info (om/observe owner (move-info))]
+            (println "Rendering move info" move-info)
+            (dom/div (prn-str (:moves move-info))))))
 
 (defcomponent board-comp [_ owner]
   (render [_]
           (let [all-game-infos  (om/observe owner (game-infos))
                 current-index   (om/observe owner (current-index))
-                game-infos      (if (empty? current-index) (last all-game-infos) (get all-game-infos (current-index 0)) )
-                next-player     (or (:next-player game-infos) :white)
-                board           (transform-board (:board game-infos) 4)
-                possible-moves  (possible-moves board) ; TODO move generation function
-                balls-remaining (:balls-remaining game-infos)]
-            (println "Rendering board" board)
+                game-infos      (current-game-infos all-game-infos current-index)
+                next-player     (:next-player game-infos)
+                balls-remaining (:balls-remaining game-infos)
+                board           (:board game-infos)
+                layered-board   (:layered-board game-infos)]
+            (println "Rendering board" layered-board)
+            (if-not (empty? game-infos)
             (dom/div {:class "main"}
                      (dom/div {:class "pylos clearfix"}
                               (dom/div {:class "pylos-board"}
-                                       (om/build hurmpf-layer-comp [board 0]))
+                                       (om/build hurmpf-layer-comp [board layered-board 0]))
                               (dom/div {:class "pylos-remaining-balls clearfix"}
                                        (om/build balls-remaining-comp [:white (:white balls-remaining) next-player])
-                                       (om/build balls-remaining-comp [:black (:black balls-remaining) next-player])))
+                                       (om/build balls-remaining-comp [:black (:black balls-remaining) next-player]))
+                              (dom/div {:class "pylos-move-info"}
+                                       (om/build move-info-comp [])))
                      (dom/pre {:class "infos clearfix"}
                               (when (:move game-infos) (dom/div "Last move: " (name (:color (:move game-infos)))))
                               (dom/div (str "Time: " (gstring/format "%.2fs" (/ (:time game-infos) 1000000))))
-                              (om/build additional-infos-comp (:additional-infos game-infos)))
+                              (om/build additional-infos-comp current-game-infos))
                     ;  (dom/div {:class "board"}
                             ;   (om/build-all layer-comp (indexed-vector board [])))
-                     ))))
+                     )))))

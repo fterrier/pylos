@@ -1,7 +1,7 @@
 (ns pylos.game-test
   (:require [clojure.test :refer :all]
             [pylos.core-test :refer :all]
-            [pylos.board :refer [ind cell]]
+            [pylos.board :refer [ind cell can-remove-ball]]
             [pylos.game :refer :all]))
 
 (deftest position-opens-test

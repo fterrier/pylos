@@ -17,8 +17,6 @@
   ((:chsk-send! chsk) :sente/all-users-without-uid
                       [:pylos/game-infos
                        {:board board
-                        :balls-remaining {:white (balls-remaining board :white)
-                                          :black (balls-remaining board :black)}
                         :next-player player
                         :move move
                         :time time

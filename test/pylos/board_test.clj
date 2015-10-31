@@ -2,6 +2,7 @@
   (:require [clojure.test :refer :all]
             [pylos.core-test :refer :all]
             [pylos.game :refer :all]
+            [pylos.init :refer :all]
             [pylos.board :refer :all]))
 
 (deftest position-on-top-test

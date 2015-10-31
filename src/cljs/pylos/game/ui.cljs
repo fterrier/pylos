@@ -5,14 +5,14 @@
             [om-tools.dom :as dom :include-macros true]
             [pylos.game.board :refer [board-comp]]
             [pylos.game.history :refer [history-comp]]
-            [pylos.game.state :refer [app-state app-channels]]
+            [pylos.game.state :refer [app-state app-channels append-game-infos change-current-index show-move-info]]
             [taoensso.sente :as sente :refer (cb-success?)])
   (:require-macros [cljs.core.async.macros :refer [go go-loop alt!]]))
 
 (defmulti handle-event-msg (fn [_ v] (get v 0)))
 
 (defmethod handle-event-msg :pylos/game-infos [app [id {:keys [board balls-remaining next-player] :as game-infos}]]
-  (om/transact! app :game-infos #(conj % game-infos)))
+  (append-game-infos app game-infos))
 
 (defmulti event-msg-handler (fn [_ ev-msg] (:id ev-msg)))
 
@@ -61,16 +61,11 @@
 
 (defmulti handle-control (fn [_ control] (:action control)))
 
-; (defmethod handle-control :select-cell [control]
-;   (do
-;   ; (put! ws-ch (str "Action: " control))
-;   (println control)))
+(defmethod handle-control :hover-cell [app control]
+   (show-move-info app (:position control)))
 
 (defmethod handle-control :select-current-index [app control]
-  (let [current-index (:current-index control)]
-    (if (nil? current-index)
-      (om/update! app :current-index [])
-      (om/update! app :current-index [current-index]))))
+  (change-current-index app (:current-index control)))
 
 (defcomponent app [app owner]
   (will-mount [_]
