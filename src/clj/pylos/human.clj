@@ -47,13 +47,15 @@
     (if (not (has-new-full-square board position player))
       original-move
       (if (= 2 number-of-balls-removed)
-        (move-square original-move balls-removed)
+        ; TODO fix
+        (move-square original-move balls-removed )
         (let [position-to-remove (ask-for-position
                                    board
                                    (str "Please enter a ball to remove [layer row col]"
                                         (if (not= 0 number-of-balls-removed) " or <enter> to finish" ""))
                                    (not= 0 number-of-balls-removed))]
           (if (nil? position-to-remove)
+            ; TODO fix
             (move-square original-move balls-removed)
             (if (not (can-remove-position? new-board player position-to-remove))
               (do

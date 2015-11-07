@@ -5,7 +5,9 @@
             [om-tools.dom :as dom :include-macros true]
             [pylos.game.board :refer [board-comp]]
             [pylos.game.history :refer [history-comp]]
-            [pylos.game.state :refer [app-state app-channels append-game-infos change-current-index show-move-info]]
+            [pylos.game.state :refer [app-state app-channels append-game-infos change-current-index
+                                      select-current-position change-highlighted-position
+                                      play-current-move]]
             [taoensso.sente :as sente :refer (cb-success?)])
   (:require-macros [cljs.core.async.macros :refer [go go-loop alt!]]))
 
@@ -21,7 +23,7 @@
   (println "Unhandled event:" event))
 
 (defmethod event-msg-handler :chsk/recv [app {:as ev-msg :keys [?data]}]
-  ;(println "Push event from server:" ?data)
+  ; (println "Push event from server:" ?data)
   (handle-event-msg app ?data))
 
 (defn event-msg-handler* [app]
@@ -59,24 +61,41 @@
   (om/set-state! owner :router nil)
   (om/set-state! owner :control-ch nil))
 
-(defmulti handle-control (fn [_ control] (:action control)))
+(defmulti handle-control (fn [_ _ control] (:action control)))
 
-(defmethod handle-control :hover-cell [app control]
-   (show-move-info app (:position control)))
+(defmethod handle-control :select-cell [app owner control]
+  (select-current-position app (:control-ch (om/get-shared owner)) (:position control)))
 
-(defmethod handle-control :select-current-index [app control]
+(defmethod handle-control :hover-cell [app owner control]
+  (change-highlighted-position app (:position control)))
+
+(defmethod handle-control :select-current-index [app owner control]
   (change-current-index app (:current-index control)))
 
+(defmethod handle-control :play-current-move [app owner control]
+  (play-current-move app (:control-ch (om/get-shared owner))))
+
+(defmethod handle-control :send-move-to-server [app owner control]
+  (println "playing move")
+  (let [chsk-send (om/get-state owner :chsk-send!)]
+    (chsk-send [:pylos/player-move {:game-infos (:game-infos control)}])))
+
+; TODO make all channels global again so we can use them from the REPL
 (defcomponent app [app owner]
   (will-mount [_]
               (go-loop []
-                (handle-control app (<! (:control-ch (om/get-shared owner))))
+                (handle-control app owner (<! (:control-ch (om/get-shared owner))))
                 (recur))
 
-              (init-server-connection app owner))
+              (try
+                (init-server-connection app owner)
+                (catch js/Object e (println "Error caught" e))))
   (will-unmount [_]
                 (fnil close! (:control-ch (om/get-shared owner)))
-                (stop-server-connection owner))
+
+                (try
+                  (stop-server-connection owner)
+                  (catch js/Object e (println "Error caught" e))))
   (render [_]
           (dom/div
             (om/build history-comp nil)

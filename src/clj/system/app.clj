@@ -9,14 +9,11 @@
             [compojure.core :as comp :refer (defroutes GET POST)]))
 
 
-
-; (defn broadcast [chsk]
-;   ((:chsk-send! chsk) :sente/all-users-without-uid [:my-event/event "test"]))
-
 (defn send-game-infos [chsk user-id board player move additional-infos time]
   ((:chsk-send! chsk) :sente/all-users-without-uid
                       [:pylos/game-infos
                        {:board board
+                        :size (size board)
                         :next-player player
                         :move move
                         :time time
@@ -26,9 +23,18 @@
   (defn broadcast-game [{{:keys [board player outcome]} :game-position, last-move :last-move, additional-infos :additional-infos, time :time :as play}]
     (send-game-infos chsk nil board player last-move additional-infos time)))
 
-(defn event-msg-handler [test]
-  ;(println "TODO got event")
-  )
+(defmulti handle-event-msg (fn [id ?data] id))
+
+(defmethod handle-event-msg :pylos/player-move [id data]
+  (println data))
+
+(defmethod handle-event-msg :default ; Fallback
+  [id event]
+  (println "Unhandled event:" event))
+
+(defn event-msg-handler [{:as ev-msg :keys [id ?data event]}]
+  (println "Event:" ev-msg)
+  (handle-event-msg id ?data))
 
 (defroutes pylos-routes
   ;;
