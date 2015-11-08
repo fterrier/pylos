@@ -1,7 +1,7 @@
 (ns pylos.output
   "game is {:player _ :board _ :past-moves _}
   move is {:board _ :move _}"
-  (:require [strategy.compare :refer :all]
+  (:require [game.compare :refer :all]
             [pylos.pprint :refer :all]))
 
 (defn output-with-fn [play output-fn]

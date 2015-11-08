@@ -1,22 +1,26 @@
 (ns system.init-dev
   (:require
-    [clojure.tools.namespace.repl :as repl]
-    [system.figwheel :refer :all]
-    [system.server :refer :all]
-    [system.system :refer :all]
-    [system.app :refer :all]
-    [system.websockets :refer :all]
-    [pylos.core :refer :all]
-    [pylos.output :refer :all]
-    [com.stuartsierra.component :as component]
-    [taoensso.sente.server-adapters.http-kit :refer (sente-web-server-adapter)]))
+   ; those 2 deps are only here for convenience
+   [pylos.output :refer :all]
+   [pylos.core :refer :all]
+   [clojure.tools.namespace.repl :as repl]
+   [system.figwheel :refer :all]
+   [system.server :refer :all]
+   [system.system :refer :all]
+   [system.app :refer :all]
+   [system.events :refer :all]
+   [system.websockets :refer :all]
+   [com.stuartsierra.component :as component]
+   [taoensso.sente.server-adapters.http-kit :refer (sente-web-server-adapter)]))
 
 (defn init []
   (alter-var-root #'system
                   (constantly (component/system-map
                                 ; :app-server (jetty-server {:app {:handler handler}, :port 3000})
-                                :figwheel   (map->Figwheel figwheel-config)
-                                :websockets (new-channel-sockets event-msg-handler sente-web-server-adapter)
+                                :figwheel      (map->Figwheel figwheel-config)
+                                :websockets    (component/using (new-channel-sockets sente-web-server-adapter)
+                                                                [:event-handler])
+                                :event-handler (new-event-handler)
                                 ;:web-server (new-web-server 8080 pylos-app)
                                 ))))
 

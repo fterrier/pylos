@@ -22,14 +22,14 @@
 (defn next-game-position [{:keys [player] :as game-position} move board]
   {:pre [(= player (:color move))]}
   (let [game-over?         (game-over? board)
-        next-game-position (map->GamePosition {:board board
-                                               :player (other-color player)
+        next-game-position (map->GamePosition {:board   board
+                                               :player  (other-color player)
                                                :outcome (if game-over? (winner board) nil)})]
     next-game-position))
 
 (defn initial-game [size first-player]
-  (map->GamePosition {:board (starting-board size)
-                      :player first-player
+  (map->GamePosition {:board   (starting-board size)
+                      :player  first-player
                       :outcome nil}))
 
 (defn play [size {:keys [white black] :as strategies} first-player]

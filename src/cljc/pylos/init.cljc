@@ -1,5 +1,6 @@
 (ns pylos.init
-  #?(:cljs (:require [pylos.board :refer []]))
+  #?(:cljs (:require [pylos.board :refer [map->MetaBoard map->HelperMetaBoard size
+                                          cell has-ball position-on-top positions-around]]))
   #?(:clj (:require [clojure.math.numeric-tower :as math]
                     [pylos.board :refer :all])))
 
@@ -133,6 +134,7 @@
                         :removable-positions #{}
                         :balls-on-board {:black #{} :white #{}}}))))
 
+; re-init functions from here on
 (defn- retrieve-empty-positions [board all-positions]
   (into #{} (filter #(= :open (cell board %)) all-positions)))
 

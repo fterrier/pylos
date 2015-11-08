@@ -2,7 +2,7 @@
   (:require [taoensso.sente :as sente]
             [com.stuartsierra.component :as component]))
 
-(defrecord ChannelSockets [ring-ajax-post ring-ajax-get-or-ws-handshake ch-chsk chsk-send! connected-uids router server-adapter event-msg-handler options]
+(defrecord ChannelSockets [ring-ajax-post ring-ajax-get-or-ws-handshake ch-chsk chsk-send! connected-uids router server-adapter event-handler options]
   component/Lifecycle
   (start [component]
     (let [{:keys [ch-recv send-fn ajax-post-fn ajax-get-or-ws-handshake-fn connected-uids]}
@@ -13,7 +13,7 @@
              :ch-chsk ch-recv
              :chsk-send! send-fn
              :connected-uids connected-uids
-             :router (atom (sente/start-chsk-router! ch-recv event-msg-handler)))))
+             :router (atom (sente/start-chsk-router! ch-recv (:event-msg-handler event-handler))))))
   (stop [component]
     (if router
       (if-let [stop-f @router]
@@ -22,9 +22,8 @@
     component))
 
 (defn new-channel-sockets
-  ([event-msg-handler server-adapter]
-   (new-channel-sockets event-msg-handler server-adapter {}))
-  ([event-msg-handler server-adapter options]
+  ([server-adapter]
+   (new-channel-sockets server-adapter {}))
+  ([server-adapter options]
    (map->ChannelSockets {:server-adapter server-adapter
-                         :event-msg-handler event-msg-handler
                          :options options})))

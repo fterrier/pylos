@@ -3,7 +3,8 @@
             [om.core :as om]
             [pylos.game :refer [generate-all-moves]]
             [pylos.ui :refer [highlight-status move-status]]
-            [pylos.board :refer [starting-board size ind balls-remaining board-indexes initialize-board-meta]]))
+            [pylos.board :refer [size ind balls-remaining]]
+            [pylos.init :refer [starting-board board-indexes initialize-board-meta]]))
 
 (defn game-infos-with-meta [game-infos]
   (let [board            (:board game-infos)
@@ -116,7 +117,8 @@
         current-game-infos (current-game-infos (:current-index (om/root-cursor app-state)))]
     ; TODO is it my turn to play ?
     ; this only works on the last game position
-    (when (empty? current-index)
+    (if-not (empty? current-index)
+      (println "Not your turn to play")
       (let [new-selections (conj current-selections current-position)
             playable-move  (playable-move current-game-infos new-selections)
             possible-moves (get-moves current-game-infos new-selections)]

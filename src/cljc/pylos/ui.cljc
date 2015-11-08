@@ -1,5 +1,5 @@
 (ns pylos.ui
-  (:require [pylos.board :refer [starting-board size ind balls-remaining board-indexes initialize-board-meta square-corners]]))
+  (:require [pylos.board :refer [size ind square-corners]]))
 
 (defn- all-permutations [positions]
   ; TODO order the removable positions in the move so that we don't see balls that are under other removable balls at first

@@ -1,4 +1,4 @@
-(ns strategy.compare
+(ns game.compare
   (:require [game.game :refer :all]
             [io.aviso.ansi :refer :all]))
 
@@ -10,7 +10,7 @@
     (reduce (fn [output info]
               (let [info-str       (fun info)
                     info-formatted (format (str "%" pad "s") info-str)
-                    info-str       (if (or 
+                    info-str       (if (or
                                    (and highlight-highest (= highest info-str))
                                    (and (not highlight-highest) (= lowest info-str))) (green info-formatted) info-formatted)]
                 (str output info-str " | " )))
