@@ -1,10 +1,10 @@
 (ns ^:figwheel-no-load pylos.core
-  (:require [pylos.game.ui :as ui]))
+  (:require [pylos.game.app :as app]))
 
 (enable-console-print!)
 
 (defn fig-reload []
-  (ui/stop)
-  (ui/main))
+  (app/stop)
+  (app/main))
 
-(ui/main)
+(app/main)

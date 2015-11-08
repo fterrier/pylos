@@ -7,6 +7,7 @@
     [system.app :refer :all]
     [system.websockets :refer :all]
     [pylos.core :refer :all]
+    [pylos.output :refer :all]
     [com.stuartsierra.component :as component]
     [taoensso.sente.server-adapters.http-kit :refer (sente-web-server-adapter)]))
 

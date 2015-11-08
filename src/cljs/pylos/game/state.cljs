@@ -128,7 +128,7 @@
 
 ; convenience stuff for development
 (defn unselect-move []
-  (swap! app-state (fn [state] (assoc-in state [:current-move :selections] []))))
+  (swap! app-state (fn [state] (assoc state :current-move no-move))))
 
 (defn regen-game-infos-state []
   (swap! app-state (fn [state] (update state :game-infos #(into [] (map game-infos-with-meta %))))))

@@ -1,6 +1,7 @@
 (ns pylos.core-test
   (:require [clojure.test :refer :all]
             [pylos.board :refer :all]
+            [pylos.init :refer :all]
             [pylos.game :refer :all]))
 
 (def four (starting-board 4))

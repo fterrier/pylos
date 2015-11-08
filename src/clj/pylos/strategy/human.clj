@@ -1,9 +1,8 @@
-(ns pylos.human
+(ns pylos.strategy.human
   (:require [game.game :refer :all]
             [clojure.string :as str]
-            [pylos.game :refer :all]
-            [pylos.pylos :refer :all]
-            [pylos.board :refer :all]))
+            [pylos.board :refer :all]
+            [pylos.game :refer :all]))
 
 (defn to-int [array]
   (into [] (map #(try (Integer/parseInt %) (catch Exception e -1)) array)))
@@ -44,7 +43,7 @@
 
 (defn ask-human-to-remove-balls [{:keys [board player] :as game-position} {:keys [position] :as original-move} balls-removed new-board]
   (let [number-of-balls-removed (count balls-removed)]
-    (if (not (has-new-full-square board position player))
+    (if (nil? (new-full-square-position board position player))
       original-move
       (if (= 2 number-of-balls-removed)
         ; TODO fix
@@ -67,11 +66,8 @@
 
 (defn ask-human-and-play [{:keys [board] :as game-position}]
   (let [new-move               (ask-human-to-place-or-rise-ball game-position)
-        new-move-without-balls (ask-human-to-remove-balls game-position new-move [] (make-move-on-board board new-move))
-        next-game-position     (next-game-position game-position new-move-without-balls
-                                                   (make-move-on-board board new-move-without-balls))]
-    {:next-game-position next-game-position
-     :next-move new-move-without-balls}))
+        new-move-without-balls (ask-human-to-remove-balls game-position new-move [] (make-move-on-board board new-move))]
+    {:next-move new-move-without-balls}))
 
 (defrecord HumanStrategy []
   Strategy

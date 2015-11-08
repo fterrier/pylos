@@ -3,7 +3,7 @@
             [strategy.negamax :refer :all]
             [pylos.core-test :refer :all]
             [pylos.game :refer :all]
-            [pylos.pylos :refer :all]
+            [pylos.core :refer :all]
             [pylos.score :refer :all]))
 
 (deftest full-square-top-negamax-test

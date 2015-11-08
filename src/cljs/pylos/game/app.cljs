@@ -1,4 +1,4 @@
-(ns pylos.game.ui
+(ns pylos.game.app
   (:require [cljs.core.async :as async :refer [put! >! <! chan close!]]
             [om.core :as om]
             [om-tools.core :refer-macros [defcomponent]]

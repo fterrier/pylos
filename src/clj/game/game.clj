@@ -8,7 +8,7 @@
   (make-move [this move]))
 
 (defprotocol Strategy
-  (choose-next-move [this game-position] "Chooses the next move for the given game, returns a {:next-game-position :next-move} map"))
+  (choose-next-move [this game-position] "Chooses the next move for the given game, returns a {:next-move :additional-infos :next-game-position (optional)} object"))
 
 (defn play-game [{:keys [game-position] :as game} strategies]
   (let [player        (:player game-position)
@@ -16,11 +16,12 @@
     (cons game
           (if (:outcome game-position) []
             (lazy-seq
-              (let [start-time  (System/nanoTime)
-                    print       (println "Player" player "to move")
-                    game-result (choose-next-move strategy game-position)
-                    end-time    (System/nanoTime)]
-                (play-game {:game-position (:next-game-position game-result)
+              (let [start-time         (System/nanoTime)
+                    print              (println "Player" player "to move")
+                    game-result        (choose-next-move strategy game-position)
+                    next-game-position (or (:next-game-position game-result) (make-move game-position (:next-move game-result)))
+                    end-time           (System/nanoTime)]
+                (play-game {:game-position next-game-position
                             :last-move (:next-move game-result)
                             :additional-infos (:additional-infos game-result)
                             :time (- end-time start-time)} strategies)))))))
