@@ -147,8 +147,8 @@
     (not (= balls-per-player balls-of-color-in-play))))
 
 (defn add-ball [board color position]
-  ; {:pre [(= :open (cell board position))
-  ;        (has-balls-to-play board color)]}
+  {:pre [(= :open (cell board position))
+         (has-balls-to-play board color)]}
   (let [meta-infos                    (meta board)
         board-with-ball               (change-cell board position color)
         new-square-positions          (squares-at-position board-with-ball position)
@@ -182,8 +182,8 @@
     (filter #(contains? balls-of-color %) removable-positions-below)))
 
 (defn remove-ball [board color position]
-  ; {:pre [(= color (cell board position))
-  ;        (can-remove-ball board position)]}
+  {:pre [(= color (cell board position))
+         (can-remove-ball board position)]}
   (let [meta-infos                 (meta board)
         board-without-ball         (change-cell board position :open)
         square-positions-to-remove (squares-at-position board position)

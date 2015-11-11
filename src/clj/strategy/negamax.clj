@@ -51,6 +51,7 @@
 
 (defn negamax-step [{:keys [alpha beta best-negamax-values best-game-position best-move best-principal-variation stats]}
                     game-position next-move depth score-fun principal-variation]
+  (try
   (let [next-game-position      (make-move game-position next-move)
         {next-negamax-values      :negamax-values
          next-stats               :stats
@@ -70,7 +71,11 @@
                   :best-negamax-values      (:negamax-values next-best-game-position)
                   :best-principal-variation (:principal-variation next-best-game-position)
                   :stats                    (merge-and-add-stats stats next-stats)}]
-      (if (>= next-alpha beta) (reduced result) result))))
+      (if (>= next-alpha beta) (reduced result) result)))
+    (catch Error e
+      (println game-position principal-variation next-move )
+      (throw e))
+    ))
 
 (defn negamax-choose-move
   ([{:keys [board outcome] :as game-position} alpha beta depth score-fun principal-variation]

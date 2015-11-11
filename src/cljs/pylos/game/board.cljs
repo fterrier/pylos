@@ -16,12 +16,12 @@
   (map-indexed (fn [idx item] [(conj attrs idx) item]) m))
 
 
+; TODO remove game-infos
 (defcomponent hurmpf-cell-comp [[[game-infos layer row col] position] owner]
   (render [_]
           (let [current-move         (om/observe owner (current-move))
                 highlighted-position (om/observe owner (highlighted-position))
                 position-info        (position-info (:selections current-move) highlighted-position)
-                ; TODO remove game-infos
                 cell                 (cell (:board game-infos) position)
                 move-low-position    (:risable (get position-info position))
                 move-position        (:addable (get position-info position))
@@ -119,6 +119,6 @@
                               (dom/div {:class "pylos-move-info"}
                                        (om/build move-info-comp game-infos)))
                      (dom/pre {:class "infos clearfix"}
-                              (when (:move game-infos) (dom/div "Last move: " (name (:color (:move game-infos)))))
+                              (when (:move game-infos) (dom/div "Last move: " (name (pr-str (:move game-infos)))))
                               (dom/div (str "Time: " (gstring/format "%.2fs" (/ (:time game-infos) 1000000))))
                               (om/build additional-infos-comp  game-infos)))))))

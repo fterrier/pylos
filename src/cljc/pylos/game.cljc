@@ -34,7 +34,7 @@
   (let [color (:color original-move)]
     {:type :square
      :original-move original-move
-     :positions (into #{} positions-to-remove)
+     :positions positions-to-remove
      :square-position square-position
      :color color}))
 
@@ -60,10 +60,10 @@
           removable-balls              (if (= :rise type) (disj removable-balls (:low-position move)) removable-balls) ; we remove the low position if rise
           moves-with-one-ball-removed  (map (fn [position] (move-square move [position] new-square-position)) removable-balls)
           moves-with-two-balls-removed (mapcat (fn [[position & new-removable-balls :as stuff]]
-                                                 (let [; we add the balls that are below the first removed position if any
-                                                       new-removable-balls (apply conj new-removable-balls (removable-positions-of-color-below board position color))]
-                                                   (map (fn [second-position]
-                                                          (move-square move [position second-position] new-square-position)) new-removable-balls))) (all-tails removable-balls))]
+                                                 (concat
+                                                   (map (fn [second-position] (move-square move #{position second-position} new-square-position)) new-removable-balls)
+                                                   (map (fn [second-position] (move-square move [position second-position] new-square-position)) (removable-positions-of-color-below board position color))))
+                                               (all-tails removable-balls))]
       (concat moves-with-two-balls-removed moves-with-one-ball-removed)))
 
 (defn calculate-next-moves [{:keys [board player]} empty-position]

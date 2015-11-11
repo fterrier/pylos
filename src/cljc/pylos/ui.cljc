@@ -2,14 +2,14 @@
   (:require [pylos.board :refer [size ind square-corners]]))
 
 (defn- all-permutations [positions]
-  ; TODO order the removable positions in the move so that we don't see balls that are under other removable balls at first
-  (let [position-vec (into [] positions)]
-    (if (= 2 (count position-vec))
-      [[(get position-vec 0) (get position-vec 1)]
-       [(get position-vec 1) (get position-vec 0)]
-       [(get position-vec 0)]
-       [(get position-vec 1)]]
-    [position-vec])))
+  (if (vector? positions) [positions]
+    (let [position-vec (into [] positions)]
+      (if (= 2 (count position-vec))
+        [[(get position-vec 0) (get position-vec 1)]
+         [(get position-vec 1) (get position-vec 0)]
+         [(get position-vec 0)]
+         [(get position-vec 1)]]
+      [position-vec]))))
 
 
 (defn- info-map [info positions]

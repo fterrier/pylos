@@ -4,10 +4,9 @@
 
 
 (defn wait-for-websocket-move [event-ch game-position]
-
-   (let [game-info (<!! event-ch)]
-     (println game-info)
-      {:next-move (:move game-info)}))
+  (let [game-info (<!! event-ch)]
+    (println game-info)
+    {:next-move (:move game-info)}))
 
 (defrecord WebsocketsStrategy [event-ch]
   Strategy
