@@ -1,8 +1,6 @@
-(ns pylos.output
-  "game is {:player _ :board _ :past-moves _}
-  move is {:board _ :move _}"
+(ns game.output
   (:require [game.compare :refer :all]
-            [pylos.pprint :refer :all]))
+            [game.game :refer :all]))
 
 (defn output-with-fn [play output-fn]
   (map #(output-fn %) play))

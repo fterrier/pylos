@@ -1,10 +1,7 @@
 (ns system.app
   (:require [clojure.core.async :refer [<! >! put! close! go]]
             ; TODO remove these deps
-            [pylos.score :refer [score-middle-blocked]]
-            [pylos.core :refer [play]]
-            [pylos.output :refer [output-with-fn]]
-
+            [game.output :refer [output-with-fn]]
             [game.game :refer [other-color]]
             [game.board :refer [serialize-board]]
             [strategy.negamax :refer [negamax]]
@@ -14,7 +11,6 @@
             [compojure.core :refer [routes GET ANY]]
             [compojure.route :as route]
             [compojure.core :as comp :refer (defroutes GET POST)]))
-
 
 ; output
 (defn send-game-infos [chsk user-id board player move additional-infos time]
@@ -30,17 +26,8 @@
   (defn broadcast-game [{{:keys [board player outcome]} :game-position, last-move :last-move, additional-infos :additional-infos, time :time :as play}]
     (send-game-infos chsk nil board player last-move additional-infos time)))
 
-; input
-(defn play-websockets [size websockets-color first-player negamax-depth]
-  (let [negamax-strategy (negamax score-middle-blocked negamax-depth)]
-    (play size
-          {websockets-color (websockets (:event-ch (:event-handler system)))
-           (other-color websockets-color) (negamax score-middle-blocked negamax-depth)}
-          first-player)))
-
 (defn output-websockets [play]
   (output-with-fn play (create-websocket-broadcast (:websockets system))))
-
 
 ; ; returns a channel that contains all events to that user-id
 ; (defn attach-websocket-ch [user-id]

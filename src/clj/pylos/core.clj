@@ -4,6 +4,7 @@
             [pylos.strategy.human :refer :all]
             [strategy.negamax :refer :all]
             [pylos.score :refer :all]
+            [pylos.pprint :refer :all]
             [pylos.init :refer [starting-board]]
             [pylos.game :refer [order-moves generate-all-moves make-move-on-board game-over? winner]]))
 
@@ -16,7 +17,10 @@
   (generate-moves [game-position]
                   (order-moves board (generate-all-moves game-position)))
   (make-move [game-position move]
-             (next-game-position game-position move (make-move-on-board board move))))
+             (next-game-position game-position move (make-move-on-board board move)))
+  PrettyPrint
+  (print-game [game-position]
+              (print-pylos-game game-position)))
 
 
 (defn next-game-position [{:keys [player] :as game-position} move board]

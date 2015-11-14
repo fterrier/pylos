@@ -1,13 +1,15 @@
 (ns system.init-dev
   (:require
    ; those 2 deps are only here for convenience
-   [pylos.output :refer :all]
+   [game.output :refer :all]
+   [game.game :refer :all]
    [pylos.core :refer :all]
    [clojure.tools.namespace.repl :as repl]
    [system.figwheel :refer :all]
    [system.server :refer :all]
    [system.system :refer :all]
    [system.app :refer :all]
+   [system.pylos :refer :all]
    [system.events :refer :all]
    [system.websockets :refer :all]
    [com.stuartsierra.component :as component]

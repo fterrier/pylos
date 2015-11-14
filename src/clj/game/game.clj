@@ -7,6 +7,9 @@
   (generate-moves [this])
   (make-move [this move]))
 
+(defprotocol PrettyPrint
+  (print-game [this]))
+
 (defprotocol Strategy
   (choose-next-move [this game-position] "Chooses the next move for the given game, returns a {:next-move :additional-infos :next-game-position (optional)} object"))
 
