@@ -1,5 +1,8 @@
 (ns pylos.game.app
   (:require [cljs.core.async :as async :refer [put! >! <! chan close!]]
+            [secretary.core :as secretary :refer-macros [defroute]]
+            [goog.events :as events]
+            [goog.history.EventType :as EventType]
             [om.core :as om]
             [om-tools.core :refer-macros [defcomponent]]
             [om-tools.dom :as dom :include-macros true]
@@ -9,7 +12,21 @@
                                       select-current-position change-highlighted-position
                                       play-current-move]]
             [taoensso.sente :as sente :refer (cb-success?)])
+  (:import goog.History)
   (:require-macros [cljs.core.async.macros :refer [go go-loop alt!]]))
+
+(secretary/set-config! :prefix "#")
+(defroute game "/game/*" {game-id :*}
+  (println "Got link with a game" game-id)
+  (swap! app-state (fn [state] (assoc state :game-id game-id))))
+
+(defn hook-browser-navigation! []
+  (doto (History.)
+        (events/listen
+         EventType/NAVIGATE
+         (fn [event]
+           (secretary/dispatch! (.-token event))))
+        (.setEnabled true)))
 
 (defmulti handle-event-msg (fn [_ v] (get v 0)))
 
@@ -34,7 +51,7 @@
 (defn init-server-connection [app owner]
   (println "Initializing server connection")
   (let [{:keys [chsk ch-recv send-fn state]}
-        (sente/make-channel-socket! "/chsk" ; Note the same path as before
+        (sente/make-channel-socket! (str "/chsk/" (:game-id app)) ; Note the same path as before
                                     {:type :auto ; e/o #{:auto :ajax :ws}
                                      ;:host "localhost:8080"
                                      })]
@@ -114,6 +131,9 @@
                            ;(println "state changed")
                            ;(swap! app-state #(update % :history conj (:game-infos new-state)))
                            )})))
+
+(defn init []
+  (hook-browser-navigation!))
 
 (defn stop []
   )

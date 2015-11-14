@@ -1,17 +1,18 @@
 (ns system.strategy.websockets
   (:require [game.game :refer :all]
-            [clojure.core.async :as async :refer [<!! go]]))
+            [system.app :refer :all]
+            [clojure.core.async :as async :refer [<!! go chan sub]]))
 
+(defn wait-for-websocket-move [game-ch game-position]
+  (let [{:keys [game-infos]} (<!! game-ch)]
+    (println game-infos)
+    {:next-move (:move game-infos)}))
 
-(defn wait-for-websocket-move [event-ch game-position]
-  (let [game-info (<!! event-ch)]
-    (println game-info)
-    {:next-move (:move game-info)}))
-
-(defrecord WebsocketsStrategy [event-ch]
+; TODO not sure this is the right place to do cleanup
+(defrecord WebsocketsStrategy [game-ch]
   Strategy
   (choose-next-move [this game-position]
-                    (wait-for-websocket-move event-ch game-position)))
+                    (wait-for-websocket-move game-ch game-position)))
 
-(defn websockets [event-ch]
-  (->WebsocketsStrategy event-ch))
+(defn websockets [game-ch]
+  (->WebsocketsStrategy game-ch))

@@ -1,20 +1,27 @@
 (ns system.app
-  (:require [clojure.core.async :refer [<! >! put! close! go]]
-            ; TODO remove these deps
+  (:require [clojure.core.async :refer [<! >! put! close! go chan sub unsub]]
             [game.output :refer [output-with-fn]]
             [game.game :refer [other-color]]
             [game.board :refer [serialize-board]]
             [strategy.negamax :refer [negamax]]
-            [system.strategy.websockets :refer [websockets]]
             [ring.middleware.defaults :refer [site-defaults]]
             [system.system :refer [system]]
+            [ring.util.response :refer [resource-response content-type]]
             [compojure.core :refer [routes GET ANY]]
             [compojure.route :as route]
             [compojure.core :as comp :refer (defroutes GET POST)]))
 
+; get system stuff
+(defn system-websockets []
+  (:websockets system))
+
+(defn event-channels []
+  (:event-channels system))
+
 ; output
-(defn send-game-infos [chsk user-id board player move additional-infos time]
-  ((:chsk-send! chsk) :sente/all-users-without-uid
+(defn send-game-infos [websockets uid board player move additional-infos time]
+  (println "sending infos to " uid board (:chsk-send! websockets))
+  ((:chsk-send! websockets) uid
                       [:pylos/game-infos
                        {:board (serialize-board board)
                         :next-player player
@@ -22,38 +29,52 @@
                         :time time
                         :additional-infos additional-infos}]))
 
-(defn create-websocket-broadcast [chsk]
+(defn create-websocket-broadcast [websockets uid]
   (defn broadcast-game [{{:keys [board player outcome]} :game-position, last-move :last-move, additional-infos :additional-infos, time :time :as play}]
-    (send-game-infos chsk nil board player last-move additional-infos time)))
+    (send-game-infos websockets uid board player last-move additional-infos time)))
 
-(defn output-websockets [play]
-  (output-with-fn play (create-websocket-broadcast (:websockets system))))
+(defn output-websockets [play uid]
+  (output-with-fn play (create-websocket-broadcast (system-websockets) uid)))
 
-; ; returns a channel that contains all events to that user-id
-; (defn attach-websocket-ch [user-id]
-;   (chan))
+; communication
+(defn new-game-ch [event-channels game-id]
+  (println "creating game channel" game-id)
+  (let [game-ch (chan)]
+    (sub (:pub-ch event-channels) game-id game-ch)
+    game-ch))
+
+(defn delete-game-ch [event-channels game-id game-ch]
+  (println "deleting game channel" game-id)
+  (unsub (:pub-ch event-channels) game-id game-ch)
+  (close! game-ch))
+
+(defn send-to-game-ch [event-channels game-id game-infos]
+  (go (>! (:event-ch event-channels) {(:topic-fn event-channels) game-id :game-infos game-infos})))
+
 
 ; handlers
-(defmulti handle-event-msg (fn [id ?data control-ch] id))
+(defmulti handle-event-msg (fn [id game-id ?data event-channels] id))
 
-(defmethod handle-event-msg :pylos/player-move [id data control-ch]
-  (println data)
-  (go (>! control-ch (:game-infos data))))
+(defmethod handle-event-msg :pylos/player-move [id game-id {:keys [game-infos]} event-channels]
+  (println "Got client event, sending infos to game-id" game-id "on channel" event-channels)
+  (send-to-game-ch event-channels game-id game-infos))
 
 (defmethod handle-event-msg :default ; Fallback
-  [id event control-ch]
-  ;(println "Unhandled event:" id)
+  [id game-id event event-channels]
+  ;(println "Unhandled event:" id game-id)
   )
 
-(defn event-msg-handler* [control-ch]
-  (fn [{:as ev-msg :keys [id ?data event]}]
-    (handle-event-msg id ?data control-ch)))
+(defn event-msg-handler* [event-channels]
+  (fn [{:as ev-msg :keys [id uid ?data event]}]
+    (handle-event-msg id uid ?data event-channels)))
 
 ; websockets routes
 (defroutes pylos-routes
   ;;
-  (GET  "/chsk"  req ((:ring-ajax-get-or-ws-handshake (:websockets system)) req))
-  (POST "/chsk"  req ((:ring-ajax-post (:websockets system)) req))
+  (GET  "/chsk/:game-id" req ((:ring-ajax-get-or-ws-handshake (system-websockets)) req))
+  (POST "/chsk/:game-id" req ((:ring-ajax-post (system-websockets)) req))
+  ; (GET  "/pylos/:game-id" [game-id] (resource-response "index.html" {:root "public"}))
+  (route/resources "/")
   ;;
   (route/not-found "<h1>Page not found</h1>"))
 

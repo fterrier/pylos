@@ -11,7 +11,6 @@
   (let [board-with-meta  (create-board (:board game-infos))
         next-player      (:next-player game-infos)
         possible-moves   (generate-all-moves {:board board-with-meta :player next-player})
-        ; TODO don't do that if it's not our turn to play
         highlight-status (highlight-status board-with-meta possible-moves)
         move-status      (move-status possible-moves)
         layered-board    (board-indexes board-with-meta)
@@ -134,4 +133,4 @@
   (swap! app-state (fn [state] (update state :game-infos #(into [] (map game-infos-with-meta %))))))
 
 (defn reset []
-  (reset! app-state initial-state))
+  (swap! app-state (fn [state] (merge state initial-state))))

@@ -7,4 +7,5 @@
   (app/stop)
   (app/main))
 
+(app/init)
 (app/main)

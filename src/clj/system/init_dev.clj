@@ -19,11 +19,13 @@
   (alter-var-root #'system
                   (constantly (component/system-map
                                 ; :app-server (jetty-server {:app {:handler handler}, :port 3000})
-                                :figwheel      (map->Figwheel figwheel-config)
-                                :websockets    (component/using (new-channel-sockets sente-web-server-adapter)
-                                                                [:event-handler])
-                                :event-handler (new-event-handler)
-                                ;:web-server (new-web-server 8080 pylos-app)
+                                ; :web-server (new-web-server 8080 pylos-app)
+                                :figwheel       (map->Figwheel figwheel-config)
+                                :websockets     (component/using (new-channel-sockets sente-web-server-adapter)
+                                                                 [:event-handler])
+                                :event-handler  (component/using (new-event-handler)
+                                                                 [:event-channels])
+                                :event-channels (new-event-channels)
                                 ))))
 
 (defn start []
