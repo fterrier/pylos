@@ -1,5 +1,5 @@
 (ns pylos.ui
-  (:require [pylos.board :refer [size ind square-corners]]))
+  (:require [pylos.board :refer [ind square-corners]]))
 
 (defn- all-permutations [positions]
   (if (vector? positions) [positions]

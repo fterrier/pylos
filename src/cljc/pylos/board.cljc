@@ -1,20 +1,9 @@
-(ns pylos.board)
+(ns pylos.board
+  (:require [game.board :refer [Board]]))
 
-(defrecord HelperMetaBoard [size number-of-positions
-                            positions-right-down-map
-                            positions-left-up-map
-                            position-on-top-map
-                            square-positions-below-map
-                            square-positions-at-position-map
-                            number-of-positions-around
-                            positions-above-first-layer
-                            positions-under-position-map
-                            positions-map all-positions])
 
-(defrecord MetaBoard [helper-meta-board empty-positions balls-on-board removable-positions])
-
-(defn other-color [color]
-  (if (= color :white) :black :white))
+(defn board-size [board]
+  (:size (:helper-meta-board (meta board))))
 
 (defn cell [board position]
   (get board position))
@@ -30,9 +19,6 @@
 
 (defn ind [board position]
   ((:positions-map (:helper-meta-board (meta board))) position))
-
-(defn size [board]
-    (:size (:helper-meta-board (meta board))))
 
 (defn number-of-positions-around [board]
   (:number-of-positions-around (:helper-meta-board (meta board))))

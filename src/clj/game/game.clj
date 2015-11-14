@@ -10,6 +10,9 @@
 (defprotocol Strategy
   (choose-next-move [this game-position] "Chooses the next move for the given game, returns a {:next-move :additional-infos :next-game-position (optional)} object"))
 
+(defn other-color [color]
+  (if (= color :white) :black :white))
+
 (defn play-game [{:keys [game-position] :as game} strategies]
   (let [player        (:player game-position)
         strategy      (get strategies player)]

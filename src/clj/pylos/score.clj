@@ -1,6 +1,7 @@
 (ns pylos.score
   (:require [pylos.board :refer :all]
-            [pylos.game :refer :all]))
+            [pylos.game :refer :all]
+            [game.game :refer :all]))
 
 (defn balls-around [board player]
   (let [balls-on-board (balls-on-board board player)]

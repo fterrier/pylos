@@ -13,7 +13,7 @@
 
 (defmulti handle-event-msg (fn [_ v] (get v 0)))
 
-(defmethod handle-event-msg :pylos/game-infos [app [id {:keys [board balls-remaining next-player] :as game-infos}]]
+(defmethod handle-event-msg :pylos/game-infos [app [id game-infos]]
   (append-game-infos app game-infos))
 
 (defmulti event-msg-handler (fn [_ ev-msg] (:id ev-msg)))

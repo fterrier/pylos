@@ -27,7 +27,7 @@
   :cljsbuild {:builds {:app {:source-paths ["src/cljs" "src/cljc"]}}}
 
   :profiles {:uberjar {:aot :all}
-             :dev {:dependencies [[org.clojure/tools.namespace "0.2.3"]
+             :dev {:dependencies [[org.clojure/tools.namespace "0.2.11"]
                                   [figwheel-sidecar "0.4.1"]
                                   ;[alembic "0.3.2"]
                                   ]

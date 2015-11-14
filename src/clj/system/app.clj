@@ -4,8 +4,9 @@
             [pylos.score :refer [score-middle-blocked]]
             [pylos.core :refer [play]]
             [pylos.output :refer [output-with-fn]]
-            [pylos.board :refer [other-color size]]
 
+            [game.game :refer [other-color]]
+            [game.board :refer [serialize-board]]
             [strategy.negamax :refer [negamax]]
             [system.strategy.websockets :refer [websockets]]
             [ring.middleware.defaults :refer [site-defaults]]
@@ -19,8 +20,7 @@
 (defn send-game-infos [chsk user-id board player move additional-infos time]
   ((:chsk-send! chsk) :sente/all-users-without-uid
                       [:pylos/game-infos
-                       {:board board
-                        :size (size board)
+                       {:board (serialize-board board)
                         :next-player player
                         :move move
                         :time time

@@ -1,8 +1,34 @@
 (ns pylos.init
-  #?(:cljs (:require [pylos.board :refer [map->MetaBoard map->HelperMetaBoard size
-                                          cell has-ball position-on-top positions-around]]))
-  #?(:clj (:require [clojure.math.numeric-tower :as math]
-                    [pylos.board :refer :all])))
+  #?(:cljs (:require
+            [game.board :refer [Board deserialize-board serialize-board]]
+            [pylos.board :refer [board-size cell has-ball position-on-top positions-around]]))
+  #?(:clj (:require
+           [game.board :refer [Board deserialize-board serialize-board]]
+           [clojure.math.numeric-tower :as math]
+           [pylos.board :refer :all])))
+
+(declare initialize-board-meta)
+
+(extend-protocol Board
+  #?(:clj clojure.lang.IPersistentVector :cljs cljs.core.PersistentVector)
+  (deserialize-board [_ map]
+                     (initialize-board-meta (:board map) (:size map)))
+  (serialize-board [board]
+                  {:board board :size (board-size board)}))
+
+(defrecord HelperMetaBoard [number-of-positions size
+                           positions-right-down-map
+                           positions-left-up-map
+                           position-on-top-map
+                           square-positions-below-map
+                           square-positions-at-position-map
+                           number-of-positions-around
+                           positions-above-first-layer
+                           positions-under-position-map
+                           positions-map all-positions])
+
+(defrecord MetaBoard [helper-meta-board empty-positions balls-on-board removable-positions])
+
 
 ; Starting board creation functions
 (defn calculate-all-positions [size]
@@ -105,8 +131,8 @@
         position-on-top-map          (create-position-map-one #(calculate-position-on-top %) all-positions positions-map)
         positions-around             (create-position-map #(calculate-all-positions-around % positions-left-up-no-ind positions-right-down-no-ind)
                                                           all-positions positions-map)]
-    {:number-of-positions number-of-positions
-     :size size
+    {:size size
+     :number-of-positions number-of-positions
      :positions-right-down-map positions-right-down-map
      :positions-left-up-map positions-left-up-map
      :position-on-top-map position-on-top-map
@@ -165,10 +191,14 @@
     board))
 
 (defn board-indexes [board]
-  (let [size           (size board)
+  (let [size           (board-size board)
         positions-map  (:positions-map (:helper-meta-board (meta board)))
         frontend-board (into [] (for [layer (range 0 size)]
                                 (into [] (for [row (range 0 (- size layer))]
                                            (into [] (for [col (range 0 (- size layer))]
                                                       (get positions-map [(inc layer) (inc row) (inc col)])))))))]
   frontend-board))
+
+
+(defn create-board [map]
+  (deserialize-board [] map))

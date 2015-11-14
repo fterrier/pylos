@@ -1,16 +1,14 @@
 (ns pylos.game.state
   (:require [cljs.core.async :as async :refer [put! >! <! chan close!]]
             [om.core :as om]
+            [game.board :refer [serialize-board]]
             [pylos.game :refer [generate-all-moves]]
             [pylos.ui :refer [highlight-status move-status]]
-            [pylos.board :refer [size ind balls-remaining]]
-            [pylos.init :refer [starting-board board-indexes initialize-board-meta]]))
+            [pylos.board :refer [board-size ind balls-remaining]]
+            [pylos.init :refer [create-board starting-board board-indexes initialize-board-meta]]))
 
 (defn game-infos-with-meta [game-infos]
-  (let [board            (:board game-infos)
-        size             (:size game-infos)
-        ; TODO another way here would be for the server to send all the infos we need below
-        board-with-meta  (initialize-board-meta board size)
+  (let [board-with-meta  (create-board (:board game-infos))
         next-player      (:next-player game-infos)
         possible-moves   (generate-all-moves {:board board-with-meta :player next-player})
         ; TODO don't do that if it's not our turn to play
@@ -26,7 +24,7 @@
 
 (def initial-state {:game-infos [(game-infos-with-meta
                                   {:size 4
-                                   :board (starting-board 4)
+                                   :board (serialize-board (starting-board 4))
                                    :next-player :white})]
                     :highlighted-position {:position nil} ; this contains the highlighted position
                     :current-move no-move
@@ -103,7 +101,7 @@
   (om/update! app [:highlighted-position :position] current-position))
 
 (defn play-move [board move control-ch]
-  (put! control-ch {:action :send-move-to-server :game-infos {:board board :size (size board) :move move}}))
+  (put! control-ch {:action :send-move-to-server :game-infos {:board board :size (board-size board) :move move}}))
 
 (defn play-current-move [app control-ch]
   (let [current-game-infos (current-game-infos (:current-index (om/root-cursor app-state)))

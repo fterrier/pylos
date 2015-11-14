@@ -27,9 +27,9 @@
 (defn print-board
   ([board last-move]
    (println)
-   (doseq [row (range 1 (+ 1 (size board)))]
-     (doseq [layer (range 1 (+ 1 (size board)))]
-       (doseq [col (range 1 (+ 2 (- (size board) layer)))]
+   (doseq [row (range 1 (+ 1 (board-size board)))]
+     (doseq [layer (range 1 (+ 1 (board-size board)))]
+       (doseq [col (range 1 (+ 2 (- (board-size board) layer)))]
          (let [position-coord [layer row col]
                position       (ind board position-coord)]
            (when-not (nil? position) (print-cell board position last-move))))
