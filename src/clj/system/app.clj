@@ -56,7 +56,7 @@
 (defmulti handle-event-msg (fn [id game-id ?data event-channels] id))
 
 (defmethod handle-event-msg :pylos/player-move [id game-id {:keys [game-infos]} event-channels]
-  (println "Got client event, sending infos to game-id" game-id "on channel" event-channels)
+  (println "Got client event, sending infos to game-id" game-id)
   (send-to-game-ch event-channels game-id game-infos))
 
 (defmethod handle-event-msg :default ; Fallback

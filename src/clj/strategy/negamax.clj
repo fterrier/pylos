@@ -1,5 +1,6 @@
 (ns strategy.negamax
-  (:require [game.game :refer :all]
+  (:require [clojure.core.async :refer [<! >! go chan]]
+            [game.game :refer :all]
             [pylos.board :refer :all]))
 
 (def negamax-table (atom {}))
@@ -139,30 +140,31 @@
 (defrecord NegamaxStrategy [score-fun depth]
   Strategy
   (choose-next-move [this game-position]
-                    ; TODO purge too old entries
-                    ;(println "Before purge" (count @negamax-table))
-                    (let [count-map (tt-purge-entries (number-of-balls-on-board (:board game-position)) @negamax-table (into [] (repeat (number-of-positions (:board game-position)) 0)))]
-                      ;(println "After purge" (count @negamax-table) count-map)
-                      )
-                    (reduce (fn [step-result current-depth]
-                              (let [start-time    (System/nanoTime)
-                                    result        (negamax-choose-move game-position current-depth score-fun
-                                                                       (:principal-variation (:additional-infos step-result)))
-                                    end-time      (System/nanoTime)
-                                    time-at-depth (double (/ (- end-time start-time) 1000000))]
-                                (-> step-result
-                                    (merge result)
-                                    (dissoc :negamax-values)
-                                    (assoc :additional-infos
-                                      (conj (:additional-infos step-result)
-                                            {:principal-variation (:principal-variation result)
-                                             :depth          current-depth
-                                             :negamax-values (:negamax-values result)
-                                             :time           time-at-depth
-                                             :moves-per-ms   (double (/ (:total-moves (:stats result)) time-at-depth))
-                                             :stats          (:stats result)})))))
-                            {:additional-infos []}
-                            (range 1 (+ 1 depth)))))
+                      (go
+                        ; TODO purge too old entries
+                        ;(println "Before purge" (count @negamax-table))
+                        (let [count-map (tt-purge-entries (number-of-balls-on-board (:board game-position)) @negamax-table (into [] (repeat (number-of-positions (:board game-position)) 0)))]
+                          ;(println "After purge" (count @negamax-table) count-map)
+                          )
+                          (reduce (fn [step-result current-depth]
+                                    (let [start-time    (System/nanoTime)
+                                          result        (negamax-choose-move game-position current-depth score-fun
+                                                                             (:principal-variation (:additional-infos step-result)))
+                                          end-time      (System/nanoTime)
+                                          time-at-depth (double (/ (- end-time start-time) 1000000))]
+                                      (-> step-result
+                                          (merge result)
+                                          (dissoc :negamax-values)
+                                          (assoc :additional-infos
+                                            (conj (:additional-infos step-result)
+                                                  {:principal-variation (:principal-variation result)
+                                                   :depth          current-depth
+                                                   :negamax-values (:negamax-values result)
+                                                   :time           time-at-depth
+                                                   :moves-per-ms   (double (/ (:total-moves (:stats result)) time-at-depth))
+                                                   :stats          (:stats result)})))))
+                                  {:additional-infos []}
+                                  (range 1 (+ 1 depth))))))
 
 (defn negamax [score-fun depth]
   (reset! negamax-table {})

@@ -17,11 +17,11 @@
   (generate-moves [game-position]
                   (order-moves board (generate-all-moves game-position)))
   (make-move [game-position move]
-             (next-game-position game-position move (make-move-on-board board move)))
-  PrettyPrint
-  (print-game [game-position]
-              (print-pylos-game game-position)))
+             (next-game-position game-position move (make-move-on-board board move))))
 
+;              PrettyPrint
+; (print-game [game-position]
+;             (print-pylos-game game-position))
 
 (defn next-game-position [{:keys [player] :as game-position} move board]
   {:pre [(= player (:color move))]}

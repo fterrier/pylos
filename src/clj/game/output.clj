@@ -1,17 +1,22 @@
 (ns game.output
-  (:require [game.compare :refer :all]
+  (:require [clojure.core.async :refer [<!! chan onto-chan pipe]]
+            [game.compare :refer :all]
+            [pylos.pprint :refer :all]
             [game.game :refer :all]))
 
+
+
 (defn output-with-fn [play output-fn]
-  (map #(output-fn %) play))
+  (let [xform (map #(output-fn %))]
+    (pipe play (chan 1 xform))))
 
 (defn output [play]
-  (output-with-fn play print-game))
+  (output-with-fn play print-pylos-game))
 
 (defn output-and-compare-games [[game1 & rest1] [game2 & rest2]]
   (if (nil? game1) []
     (do
-      (print-game (dissoc game1 :additional-infos))
+      (print-pylos-game (dissoc game1 :additional-infos))
       ; (print-game (assoc-in game2
       ;                       [:game-position :board]
       ;                       (with-meta (:board (:game-position game2))
