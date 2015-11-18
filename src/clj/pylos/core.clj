@@ -37,6 +37,7 @@
                       :outcome nil}))
 
 (defn play [size {:keys [white black] :as strategies} first-player]
+  (println "Starting game with strategies" strategies)
   (play-game {:game-position (initial-game size first-player)} strategies))
 
 (defn play-human [size human-color first-player negamax-depth]

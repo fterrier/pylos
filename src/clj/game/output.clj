@@ -5,10 +5,18 @@
             [game.game :refer :all]))
 
 
+(defn output-with-fn [ch output-fn]
+  (loop []
+    (if-let [value (<!! ch)]
+      (do
+        (output-fn value)
+        (recur))
+      nil)))
 
-(defn output-with-fn [play output-fn]
-  (let [xform (map #(output-fn %))]
-    (pipe play (chan 1 xform))))
+
+; (defn output-with-fn [play output-fn]
+;   (let [xform (map #(output-fn %))]
+;     (consume (pipe play (chan 1 xform)))))
 
 (defn output [play]
   (output-with-fn play print-pylos-game))

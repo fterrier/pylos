@@ -4,7 +4,6 @@
             [clojure.core.async :as async :refer [<! go chan sub]]))
 
 (defn wait-for-websocket-move [game-ch game-position]
-  (println game-ch)
   (go
     (let [{:keys [game-infos]} (<! game-ch)]
       (println "Got move from channel" game-infos)
@@ -14,7 +13,6 @@
 (defrecord WebsocketsStrategy [game-ch]
   Strategy
   (choose-next-move [this game-position]
-                    (println "Choosing next websocket move")
                     (wait-for-websocket-move game-ch game-position)))
 
 (defn websockets [game-ch close-ch]

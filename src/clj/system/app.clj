@@ -1,6 +1,5 @@
 (ns system.app
   (:require [clojure.core.async :refer [<! >! put! close! go chan sub unsub]]
-            [game.output :refer [output-with-fn]]
             [game.game :refer [other-color]]
             [game.board :refer [serialize-board]]
             [strategy.negamax :refer [negamax]]
@@ -32,9 +31,6 @@
 (defn create-websocket-broadcast [websockets uid]
   (defn broadcast-game [{{:keys [board player outcome]} :game-position, last-move :last-move, additional-infos :additional-infos, time :time :as play}]
     (send-game-infos websockets uid board player last-move additional-infos time)))
-
-(defn output-websockets [play uid]
-  (output-with-fn play (create-websocket-broadcast (system-websockets) uid)))
 
 ; communication
 (defn new-game-ch [event-channels game-id]
@@ -71,7 +67,12 @@
 ; websockets routes
 (defroutes pylos-routes
   ;;
-  (GET  "/chsk/:game-id" req ((:ring-ajax-get-or-ws-handshake (system-websockets)) req))
+  (GET  "/chsk/:game-id" req (
+                              (try
+                                (:ring-ajax-get-or-ws-handshake (system-websockets))
+                                (catch Exception e
+                                ; do nothing
+                                )) req))
   (POST "/chsk/:game-id" req ((:ring-ajax-post (system-websockets)) req))
   ; (GET  "/pylos/:game-id" [game-id] (resource-response "index.html" {:root "public"}))
   (route/resources "/")
