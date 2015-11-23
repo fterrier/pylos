@@ -10,59 +10,29 @@
             [compojure.route :as route]
             [compojure.core :as comp :refer (defroutes GET POST)]))
 
-; get system stuff
+; TODO remove this get system stuff
 (defn system-websockets []
   (:websockets system))
 
-(defn event-channels []
-  (:event-channels system))
-
-; output
-(defn send-game-infos [websockets uid board player move additional-infos time]
-  (println "sending infos to " uid board (:chsk-send! websockets))
-  ((:chsk-send! websockets) uid
-                      [:pylos/game-infos
-                       {:board (serialize-board board)
-                        :next-player player
-                        :move move
-                        :time time
-                        :additional-infos additional-infos}]))
-
-(defn create-websocket-broadcast [websockets uid]
-  (defn broadcast-game [{{:keys [board player outcome]} :game-position, last-move :last-move, additional-infos :additional-infos, time :time :as play}]
-    (send-game-infos websockets uid board player last-move additional-infos time)))
-
-; communication
-(defn new-game-ch [event-channels game-id]
-  (println "creating game channel" game-id)
-  (let [game-ch (chan)]
-    (sub (:pub-ch event-channels) game-id game-ch)
-    game-ch))
-
-(defn delete-game-ch [event-channels game-id game-ch]
-  (println "deleting game channel" game-id)
-  (unsub (:pub-ch event-channels) game-id game-ch)
-  (close! game-ch))
-
-(defn send-to-game-ch [event-channels game-id game-infos]
-  (go (>! (:event-ch event-channels) {(:topic-fn event-channels) game-id :game-infos game-infos})))
-
-
 ; handlers
-(defmulti handle-event-msg (fn [id game-id ?data event-channels] id))
+(defmulti handle-event-msg (fn [id game-id ?data game-channels] id))
 
-(defmethod handle-event-msg :pylos/player-move [id game-id {:keys [game-infos]} event-channels]
-  (println "Got client event, sending infos to game-id" game-id)
-  (send-to-game-ch event-channels game-id game-infos))
+; (defmethod handle-event-msg :pylos/new-game [id game-id {:keys [game-infos]} websockets-ch]
+;   (println "Got client event, sending infos to game-id" game-id)
+;   (go (>! websockets-ch {:type :player-move :game-id game-id :game-infos game-infos})))
+
+(defmethod handle-event-msg :pylos/player-move [id game-id {:keys [game-infos]} websockets-ch]
+  (println "Websockets got player move, sending to game runner" game-id)
+  (go (>! websockets-ch {:type :player-move :game-id game-id :game-infos game-infos})))
 
 (defmethod handle-event-msg :default ; Fallback
-  [id game-id event event-channels]
+  [id game-id event game-channels]
   ;(println "Unhandled event:" id game-id)
   )
 
-(defn event-msg-handler* [event-channels]
+(defn event-msg-handler* [websockets-ch]
   (fn [{:as ev-msg :keys [id uid ?data event]}]
-    (handle-event-msg id uid ?data event-channels)))
+    (handle-event-msg id uid ?data websockets-ch)))
 
 ; websockets routes
 (defroutes pylos-routes

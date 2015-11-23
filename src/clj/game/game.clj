@@ -17,25 +17,28 @@
 (defn other-color [color]
   (if (= color :white) :black :white))
 
-(defn play-game [{:keys [game-position] :as game} strategies]
-  "Returns a channel where the consumer can ask for the next move"
-  (let [result-ch (chan)]
-      (go-loop [game-position    game-position
-                time             0
-                additional-infos nil
-                last-move        nil]
-                  (let [player    (:player game-position)
-                        strategy  (get strategies player)]
-                    (>! result-ch
-                        {:game-position game-position
-                         :last-move last-move
-                         :additional-infos additional-infos
-                         :time time})
-                    (if (:outcome game-position)
-                      (close! result-ch)
-                      (let [start-time  (System/nanoTime)
-                            game-result (<! (choose-next-move strategy game-position))
-                            end-time    (System/nanoTime)
-                            next-game-position (or (:next-game-position game-result) (make-move game-position (:next-move game-result)))]
-                        (recur next-game-position (- end-time start-time) (:additional-infos game-result) (:next-move game-result))))))
-      result-ch))
+(defn play-game
+  ([game strategies]
+    "Returns a channel where the consumer can ask for the next move"
+    (let [result-ch (chan)]
+        (play-game game strategies result-ch)
+        result-ch))
+  ([{:keys [game-position] :as game} strategies result-ch]
+   (go-loop [game-position    game-position
+             time             0
+             additional-infos nil
+             last-move        nil]
+     (let [player    (:player game-position)
+           strategy  (get strategies player)]
+       (>! result-ch
+           {:game-position game-position
+            :last-move last-move
+            :additional-infos additional-infos
+            :time time})
+       (if (:outcome game-position)
+         (close! result-ch)
+         (let [start-time  (System/nanoTime)
+               game-result (<! (choose-next-move strategy game-position))
+               end-time    (System/nanoTime)
+               next-game-position (or (:next-game-position game-result) (make-move game-position (:next-move game-result)))]
+           (recur next-game-position (- end-time start-time) (:additional-infos game-result) (:next-move game-result))))))))

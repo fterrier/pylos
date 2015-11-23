@@ -6,10 +6,9 @@
 (defn wait-for-websocket-move [game-ch game-position]
   (go
     (let [{:keys [game-infos]} (<! game-ch)]
-      (println "Got move from channel" game-infos)
+      (println "Websockets Strategy - got move from channel" game-infos)
       {:next-move (:move game-infos)})))
 
-; TODO not sure this is the right place to do cleanup
 (defrecord WebsocketsStrategy [game-ch]
   Strategy
   (choose-next-move [this game-position]
