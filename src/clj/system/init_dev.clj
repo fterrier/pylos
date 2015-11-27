@@ -20,10 +20,11 @@
 (defn init []
   (alter-var-root #'system
                   (constantly (component/system-map
-                                ; :app-server (jetty-server {:app {:handler handler}, :port 3000})
-                                ; :web-server (new-web-server 8080 pylos-app)
-                                :websockets-ch  (chan)
                                 :figwheel       (map->Figwheel figwheel-config)
+
+                                :websockets-ch  (chan)
+                                :routes         (component/using (new-server-routes) [:game-runner])
+                                :web-server     (component/using (new-web-server 8080) [:routes])
                                 :websockets     (component/using (new-channel-sockets sente-web-server-adapter) [:event-handler])
                                 :event-handler  (component/using (new-event-handler) [:websockets-ch])
                                 :game-runner    (component/using (new-game-runner) [:websockets-ch :game-output])

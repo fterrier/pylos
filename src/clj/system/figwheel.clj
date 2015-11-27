@@ -5,8 +5,7 @@
     [com.stuartsierra.component :as component]))
 
 (def figwheel-config
-  {:figwheel-options {:css-dirs ["resources/public/css"]
-                      :ring-handler 'system.app/pylos-app} ;; <-- figwheel server config goes here
+  {:figwheel-options {:css-dirs ["resources/public/css"]} ;; <-- figwheel server config goes here
    :build-ids ["app"]   ;; <-- a vector of build ids to start autobuilding
    :all-builds          ;; <-- supply your build configs here
    [{:id "app"

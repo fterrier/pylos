@@ -97,9 +97,16 @@
   (let [chsk-send (om/get-state owner :chsk-send!)]
     (chsk-send [:pylos/player-move {:game-infos (:game-infos control)}])))
 
+(defmethod handle-control :send-new-game-to-server [app owner control]
+  (println "creating new game")
+  (let [chsk-send (om/get-state owner :chsk-send!)]
+    ; [game-id websockets-color first-player negamax-depth]
+    (chsk-send [:pylos/new-game (dissoc control :action)])))
+
 ; TODO make all channels global again so we can use them from the REPL
 (defcomponent app [app owner]
   (will-mount [_]
+              ; maybe we can move this outside cause it doesn't need to unmount
               (go-loop []
                 (handle-control app owner (<! (:control-ch (om/get-shared owner))))
                 (recur))
@@ -115,6 +122,7 @@
                   (catch js/Object e (println "Error caught" e))))
   (render [_]
           (dom/div
+            (dom/button {:on-click (fn [e] (put! (:control-ch (om/get-shared owner)) {:action :send-new-game-to-server :first-player :white :negamax-depth 4 :websockets-color :white}) (. e preventDefault))} "new game")
             (om/build history-comp nil)
             (om/build board-comp nil))))
 

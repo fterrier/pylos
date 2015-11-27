@@ -19,13 +19,13 @@
     (close! game-ch)))
 
 (defn new-ch [channels game-id]
-  (println "Creating game channel for" game-id)
+  (println "Creating channel for" game-id)
   (let [game-ch (chan)]
     (swap! channels assoc game-id game-ch)
     game-ch))
 
 (defn delete-ch [channels game-ch game-id]
-  (println "Deleting game channel for" game-id)
+  (println "Deleting channel for" game-id)
     (close! game-ch)
     (swap! channels dissoc game-id))
 
@@ -45,6 +45,7 @@
 
 ; game output API
 (defn register-for-game-output [{:keys [websockets]} result-ch game-id uid]
+  (println "Game runner - Registering for game output" websockets)
   (go-loop []
     (let [result (<! result-ch)]
       (println "Game output - Got result" game-id )
@@ -64,27 +65,38 @@
   (map->GameOutput {}))
 
 ; game runner API
-(defn new-game [{:keys [websockets-ch game-channels]} game-id size websockets-color first-player negamax-depth]
+(defn new-game [{:keys [websockets-ch game-channels result-channels]} game-id size websockets-color first-player negamax-depth]
   (println game-channels)
-  (let [; TODO where to close this channel ?
-        ; TODO what if the client disconnects and the game never terminates ?
+  (let [; TODO where to close game-ch and result-ch channel if the game never terminates if the client disconnects ?
+        result-ch        (new-ch result-channels game-id)
         game-ch          (new-ch game-channels game-id)
         negamax-strategy (negamax score-middle-blocked negamax-depth)]
       (play size
             {websockets-color (websockets game-ch nil)
             (other-color websockets-color) (negamax score-middle-blocked negamax-depth)}
-            first-player)))
+            first-player result-ch)
+    result-ch))
 
-(defmulti handle-websockets-msg (fn [_ {:keys [type]}] type))
-
-(defmethod handle-websockets-msg :player-move [{:keys [game-channels]} {:keys [game-id game-infos]}]
+(defn handle-player-move [{:keys [game-channels]} {:keys [game-id game-infos]}]
   (let [game-ch (get-ch game-channels game-id)]
     (if (nil? game-ch)
-      ; TODO handle this
+      ; TODO handle game channel not found - retrieve game from persistence layer ?
       (println "Game runner - Game channel not found")
       (do
         (println "Game runner - Sending game infos to game channel" game-infos)
         (go (>! game-ch {:game-infos game-infos}))))))
+
+(defn handle-new-game [game-runner {:keys [game-id websockets-color first-player negamax-depth]}]
+  (println "Game runner - Handler new game with game-id " game-id)
+  (let [result-ch (new-game game-runner game-id 4 websockets-color first-player negamax-depth)]
+    ; TODO handle game-id differently here but how?
+    (register-for-game-output (:game-output game-runner) result-ch game-id game-id)))
+
+(defmulti handle-websockets-msg (fn [_ {:keys [type]}] type))
+(defmethod handle-websockets-msg :player-move [game-runner message]
+  (handle-player-move game-runner message))
+(defmethod handle-websockets-msg :new-game [game-runner message]
+  (handle-new-game game-runner message))
 
 (defn start-game-runner [{:keys [websockets-ch game-channels] :as game-runner}]
   (go-loop []
@@ -94,7 +106,7 @@
     (recur))
   game-runner)
 
-(defrecord GameRunner [websockets-ch game-channels game-output]
+(defrecord GameRunner [websockets-ch game-channels result-channels game-output]
   component/Lifecycle
   (start [component]
     (start-game-runner component))
@@ -102,10 +114,11 @@
     ; TODO this should not be here
     (close! websockets-ch)
     (stop-channels game-channels)
+    (stop-channels result-channels)
     component))
 
 (defn new-game-runner []
-  (map->GameRunner {:game-channels (new-channels)}))
+  (map->GameRunner {:game-channels (new-channels) :result-channels (new-channels)}))
 
 
 ; event handler create-board

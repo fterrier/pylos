@@ -17,7 +17,8 @@
                  [secretary "1.2.3"]
                  [compojure "1.4.0"]
                  [com.taoensso/sente "1.6.0"]
-                 [ring/ring-defaults "0.1.5"]]
+                 [ring/ring-defaults "0.1.5"]
+                 [valichek/component-compojure "0.2-SNAPSHOT"]]
   :repl-options {:port 7888
                  :init (do (require 'clj-stacktrace.repl))
                  :caught clj-stacktrace.repl/pst+}
