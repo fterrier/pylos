@@ -1,6 +1,5 @@
 (ns system.figwheel
   (:require
-    [system.app :refer :all]
     [figwheel-sidecar.repl-api :as ra]
     [com.stuartsierra.component :as component]))
 

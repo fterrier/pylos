@@ -9,7 +9,9 @@
    [system.figwheel :refer :all]
    [system.server :refer :all]
    [system.system :refer :all]
-   [system.app :refer :all]
+   [system.events :refer :all]
+   [system.game :refer :all]
+   [system.routes :refer :all]
    [system.pylos :refer :all]
    [system.events :refer :all]
    [system.websockets :refer :all]
@@ -23,7 +25,7 @@
                                 :figwheel       (map->Figwheel figwheel-config)
 
                                 :websockets-ch  (chan)
-                                :routes         (component/using (new-server-routes) [:game-runner])
+                                :routes         (component/using (new-server-routes) [:game-runner :websockets])
                                 :web-server     (component/using (new-web-server 8080) [:routes])
                                 :websockets     (component/using (new-channel-sockets sente-web-server-adapter) [:event-handler])
                                 :event-handler  (component/using (new-event-handler) [:websockets-ch])

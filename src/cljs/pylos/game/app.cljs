@@ -101,6 +101,7 @@
   (println "creating new game")
   (let [chsk-send (om/get-state owner :chsk-send!)]
     ; [game-id websockets-color first-player negamax-depth]
+    ; TODO should receive the ID back
     (chsk-send [:pylos/new-game (dissoc control :action)])))
 
 ; TODO make all channels global again so we can use them from the REPL

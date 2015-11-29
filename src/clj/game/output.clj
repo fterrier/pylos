@@ -1,6 +1,7 @@
 (ns game.output
   (:require [clojure.core.async :refer [<!! chan onto-chan pipe]]
             [game.compare :refer :all]
+            ; TODO remove this from here
             [pylos.pprint :refer :all]
             [game.game :refer :all]))
 
