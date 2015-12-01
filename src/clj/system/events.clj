@@ -3,15 +3,16 @@
             [com.stuartsierra.component :as component]))
 
 ; handlers
-(defmulti handle-event-msg (fn [id game-id ?data game-channels] id))
+(defmulti handle-event-msg (fn [id uid ?data game-channels] id))
 
 (defmethod handle-event-msg :pylos/new-game [id uid {:keys [first-player negamax-depth websockets-color]} websockets-ch]
   (println "Websockets got new game message" uid)
-  (go (>! websockets-ch {:type :new-game :game-id "test" :first-player first-player :negamax-depth negamax-depth :websockets-color websockets-color})))
+  ; remove uid from here ?
+  (go (>! websockets-ch {:type :new-game :uid uid :first-player first-player :negamax-depth negamax-depth :websockets-color websockets-color})))
 
-(defmethod handle-event-msg :pylos/player-move [id uid {:keys [game-infos]} websockets-ch]
+(defmethod handle-event-msg :pylos/player-move [id uid {:keys [game-infos game-id]} websockets-ch]
   (println "Websockets got player move, sending to game runner" uid)
-  (go (>! websockets-ch {:type :player-move :game-id uid :game-infos game-infos})))
+  (go (>! websockets-ch {:type :player-move :game-id game-id :game-infos game-infos})))
 
 (defmethod handle-event-msg :default ; Fallback
   [id uid event game-channels]

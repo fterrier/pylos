@@ -18,6 +18,8 @@
 (secretary/set-config! :prefix "#")
 (defroute game "/game/*" {game-id :*}
   (println "Got link with a game" game-id)
+  ; TODO here we join the game
+  ; TODO treat like a user event -> send to control-ch
   (swap! app-state (fn [state] (assoc state :game-id game-id))))
 
 (defn hook-browser-navigation! []
@@ -51,7 +53,7 @@
 (defn init-server-connection [app owner]
   (println "Initializing server connection")
   (let [{:keys [chsk ch-recv send-fn state]}
-        (sente/make-channel-socket! (str "/chsk/" (:game-id app)) ; Note the same path as before
+        (sente/make-channel-socket! (str "/chsk") ; Note the same path as before
                                     {:type :auto ; e/o #{:auto :ajax :ws}
                                      ;:host "localhost:8080"
                                      })]
@@ -95,7 +97,7 @@
 (defmethod handle-control :send-move-to-server [app owner control]
   (println "playing move")
   (let [chsk-send (om/get-state owner :chsk-send!)]
-    (chsk-send [:pylos/player-move {:game-infos (:game-infos control)}])))
+    (chsk-send [:pylos/player-move {:game-id (:game-id app) :game-infos (:game-infos control)}])))
 
 (defmethod handle-control :send-new-game-to-server [app owner control]
   (println "creating new game")

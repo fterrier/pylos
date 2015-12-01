@@ -43,11 +43,11 @@
                         :additional-infos additional-infos}]))
 
 ; game output API
-(defn register-for-game-output [{:keys [websockets]} result-ch game-id uid]
+(defn register-for-game-output [{:keys [websockets]} result-ch uid]
   (println "Game runner - Registering for game output" websockets)
   (go-loop []
     (let [result (<! result-ch)]
-      (println "Game output - Got result" game-id )
+      (println "Game output - Got result" result)
       (if (nil? result)
         (println "Game output - Game is over")
         (do
@@ -85,12 +85,14 @@
         (println "Game runner - Sending game infos to game channel" game-infos)
         (go (>! game-ch {:game-infos game-infos}))))))
 
-; TODO return game id ?
-(defn handle-new-game [game-runner {:keys [game-id websockets-color first-player negamax-depth]}]
-  (println "Game runner - Handler new game with game-id " game-id)
-  (let [result-ch (new-game game-runner game-id 4 websockets-color first-player negamax-depth)]
-    ; TODO handle game-id differently here but how?
-    (register-for-game-output (:game-output game-runner) result-ch game-id game-id)))
+; TODO return game id and don't start game
+; TODO start game on join
+(defn handle-new-game [game-runner {:keys [uid websockets-color first-player negamax-depth]}]
+  "Returns a new game id "
+  (let [game-id   "test"
+        result-ch (new-game game-runner game-id 4 websockets-color first-player negamax-depth)]
+    (println "Game runner - Handler new game with id" game-id)
+    (register-for-game-output (:game-output game-runner) result-ch uid)))
 
 (defmulti handle-websockets-msg (fn [_ {:keys [type]}] type))
 (defmethod handle-websockets-msg :player-move [game-runner message]

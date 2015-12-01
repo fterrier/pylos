@@ -10,15 +10,15 @@
 ; websockets routes
 (ccompojure/defroutes ServerRoutes [game-runner websockets]
   ;;
-  (GET  "/chsk/:game-id" [:as request
-                          :as {{:keys [websockets]} :system-deps}] (
-                              (try
-                                (:ring-ajax-get-or-ws-handshake websockets)
-                                (catch Exception e
-                                ; do nothing
-                                )) request))
-  (POST "/chsk/:game-id" [:as request
-                          :as {{:keys [websockets]} :system-deps}] ((:ring-ajax-post websockets) request))
+  (GET  "/chsk" [:as request
+                 :as {{:keys [websockets]} :system-deps}] (
+                     (try
+                       (:ring-ajax-get-or-ws-handshake websockets)
+                       (catch Exception e
+                       ; do nothing
+                           )) request))
+  (POST "/chsk" [:as request
+                 :as {{:keys [websockets]} :system-deps}] ((:ring-ajax-post websockets) request))
   (wrap-json-response
     (GET "/test"   [:as request
                     :as {{:keys [game-runner]} :system-deps}]

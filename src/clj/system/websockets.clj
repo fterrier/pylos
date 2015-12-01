@@ -9,7 +9,7 @@
           (sente/make-channel-socket!
            server-adapter
            (assoc options :user-id-fn
-                  (fn [req] (:game-id (:params req)))))]
+                  (fn [ring-req] (:client-id ring-req))))]
       (assoc component
              :ring-ajax-post ajax-post-fn
              :ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn
