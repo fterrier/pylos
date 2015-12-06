@@ -36,8 +36,10 @@
             :additional-infos additional-infos
             :time time})
        (if (:outcome game-position)
+         ; TODO do not close this ?
          (close! result-ch)
          (let [start-time  (System/nanoTime)
+               ; TODO provide a way to exit from this
                game-result (<! (choose-next-move strategy game-position))
                end-time    (System/nanoTime)
                next-game-position (or (:next-game-position game-result) (make-move game-position (:next-move game-result)))]

@@ -2,27 +2,9 @@
   (:require [clojure.core.async :refer [<! >! put! close! go chan]]
             [com.stuartsierra.component :as component]))
 
-; handlers
-(defmulti handle-event-msg (fn [id uid ?data game-channels] id))
-
-(defmethod handle-event-msg :pylos/new-game [id uid {:keys [first-player negamax-depth websockets-color]} websockets-ch]
-  (println "Websockets got new game message" uid)
-  ; remove uid from here ?
-  (go (>! websockets-ch {:type :new-game :uid uid :first-player first-player :negamax-depth negamax-depth :websockets-color websockets-color})))
-
-(defmethod handle-event-msg :pylos/player-move [id uid {:keys [game-infos game-id]} websockets-ch]
-  (println "Websockets got player move, sending to game runner" uid)
-  (go (>! websockets-ch {:type :player-move :game-id game-id :game-infos game-infos})))
-
-(defmethod handle-event-msg :default ; Fallback
-  [id uid event game-channels]
-  (println "Unhandled event:" id uid)
-  )
-
 (defn event-msg-handler* [websockets-ch]
   (fn [{:as ev-msg :keys [id uid ?data event]}]
-    (handle-event-msg id uid ?data websockets-ch)))
-
+    (go (>! websockets-ch {:type id :uid uid :message ?data}))))
 
 ; event handler create-board
 ; TODO get rid of this ?

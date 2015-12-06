@@ -6,8 +6,7 @@
             [goog.string :as gstring]
             [pylos.board :refer [cell]]
             [pylos.game.state :refer [game-infos current-move position-info moves-info
-                                      highlighted-position moves-by-position
-                                      current-index current-game-infos]]
+                                      highlighted-position current-index current-game-infos]]
             [pylos.game.util :refer [circle]]))
 
 (defn indexed-vector [m attrs]

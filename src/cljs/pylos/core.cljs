@@ -4,7 +4,7 @@
 (enable-console-print!)
 
 (defn fig-reload []
-  (app/stop)
+  (app/start)
   (app/main))
 
 (app/init)

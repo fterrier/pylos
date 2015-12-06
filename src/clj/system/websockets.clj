@@ -30,3 +30,7 @@
   ([server-adapter options]
    (map->ChannelSockets {:server-adapter server-adapter
                          :options options})))
+
+(defn send-infos [websockets uid infos]
+  (println "Websockets - Sending" uid infos)
+  ((:chsk-send! websockets) uid infos))
