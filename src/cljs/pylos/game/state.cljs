@@ -2,7 +2,7 @@
   (:require [cljs.core.async :as async :refer [put! >! <! chan close!]]
             [om.core :as om]
             [game.board :refer [serialize-board]]
-            [pylos.game :refer [generate-all-moves]]
+            [pylos.move :refer [generate-all-moves]]
             [pylos.ui :refer [highlight-status move-status]]
             [pylos.board :refer [board-size ind balls-remaining]]
             [pylos.init :refer [create-board starting-board board-indexes initialize-board-meta]]))

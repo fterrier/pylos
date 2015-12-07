@@ -1,5 +1,5 @@
 (ns system.strategy.websockets
-  (:require [game.game :refer :all]
+  (:require [game.strategy :refer [Strategy]]
             [clojure.core.async :as async :refer [<! go chan sub]]))
 
 (defn wait-for-websocket-move [game-ch game-position]

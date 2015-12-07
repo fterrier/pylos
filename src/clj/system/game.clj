@@ -5,14 +5,15 @@
     [system.websockets :refer [send-infos]]
     [strategy.negamax :refer [negamax]]
     [pylos.score :refer [score-middle-blocked]]
-    [pylos.core :refer [play]]
+    [pylos.game :refer [new-pylos-game]]
     [game.game :refer [other-color]]
+    [game.play :refer [play]]
     [game.board :refer [serialize-board]]
     [com.stuartsierra.component :as component]))
 
 
 ; private output stuff
-(defn- get-game-infos [{{:keys [board player outcome]} :game-position, move :last-move, additional-infos :additional-infos, time :time}]
+(defn get-game-infos [{{:keys [board player outcome]} :game-position, move :last-move, additional-infos :additional-infos, time :time}]
   [:pylos/game-infos
      {:board (serialize-board board)
       :next-player player
@@ -22,30 +23,30 @@
 
 ; game output API
 (defn register-for-game-output [{:keys [websockets games]} output-ch uid]
-  (println "Game output - Registering for game output" uid)
+  (println "GamePosition output - Registering for game output" uid)
   (go-loop []
     ; TODO make a multicast channel
     (let [result (<! output-ch)]
-      (println "Game output - Got result" uid result)
+      (println "GamePosition output - Got result" uid result)
       (if (nil? result)
-        (println "Game output - Game is over" uid)
+        (println "GamePosition output - GamePosition is over" uid)
         (do
           (send-infos websockets uid (get-game-infos result))
           (recur))))))
 
 (defn notify-new-game [{:keys [websockets]} game-id uid]
-  (println "Game output - Notifying new game is created")
+  (println "GamePosition output - Notifying new game is created")
   (send-infos websockets uid [:pylos/new-game {:game-id game-id}]))
 
 (defn notify-end-game [{:keys [websockets]} game-id uid]
-  (println "Game output - Notifying game is ended")
+  (println "GamePosition output - Notifying game is ended")
   (send-infos websockets uid [:pylos/end-game {:game-id game-id}]))
 
 
-(defrecord GameOutput [websockets])
+(defrecord GamePositionOutput [websockets])
 
 (defn new-game-output []
-  (map->GameOutput {}))
+  (map->GamePositionOutput {}))
 
 (defn- random-string [length]
   (let [ascii-codes (concat (range 48 58) (range 66 91) (range 97 123))]
@@ -72,6 +73,8 @@
 
 ; game runner API
 ; TODO make pure function ?
+; TODO make generic with strategies
+; TODO make game and score configurable
 (defn new-game [{:keys [games]} size websockets-color first-player negamax-depth]
   "This creates a new game."
   (let [; TODO where to close game-ch and result-ch channel if the game crashes
@@ -82,7 +85,7 @@
         result-mult-ch   (mult result-ch)
         game-ch          (chan)
         negamax-strategy (negamax score-middle-blocked negamax-depth)]
-      (play size
+      (play (new-pylos-game 4)
             {websockets-color (websockets game-ch nil)
             (other-color websockets-color) (negamax score-middle-blocked negamax-depth)}
             first-player result-ch)
@@ -97,16 +100,16 @@
   (let [game-ch (:game-ch (get-in @games [:games game-id]))]
     (if (nil? game-ch)
       ; TODO handle game channel not found - retrieve game from persistence layer ?
-      (println "Game runner - Game channel not found")
+      (println "GamePosition runner - GamePosition channel not found")
       (do
-        (println "Game runner - Sending game infos to game channel" game-infos)
+        (println "GamePosition runner - Sending game infos to game channel" game-infos)
         ; TODO validate player move
         (go (>! game-ch {:game-infos game-infos}))))))
 
 (defn handle-leave-game [{:keys [games]} uid]
   "Frees resources associated to that game and player and stops notifying that
   player of moves for that game."
-  (println "Game runner - Handling leaving client" uid)
+  (println "GamePosition runner - Handling leaving client" uid)
   (let [games-for-uid  (get-in @games [:uids uid])]
     (doseq [[game-id channels] games-for-uid]
       (when-let [result-mult-ch (get-in @games [:games game-id :result-mult-ch])]
@@ -126,7 +129,7 @@
     (when (and game (not (contains? (:joined-uids game) uid)))
       (let [output-ch  (chan)
             output-tap (tap (:result-mult-ch game) output-ch)]
-        (println "Game runner - Joining game" game-id)
+        (println "GamePosition runner - Joining game" game-id)
         (swap! games #(-> %
                           (assoc-in [:uids uid game-id] {:output-ch output-ch :output-tap output-tap})
                           (update-in [:games game-id :joined-uids] conj uid)))
@@ -135,7 +138,7 @@
 (defn handle-new-game [{:keys [game-output] :as game-runner} uid {:keys [websockets-color first-player negamax-depth]}]
   "Returns a new game id "
   (let [game-id (new-game game-runner 4 websockets-color first-player negamax-depth)]
-    (println "Game runner - Handling new game with id" game-id)
+    (println "GamePosition runner - Handling new game with id" game-id)
     (notify-new-game game-output game-id uid)))
 
 ; TODO pipe this through ? transform to message with protocol ?
@@ -157,7 +160,7 @@
   (go-loop []
     ; TODO exception handling
     (when-let [websockets-msg (<! websockets-ch)]
-      (println "Game runner - Got message from websocket" websockets-msg)
+      (println "GamePosition runner - Got message from websocket" websockets-msg)
       (handle-websockets-msg game-runner websockets-msg)
       (recur)))
   game-runner)
@@ -181,7 +184,7 @@
           :output-ch (some? (:output-ch infos))
           :output-tap (some? (:output-tap infos)))]) games))]) (:uids @games)))})
 
-(defrecord GameRunner [websockets-ch games game-output]
+(defrecord GamePositionRunner [websockets-ch games game-output]
   component/Lifecycle
   (start [component]
     (start-game-runner component))
@@ -192,4 +195,4 @@
     component))
 
 (defn new-game-runner []
-  (map->GameRunner {:games (atom {:games {} :uids {}})}))
+  (map->GamePositionRunner {:games (atom {:games {} :uids {}})}))

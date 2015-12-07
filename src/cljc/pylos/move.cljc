@@ -1,4 +1,4 @@
-(ns pylos.game
+(ns pylos.move
   "game is {:player _ :board _ :past-moves _}
   move is {:board _ :move _}"
   (:require [pylos.board :refer [square-corners number-of-positions removable-positions

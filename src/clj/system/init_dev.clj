@@ -1,10 +1,17 @@
 (ns system.init-dev
   (:require
-   ; those 2 deps are only here for convenience
-
+   ; those deps are only here for convenience
    [game.output :refer :all]
    [game.game :refer :all]
-   [pylos.core :refer :all]
+   [game.play :refer :all]
+   [pylos.repl :refer :all]
+   [pylos.game :refer :all]
+   [pylos.score :refer :all]
+   [strategy.negamax :refer :all]
+   [strategy.random :refer :all]
+   [system.repl :refer :all]
+
+   ; those deps are for real
    [clojure.tools.namespace.repl :as repl]
    [system.figwheel :refer :all]
    [system.server :refer :all]
@@ -12,12 +19,13 @@
    [system.events :refer :all]
    [system.game :refer :all]
    [system.routes :refer :all]
-   [system.pylos :refer :all]
    [system.events :refer :all]
    [system.websockets :refer :all]
    [clojure.core.async :refer [chan]]
    [com.stuartsierra.component :as component]
    [taoensso.sente.server-adapters.http-kit :refer (sente-web-server-adapter)]))
+
+(set! *warn-on-reflection* true)
 
 (defn init []
   (alter-var-root #'system

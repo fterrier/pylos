@@ -1,7 +1,7 @@
 (ns pylos.board-test
   (:require [clojure.test :refer :all]
             [pylos.core-test :refer :all]
-            [pylos.game :refer :all]
+            [pylos.move :refer :all]
             [pylos.init :refer :all]
             [pylos.board :refer :all]))
 

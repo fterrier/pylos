@@ -10,7 +10,7 @@ Several strategies are implemented :
 |---|---|---|
 | NegamaxStrategy | [negamax.clj](src/strategy/negamax.clj) | The negamax algorithm with alpha-beta pruning and transposition tables |
 | HumanStrategy   | [human.clj](src/pylos/human.clj) | Lets a human play |
-| RandomStrategy  | [human.clj](src/strategy/random.clj) | Plays randomly (TBD) |
+| RandomStrategy  | [random.clj](src/strategy/random.clj) | Plays randomly (TBD) |
 
 More will be added in the future so we can let them play against each other.
 
@@ -24,14 +24,24 @@ lein repl
 
 ## Usage
 
+TODO explain strategies, game and output functions.
+
+```bash
+(output (play (new-pylos-game 4) {:white (negamax score-middle-blocked 6) :black (random)} :white))
+
+(output-to-websockets (play (new-pylos-game 4) {:white (negamax score-middle-blocked 6) :black (random)} :white) (:websockets system))
+```
+
+### Shortcut for negamax and human player
+
 In the REPL, you can call the following shortcut commands:
 
 ```bash
 # Negamax plays against negamax, :white starts, negamax fixed depth is 8
-(output (play-negamax 4 :white 8))
+(output (play-negamax (new-pylos-game 4) :white 8))
 
 # Negamax plays against human, human is :white, :black starts, negamax fixed depth is 8
-(output (play-human 4 :white :black 8))
+(output (play-human (new-pylos-game 4) :white :black 8))
 ```
 
 You should see stuff like this:
@@ -56,16 +66,23 @@ Balls remaining :
 Calculated moves per ms:  18.35626432938798
 ```
 
-### TODO
+## TODO
+
+[] Make modules : game, negamax, game engine, ... and document
 
 [] Use test.check to test the game algorithm, game and game server
+
 [] Write more tests
+
 [] Handle end of game, timeouts, errors, etc...
+
 [] Persist game, join en route
+
 [] Cleanup app.cljs make modules
+
 [x] Handle client reconnect
 
-### Bugs
+## Bugs
 
 Open Github issue and don't hesitate to PR.
 

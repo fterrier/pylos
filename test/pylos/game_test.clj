@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [pylos.core-test :refer :all]
             [pylos.board :refer [ind cell can-remove-ball]]
-            [pylos.game :refer :all]))
+            [pylos.move :refer :all]))
 
 (deftest board-move-map-test
   (testing "All board-move-map test"

@@ -1,8 +1,8 @@
 (ns pylos.strategy.human
-  (:require [game.game :refer :all]
+  (:require [game.strategy :refer [Strategy]]
             [clojure.string :as str]
             [pylos.board :refer :all]
-            [pylos.game :refer :all]))
+            [pylos.move :refer :all]))
 
 (defn to-int [array]
   (into [] (map #(try (Integer/parseInt %) (catch Exception e -1)) array)))

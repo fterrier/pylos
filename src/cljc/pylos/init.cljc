@@ -14,7 +14,7 @@
   (deserialize-board [_ map]
                      (initialize-board-meta (:board map) (:size map)))
   (serialize-board [board]
-                  {:board board :size (board-size board)}))
+                   {:board board :size (board-size board)}))
 
 (defrecord HelperMetaBoard [number-of-positions size
                            positions-right-down-map
