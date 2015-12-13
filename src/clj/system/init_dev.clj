@@ -2,6 +2,7 @@
   (:require
    ; those deps are only here for convenience
    [game.output :refer :all]
+
    [game.game :refer :all]
    [game.play :refer :all]
    [pylos.repl :refer :all]

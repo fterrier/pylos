@@ -8,6 +8,7 @@
   (player [this])
   (outcome [this])
   (generate-moves [this])
+  (move-allowed? [this move])
   (make-move [this move]))
 
 (defprotocol Game

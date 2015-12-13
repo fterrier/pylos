@@ -125,7 +125,7 @@
 
 (defn squares-at-position [board position]
   (let [positions-to-try (square-positions-at-position board position)]
-    (filter #(has-square board %) positions-to-try)))
+    (into #{} (filter #(has-square board %) positions-to-try))))
 
 (defn has-balls-to-play [board color]
   (let [balls-per-player       (/ (number-of-positions board) 2)
@@ -189,7 +189,7 @@
   (and (can-remove-ball board position)
        (= color (cell board position))))
 
-(defn can-add? [board color position]
+(defn can-add-position? [board color position]
   "Checks if the given add can be done, given that the move has not been
   generated on the board."
   (= :open (cell board position)))

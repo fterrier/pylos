@@ -124,7 +124,8 @@
 
 (defmethod handle-comm :server/play-move [app chsk-send control]
   (println "playing move")
-  (chsk-send [:pylos/player-move {:game-id (:game-id app) :game-infos (:game-infos control)}]))
+  ; TODO un-hard-code
+  (chsk-send [:pylos/player-move {:game-id (:game-id app) :player :white :game-infos (:game-infos control)}]))
 
 (defmethod handle-comm :server/start-new-game [app chsk-send control]
   (println "creating new game")

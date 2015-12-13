@@ -1,13 +1,15 @@
 (ns pylos.game
-  (:require [game.game :refer [GamePosition Game other-color]]
-            [pylos.init :refer [starting-board]]
-            [pylos.move :refer [order-moves generate-all-moves make-move-on-board game-over? winner]]))
+  (:require [game.game :refer [Game GamePosition other-color]]
+            [pylos
+             [init :refer [starting-board]]
+             [move :refer [game-over? generate-all-moves is-move-allowed make-move-on-board order-moves winner]]]))
 
 (declare next-game-position)
 
-; the rest here is not needed in cljc but there for convenience
 (defrecord PylosGamePosition [board player outcome]
   GamePosition
+  (move-allowed? [game-position move]
+    (is-move-allowed board move))
   (generate-moves [game-position]
                   (order-moves board (generate-all-moves game-position)))
   (make-move [game-position move]

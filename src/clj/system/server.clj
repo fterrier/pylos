@@ -13,7 +13,7 @@
   component/Lifecycle
 
   (start [component]
-    (println ";; Starting server")
+    (println ";; Starting server on port" port)
     ;; In the 'start' method, initialize this component
     ;; and start it running. For example, connect to a
     ;; database, create thread pools, or initialize shared

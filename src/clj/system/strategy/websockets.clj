@@ -2,16 +2,10 @@
   (:require [game.strategy :refer [Strategy]]
             [clojure.core.async :as async :refer [<! go chan sub]]))
 
-(defn wait-for-websocket-move [game-ch game-position]
-  (go
-    (let [{:keys [game-infos]} (<! game-ch)]
-      (println "Websockets Strategy - got move from channel" game-infos)
-      {:next-move (:move game-infos)})))
-
 (defrecord WebsocketsStrategy [game-ch]
   Strategy
-  (choose-next-move [this game-position]
-                    (wait-for-websocket-move game-ch game-position)))
+  (choose-next-move [this game-position] game-ch)
+  (get-input-channel [this] game-ch))
 
-(defn websockets [game-ch close-ch]
-  (->WebsocketsStrategy game-ch))
+(defn websockets []
+  (->WebsocketsStrategy (chan)))

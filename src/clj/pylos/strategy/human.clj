@@ -1,8 +1,10 @@
 (ns pylos.strategy.human
-  (:require [game.strategy :refer [Strategy]]
+  (:require [clojure.core.async :refer [go]]
             [clojure.string :as str]
-            [pylos.board :refer :all]
-            [pylos.move :refer :all]))
+            [game.strategy :refer [Strategy]]
+            [pylos
+             [board :refer [add-ball can-add-position? can-remove-position? has-ball ind new-full-square-position positions-under-position remove-ball]]
+             [move :refer [make-move-on-board move-add move-rise move-square]]]))
 
 (defn to-int [array]
   (into [] (map #(try (Integer/parseInt %) (catch Exception e -1)) array)))
@@ -12,12 +14,12 @@
    (println text)
    (let [position-string (read-line)]
      (if (and allow-enter (= position-string "")) nil
-       (let [position-array  (str/split position-string #" +")
-             position        (to-int position-array)]
-         (if (or (not (= 3 (count position)))
-                 (nil? (ind board position)))
-           (recur board text allow-enter)
-           (ind board position))))))
+                                                  (let [position-array (str/split position-string #" +")
+                                                        position (to-int position-array)]
+                                                    (if (or (not (= 3 (count position)))
+                                                            (nil? (ind board position)))
+                                                      (recur board text allow-enter)
+                                                      (ind board position))))))
   ([board text]
    (ask-for-position board text false)))
 
@@ -35,7 +37,7 @@
               (println "Invalid move, we start again")
               (recur game-position))
             (move-rise player position high-position))))
-      (if (not (can-add? board player position))
+      (if (not (can-add-position? board player position))
         (do
           (println "Invalid move, we start again")
           (recur game-position))
@@ -47,7 +49,7 @@
       original-move
       (if (= 2 number-of-balls-removed)
         ; TODO fix
-        (move-square original-move balls-removed )
+        (move-square original-move balls-removed)
         (let [position-to-remove (ask-for-position
                                    board
                                    (str "Please enter a ball to remove [layer row col]"
@@ -65,14 +67,15 @@
                                          (remove-ball new-board player position-to-remove)))))))))
 
 (defn ask-human-and-play [{:keys [board] :as game-position}]
-  (let [new-move               (ask-human-to-place-or-rise-ball game-position)
+  (let [new-move (ask-human-to-place-or-rise-ball game-position)
         new-move-without-balls (ask-human-to-remove-balls game-position new-move [] (make-move-on-board board new-move))]
     {:next-move new-move-without-balls}))
 
 (defrecord HumanStrategy []
   Strategy
   (choose-next-move [this game-position]
-                    (ask-human-and-play game-position)))
+    (go (ask-human-and-play game-position)))
+  (get-input-channel [this]))
 
 (defn human []
   (->HumanStrategy))

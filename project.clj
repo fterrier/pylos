@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :jvm-opts ["-Xmx4G"]
-  :dependencies [[org.clojure/clojure "1.7.0"]
+  :dependencies [[org.clojure/clojure "1.8.0-RC3"]
                  [io.aviso/pretty "0.1.18"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [com.taoensso/timbre "4.1.1"]
