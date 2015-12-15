@@ -3,13 +3,14 @@
             [om.core :as om]
             [om-tools.core :refer-macros [defcomponent]]
             [om-tools.dom :as dom :include-macros true]
-            [pylos.game.state :refer [game-infos]]
+            [pylos.game.state :refer [game]]
+            [pylos.game.game-state :refer [game-infos]]
             [pylos.game.util :refer [circle]]))
 
 
 (defcomponent history-comp [_ owner]
   (render [_]
-          (let [all-game-infos (om/observe owner (game-infos))]
+          (let [all-game-infos (om/observe owner (game-infos (game)))]
             (dom/div {:class "history"}
               (dom/div {:class "history-list clearfix"}
                (for [i (range 1 (count all-game-infos))]

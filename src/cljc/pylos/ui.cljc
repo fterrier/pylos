@@ -1,5 +1,14 @@
 (ns pylos.ui
-  (:require [pylos.board :refer [ind square-corners]]))
+  #?@(:clj
+       [(:require
+         [pylos.board :refer [balls-remaining square-corners]]
+         [pylos.init :refer [board-indexes create-board]]
+         [pylos.move :refer [generate-all-moves]])]
+       :cljs
+       [(:require
+         [pylos.board :refer [square-corners balls-remaining]]
+         [pylos.init :refer [create-board board-indexes]]
+         [pylos.move :refer [generate-all-moves]])]))
 
 (defn- all-permutations [positions]
   (if (vector? positions) [positions]
@@ -63,3 +72,16 @@
 (defn move-status
   "we generate all possible path to moves"
   ([moves] (reduce #(apply merge-with merge-move-infos %1 (move-infos %2 %2 %2 [])) {} moves)))
+
+
+(defn game-infos-with-meta [game-infos]
+  (let [board-with-meta  (create-board (:board game-infos))
+        next-player      (:next-player game-infos)
+        possible-moves   (generate-all-moves {:board board-with-meta :player next-player})
+        highlight-status (highlight-status board-with-meta possible-moves)
+        move-status      (move-status possible-moves)
+        layered-board    (board-indexes board-with-meta)
+        balls-remaining  {:white (balls-remaining board-with-meta :white)
+                          :black (balls-remaining board-with-meta :black)}
+        game-infos       (assoc game-infos :board board-with-meta :layered-board layered-board :highlight-status highlight-status :move-status move-status :balls-remaining balls-remaining)]
+    game-infos))

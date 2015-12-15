@@ -9,10 +9,10 @@
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [com.taoensso/timbre "4.1.1"]
                  [clj-stacktrace "0.2.8"]
-                 [org.clojure/clojurescript "1.7.122"]
+                 [org.clojure/clojurescript "1.7.170"]
                  [org.omcljs/om "0.9.0"]
                  [prismatic/om-tools "0.3.12"]
-                 [com.stuartsierra/component "0.3.0"]
+                 [Com.stuartsierra/component "0.3.0"]
                  [http-kit "2.1.18"]
                  [secretary "1.2.3"]
                  [compojure "1.4.0"]
@@ -31,7 +31,7 @@
 
   :profiles {:uberjar {:aot :all}
              :dev {:dependencies [[org.clojure/tools.namespace "0.2.11"]
-                                  [figwheel-sidecar "0.4.1"]
+                                  [figwheel-sidecar "0.5.0-2"]
                                   ;[alembic "0.3.2"]
                                   ]
-                   :plugins [[lein-figwheel "0.4.1"]]}})
+                   :plugins [[lein-figwheel "0.5.0-2"]]}})

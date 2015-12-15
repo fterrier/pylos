@@ -23,6 +23,8 @@
           :refer
           [add-ball
            can-add-position?
+           can-remove-position?
+           positions-under-position
            empty-positions
            has-balls-to-play
            new-full-square-position

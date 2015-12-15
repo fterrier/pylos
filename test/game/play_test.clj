@@ -12,10 +12,9 @@
 
 (deftest game-cancellation-test
   (testing "Can cancel game"
-    (let [result-ch (chan)
-          game      (new-pylos-game 4)
-          negamax   (negamax score-middle-blocked 5)]
-      (play game {:white negamax :black negamax} :white result-ch)
+    (let [game      (new-pylos-game 4)
+          negamax   (negamax score-middle-blocked 5)
+          result-ch (play game {:white negamax :black negamax} :white)] 
       ; we take the first move out of the channel
       (<!! result-ch)
       ; we close the channel after 30 msecs
@@ -25,16 +24,21 @@
       (let [result (alt!! result-ch     ([value] value)
                          (timeout 50) :timeout)]
         (is (nil? result)))
-      (close! result-ch))))
+      (close! result-ch)))
+  (testing "Result channels closed at end of game"
+    ; TODO
+    )
+  (testing "Game input channels closed at end of game"
+    ; TODO
+    ))
 
 (deftest move-test
   (testing "Does not accept stupid moves"
-    (let [result-ch  (chan)
-          game       (new-pylos-game 4)
+    (let [game       (new-pylos-game 4)
           negamax    (negamax score-middle-blocked 10)
           websockets (websockets)
-          input-ch   (get-input-channel websockets)]
-      (play game {:white negamax :black websockets} :black result-ch)
+          input-ch   (get-input-channel websockets)
+          result-ch  (play game {:white negamax :black websockets} :black)]
       ; we take the first move out of the channel
       (<!! result-ch)
       ; we pass a stupid move to the game
@@ -50,12 +54,11 @@
       (close! result-ch)))
 
   (testing "Does not accept move from wrong player"
-    (let [result-ch (chan)
-          game      (new-pylos-game 4)
+    (let [game      (new-pylos-game 4)
           negamax   (negamax score-middle-blocked 10)
           websockets (websockets)
-          input-ch  (get-input-channel websockets)]
-      (play game {:white negamax :black websockets} :black result-ch)
+          input-ch  (get-input-channel websockets)
+          result-ch (play game {:white negamax :black websockets} :black)]
       ; we take the first move out of the channel
       (<!! result-ch)
       ; we pass a move from the wrong player to the game

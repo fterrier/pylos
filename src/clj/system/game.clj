@@ -57,22 +57,22 @@
   (let [ascii-codes (concat (range 48 58) (range 66 91) (range 97 123))]
     (apply str (repeatedly length #(char (rand-nth ascii-codes))))))
 
-(defn- end-game [{:keys [games game-output]} game-id]
-  "This ends the game and frees all associated resources."
-  (let [game (get-in @games [:games game-id])
-        uids (:joined-uids game)]
-    (doseq [uid uids]
-      (notify-end-game game-output game-id uid)
-      (close! (:output-ch (get-in @games [:uids uid game-id]))))
-    ; TODO end the game properly, this will cause the game to
-    ; throw an exception
-    (when (:result-ch game) (close! (:result-ch game)))
-    (when (:game-ch game) (close! (:game-ch game))))
-  (swap! games (fn [games] (-> games
-                               (update :games dissoc game-id)
-                               (update :uids #(->> %
-                                                   (map (fn [[uid game-map]] [uid (dissoc game-map game-id)]))
-                                                   (into {})))))))
+;; (defn- end-game [{:keys [games game-output]} game-id]
+;;   "This ends the game and frees all associated resources."
+;;   (let [game (get-in @games [:games game-id])
+;;         uids (:joined-uids game)]
+;;     (doseq [uid uids]
+;;       (notify-end-game game-output game-id uid)
+;;       (close! (:output-ch (get-in @games [:uids uid game-id]))))
+;;     ; TODO end the game properly, this will cause the game to
+;;     ; throw an exception
+;;     (when (:result-ch game) (close! (:result-ch game)))
+;;     (when (:game-ch game) (close! (:game-ch game))))
+;;   (swap! games (fn [games] (-> games
+;;                                (update :games dissoc game-id)
+;;                                (update :uids #(->> %
+;;                                                    (map (fn [[uid game-map]] [uid (dissoc game-map game-id)]))
+;;                                                    (into {})))))))
 
 
 (defn add-game [games game-id infos]
@@ -107,14 +107,10 @@
       (swap! games remove-game game-id))))
 
 ; game runner API
-; TODO make generic with strategies
-; TODO make game and score configurable
+; TODO timeout in play.clj
 (defn new-game [games game {:keys [white black] :as strategies} first-player]
   "This creates a new game."
-  (let [; TODO where to close game-ch and result-ch channel if the game crashes
-        ; TODO where to close game-ch and result-ch channel if the client disconnects ?
-        ; TODO what to do when the game is over ? how to close the channels ?
-        game-id          (random-string 8)
+  (let [game-id          (random-string 8)
         result-ch        (chan)
         result-mult-ch   (mult result-ch)]
     (println "Game Runner - Creating new game" game-id strategies game)

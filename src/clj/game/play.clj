@@ -2,12 +2,13 @@
   (:require [clojure.core.async :refer [<! >! alt! chan close! go-loop]]
             [game
              [game :refer [initial-game-position make-move move-allowed?]]
-             [strategy :refer [choose-next-move]]]))
+             [strategy :refer [choose-next-move get-input-channel]]]))
 
 (defn- wait-for-valid-move [game-position strategy result-ch color]
   (let [start-time  (System/nanoTime)]
     (go-loop []
-      (let [game-result (alt! 
+      (let [; TODO add a timeout here
+            game-result (alt! 
                           result-ch :closed
                           (choose-next-move strategy game-position) ([value _] value))
             end-time    (System/nanoTime)]
@@ -23,6 +24,12 @@
                (:additional-infos game-result) 
                (:next-move game-result)])
             (recur)))))))
+
+(defn- end-game [result-ch strategies]
+  (close! result-ch)
+  (doseq [strategy strategies]
+    (when-not (nil? (get-input-channel strategy))
+      (close! get-input-channel strategy))))
 
 (defn- play-game
   ([game strategies]
@@ -43,8 +50,7 @@
             :time time})
        (println "Could send move " last-move game-position strategy)
        (if (:outcome game-position)
-         ; TODO do not close this ?
-         (close! result-ch)
+         (end-game result-ch strategies)
          (let [game-result (<! (wait-for-valid-move game-position strategy result-ch player))]
            (when-not (= :closed game-result)
              (recur game-result))))))))
