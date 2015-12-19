@@ -18,6 +18,7 @@
                  [compojure "1.4.0"]
                  [com.taoensso/sente "1.6.0"]
                  [ring/ring-defaults "0.1.5"]
+                 [hiccup "1.0.5"]
                  [ring/ring-json "0.4.0"]
                  [valichek/component-compojure "0.2-SNAPSHOT"]]
   :repl-options {:port 7888
@@ -28,7 +29,8 @@
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
   :uberjar-name "pylos.jar"
 
-  :profiles {:uberjar {:omit-source true
+  :profiles {:uberjar {:source-paths ["env/prod/src/clj"]
+                       :omit-source true
                        :plugins [[lein-cljsbuild "1.1.2"]]
                        :aot :all
                        :hooks [leiningen.cljsbuild]

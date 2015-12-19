@@ -8,7 +8,7 @@
    :build-ids ["app"]   ;; <-- a vector of build ids to start autobuilding
    :all-builds          ;; <-- supply your build configs here
    [{:id "app"
-     :source-paths ["src/cljs" "src/cljc"]
+     :source-paths ["src/cljs" "src/cljc" "env/dev/src/cljs"]
      :figwheel {:websocket-host "localhost"
                 :on-jsload "pylos.core/fig-reload"}
      :compiler {:main "pylos.core"
