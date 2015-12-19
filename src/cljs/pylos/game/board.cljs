@@ -1,16 +1,27 @@
 (ns pylos.game.board
-  (:require [cljs.core.async :as async :refer [put! chan close! sub]]
-            [om.core :as om]
+  (:require [cljs.core.async :as async :refer [chan close! put! sub]]
+            [goog.string :as gstring]
             [om-tools.core :refer-macros [defcomponent]]
             [om-tools.dom :as dom :include-macros true]
-            [goog.string :as gstring]
+            [om.core :as om]
+            [pylos.board :refer [cell board-size]]
+            [pylos.game.game-state
+             :refer
+             [append-game-infos
+              append-past-game-infos
+              change-current-index
+              change-highlighted-position
+              current-game-infos
+              current-index
+              current-move
+              game-infos
+              highlighted-position
+              join-game
+              moves-info
+              position-info
+              select-current-position]]
             [pylos.game.history :refer [history-comp]]
-            [pylos.board :refer [cell]]
-            [pylos.game.state :refer [game]]
-            [pylos.game.game-state :refer [game-infos current-move position-info moves-info
-                                           highlighted-position current-index current-game-infos
-                                           change-current-index change-highlighted-position
-                                           select-current-position join-game]]
+            [pylos.game.state :refer [game] :as state]
             [pylos.game.util :refer [circle]])
   (:require-macros [cljs.core.async.macros :refer [go-loop]]))
 
@@ -106,7 +117,7 @@
   (render [_]
           (let [current-move         (om/observe owner (current-move (game)))
                 current-selections   (:selections current-move)
-                can-play-move        (:can-play-move current-move)
+                can-play-move        (:playable-move current-move)
                 highlighted-position (om/observe owner (highlighted-position (game)))
                 position-info        (position-info (game) current-selections highlighted-position)
                 moves-info           (moves-info (game) current-selections highlighted-position)]
@@ -147,49 +158,61 @@
 
 (defmulti handle-notif (fn [_ _ control] (:action control)))
 
-;; (defn play-current-move [game control-ch]
-;;   (let [current-game-infos (current-game-infos game (:current-index game))
-;;         current-selections (:selections (:current-move game))
-;;         playable-move      (playable-move current-game-infos current-selections)]
-;;     (when playable-move (play-move (:board current-game-infos) playable-move control-ch))))
+(defn- play-move [game-id board move comm-ch]
+  ; TODO check if we have to send the board size here as well
+  ; TODO send player color as well here
+  (put! comm-ch {:action :server/player-move :message {:game-id game-id :game-infos {:board board :move move}}}))
 
+(defn- play-move-when-must-play [{:keys [current-move] :as game} comm-ch]
+  (let [{:keys [must-play-move playable-move]} current-move
+        game-infos (current-game-infos game (current-index game))]
+    (when must-play-move
+      (play-move (:game-id game) (:board game-infos) playable-move comm-ch))))
 
 (defmethod handle-notif :select-cell [game comm-ch control]
-  (om/transact! select-current-position game comm-ch (:position control))
-  ;(when (and playable-move (= 1 (count possible-moves))) (play-move (:board current-game-infos) playable-move control-ch))
-  )
+  (om/transact! game #(select-current-position % (:position control)))
+  (play-move-when-must-play (state/game) comm-ch))
 
 (defmethod handle-notif :hover-cell [game comm-ch control]
   (om/transact! game #(change-highlighted-position % (:position control))))
 
 (defmethod handle-notif :select-current-index [game comm-ch control]
-  (om/transact! change-current-index game (:current-index control)))
+  (om/transact! game #(change-current-index % (:current-index control))))
 
 (defmethod handle-notif :play-current-move [game comm-ch control]
-  ;(put! control-ch {:component :game :action :server/play-move :game-infos {:board board :size (board-size board) :move move}}
-)
+  (play-move-when-must-play game comm-ch))
 
 (defmethod handle-notif :join-game [game comm-ch control]
-  (om/transact! join-game game comm-ch (:game-id control))
-  ;(put! comm-ch {:component :game :action :server/join-game :game-id game-id})
-  )
+  (om/transact! game #(join-game % (:game-id control))))
 
-;; (defmethod handle-notif :new-game [game comm-ch control]
-;;   ; TODO at the moment we just pipe it through
-;;   (put! comm-ch (assoc control :component :game :action :server/start-new-game)))
+(defmethod handle-notif :msg/game-infos [game comm-ch control]
+  ; TODO validate game id
+  (om/transact! game #(append-game-infos % (:game-infos (:message control)))))
+
+(defmethod handle-notif :msg/past-game-infos [game comm-ch control]
+  ; TODO validate game id
+  (om/transact! game #(append-past-game-infos % (:past-game-infos (:message control)))))
+
+(defmethod handle-notif :default [_ _ _])
 
 
 (defcomponent game-comp [_ owner]
+  (init-state [_]
+              {:control-ch (chan)})
   (will-mount [_]
-              (let [control-ch   (chan)
+              (let [control-ch   (om/get-state owner :control-ch)
                     notif-sub-ch (om/get-shared owner :notif-sub-ch)
                     _ (sub notif-sub-ch :game control-ch)
+                    _ (sub notif-sub-ch :general control-ch)
                     _ (sub notif-sub-ch :server control-ch)]
                   (go-loop []
                     (let [control (<! control-ch)]
                       (when control
-                        (handle-notif (game) (om/get-shared owner :comm-ch) control)
-                        (recur))))))  
+                        (try (handle-notif (game) (om/get-shared owner :comm-ch) control)
+                             (catch js/Error e (println "Exception in loop" e)))
+                        (recur))))))
+  (will-unmount [_]
+                (close! (om/get-state owner :control-ch)))
   (render-state [_ state]
                 (dom/div 
                  (om/build history-comp nil)

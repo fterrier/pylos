@@ -12,7 +12,7 @@
                  [org.clojure/clojurescript "1.7.170"]
                  [org.omcljs/om "0.9.0"]
                  [prismatic/om-tools "0.3.12"]
-                 [Com.stuartsierra/component "0.3.0"]
+                 [com.stuartsierra/component "0.3.0"]
                  [http-kit "2.1.18"]
                  [secretary "1.2.3"]
                  [compojure "1.4.0"]
@@ -23,15 +23,22 @@
   :repl-options {:port 7888
                  :init (do (require 'clj-stacktrace.repl))
                  :caught clj-stacktrace.repl/pst+}
-  :main ^:skip-aot system.init-dev
+
   :target-path "target/%s"
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
+  :uberjar-name "pylos.jar"
 
-  :cljsbuild {:builds {:app {:source-paths ["src/cljs" "src/cljc"]}}}
-
-  :profiles {:uberjar {:aot :all}
-             :dev {:dependencies [[org.clojure/tools.namespace "0.2.11"]
+  :profiles {:uberjar {:omit-source true
+                       :plugins [[lein-cljsbuild "1.1.2"]]
+                       :aot :all
+                       :hooks [leiningen.cljsbuild]
+                       :cljsbuild {:builds {:app {:source-paths ["src/cljs" "src/cljc" "env/prod/src/cljs"]
+                                                  :compiler {:output-to "resources/public/js/main.js"
+                                                             :optimizations :advanced
+                                                             :pretty-print false}}}}}
+             :dev {:source-paths ["env/dev/src/clj"]
+                   :dependencies [[org.clojure/tools.namespace "0.2.11"]
                                   [figwheel-sidecar "0.5.0-2"]
-                                  ;[alembic "0.3.2"]
+                                        ;[alembic "0.3.2"]
                                   ]
                    :plugins [[lein-figwheel "0.5.0-2"]]}})

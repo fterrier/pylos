@@ -7,4 +7,4 @@
   (output-with-fn play
                   (fn [game-infos]
                     (println game-infos)
-                    (send-infos websockets :sente/all-users-without-uid (get-game-infos game-infos)))))
+                    (send-infos websockets :sente/all-users-without-uid {:game-infos (get-game-infos game-infos)}))))

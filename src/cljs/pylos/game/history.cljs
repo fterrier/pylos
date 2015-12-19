@@ -19,12 +19,12 @@
                    (dom/div {:class (str "circle circle-" (name player) " history-move-" i)
                              :on-click (fn [e]
                                          (.preventDefault e)
-                                         (put! (:control-ch (om/get-shared owner))
-                                                    {:action :select-current-index :current-index i}))}
+                                         (put! (:notif-ch (om/get-shared owner))
+                                                    {:topic :game :action :select-current-index :current-index i}))}
                             (dom/div {:class "circle-content"} i)
                             (circle 10)))))
               (dom/a {:href "#"
                       :on-click (fn [e]
                                   (.preventDefault e)
-                                  (put! (:control-ch (om/get-shared owner))
-                                            {:action :select-current-index :current-index nil}))} "follow game")))))
+                                  (put! (:notif-ch (om/get-shared owner))
+                                            {:topic :game :action :select-current-index :current-index nil}))} "follow game")))))

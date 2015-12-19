@@ -20,15 +20,14 @@
 
 ; private output stuff
 (defn get-game-infos [{{:keys [board player outcome]} :game-position, move :last-move, additional-infos :additional-infos, time :time}]
-  [:pylos/game-infos
-   {:board            (serialize-board board)
-    :next-player      player
-    :move             move
-    :time             time
-    :additional-infos additional-infos}])
+  {:board            (serialize-board board)
+   :next-player      player
+   :move             move
+   :time             time
+   :additional-infos additional-infos})
 
 ; game output API
-(defn register-for-game-output [{:keys [websockets games]} output-ch uid]
+(defn register-for-game-output [{:keys [websockets]} game-id output-ch uid]
   (println "GamePosition output - Registering for game output" uid)
   (go-loop []
     (let [result (<! output-ch)]
@@ -36,17 +35,20 @@
       (if (nil? result)
         (println "GamePosition output - GamePosition is over" uid)
         (do
-          (send-infos websockets uid (get-game-infos result))
+          (send-infos websockets uid [:msg/game-infos {:game-id game-id :game-infos (get-game-infos result)}])
           (recur))))))
+
+(defn send-past-game-infos [{:keys [websockets]} game-id uid past-game-infos]
+  (println "GamePosition output - Sending past game infos")
+  (send-infos websockets uid [:msg/past-game-infos {:game-id game-id :past-game-infos (into [] (map get-game-infos past-game-infos))}]))
 
 (defn notify-new-game [{:keys [websockets]} game-id uid]
   (println "GamePosition output - Notifying new game is created")
-  (send-infos websockets uid [:pylos/new-game {:game-id game-id}]))
+  (send-infos websockets uid [:msg/new-game {:game-id game-id}]))
 
 (defn notify-end-game [{:keys [websockets]} game-id uid]
   (println "GamePosition output - Notifying game is ended")
-  (send-infos websockets uid [:pylos/end-game {:game-id game-id}]))
-
+  (send-infos websockets uid [:msg/end-game {:game-id game-id}]))
 
 (defrecord GamePositionOutput [websockets])
 
@@ -76,23 +78,27 @@
 
 
 (defn add-game [games game-id infos]
-  (update-in games [:games game-id] merge (assoc infos :joined-uids #{})))
+  (update-in games [:games game-id] merge (assoc infos :joined-uids {})))
 
 (defn remove-game [games game-id]
   (-> games
       (update-in [:games] dissoc game-id)))
 
-(defn add-uid-to-game [games uid game-id {:keys [output-ch]}]
+(defn add-uid-to-game [games uid game-id color {:keys [output-ch]}]
   (-> games
       (assoc-in [:uids uid game-id] {:output-ch output-ch})
-      (update-in [:games game-id :joined-uids] conj uid)))
+      (update-in [:games game-id :joined-uids] assoc uid {:color color})))
 
 (defn remove-uid-from-game [games uid game-id]
   (-> games
       (update-in [:uids uid] dissoc uid)
       (update :games #(->> %
-                           (map (fn [[game-id game-map]] [game-id (update game-map :joined-uids disj uid)]))
+                           (map (fn [[game-id game-map]] [game-id (update game-map :joined-uids dissoc uid)]))
                            (into {})))))
+
+(defn save-move-to-game [games game-id game-infos]
+  (-> games
+      (update-in [:games game-id :past-game-infos] conj game-infos)))
 
 (defn remove-uid [games uid]
   (-> games
@@ -111,7 +117,9 @@
 (defn new-game [games game {:keys [white black] :as strategies} first-player]
   "This creates a new game."
   (let [game-id          (random-string 8)
-        result-ch        (chan)
+        result-ch        (chan 1 (map (fn [game-infos] 
+                                        (swap! games save-move-to-game game-id game-infos)
+                                        game-infos)))
         result-mult-ch   (mult result-ch)]
     (println "Game Runner - Creating new game" game-id strategies game)
     (swap! games add-game game-id 
@@ -121,6 +129,7 @@
             :timestamp (System/currentTimeMillis)
             :first-player first-player
             :game game
+            :past-game-infos []
             :started false})
     game-id))
 
@@ -132,12 +141,13 @@
       (swap! games assoc-in [:games game-id :started] true)
       (play (:game game) (:strategies game) (:first-player game) (:result-ch game)))))
 
-(defn player-move [games game-id player move]
-  (println "Game Runner - Handling player move" game-id player move)
-  (let [game (get-in @games [:games game-id])]
-    (if (nil? game)
+(defn player-move [games game-id uid move]
+  (println "Game Runner - Handling player move" game-id uid move)
+  (let [game   (get-in @games [:games game-id])
+        player (get-in game [:joined-uids uid :color])]
+    (if (or (nil? game) (nil? player))
       ; TODO handle game channel not found - retrieve game from persistence layer ?
-      (println "Game runner - Game not found" game-id )
+      (println "Game runner - Game or player not found" game-id uid)
       (let [strategy (get-in game [:strategies player])
             game-ch  (get-input-channel strategy)]
         (println "Game Runner - " game-ch strategy)
@@ -159,23 +169,29 @@
       (swap! games remove-uid-from-game uid game-id))
     (swap! games remove-uid uid)))
 
-(defn join-game [games uid game-id]
+(defn join-game [games uid game-id color]
+  "Joins the game, subscribing to all game output, and also allows that
+  player to play the given color, both if :both is given (TODO NOT SUPPORTED YET), or none for all other values"
   (let [game (get-in @games [:games game-id])]
     (if (and game (not (contains? (:joined-uids game) uid)))
       (let [output-ch (chan)]
         (tap (:result-mult-ch game) output-ch)
         (println "Game Runner - Joining game" game-id)
-        (swap! games add-uid-to-game uid game-id {:output-ch output-ch})
+        (swap! games add-uid-to-game uid game-id color {:output-ch output-ch})
         output-ch)
       (get-in @games [:uids uid game-id :output-ch]))))
 
 ; the handle-* methods parse the game message, do something
 ; then answer with a message
-(defn handle-join-game [{:keys [games game-output]} uid {:keys [game-id]}]
-  "Start notifying the given uid of the moves for the given game-id."
-  ; TODO what happens if the game is joined en-route ? we should send the old moves
-  (let [output-ch (join-game games uid game-id)]
-    (when output-ch (register-for-game-output game-output output-ch uid))))
+(defn handle-join-game [{:keys [games game-output]} uid {:keys [game-id color]}]
+  "Start notifying the given uid of the moves for the given game-id.
+   Sends the past moves so the game is updated and starts the game if not already started."
+  (let [output-ch (join-game games uid game-id color)]
+    (when output-ch (register-for-game-output game-output game-id output-ch uid))
+    (send-past-game-infos game-output game-id uid (get-in @games [:games game-id :past-game-infos]))
+    ; we auto-start the game here
+    (start-game games game-id)))
+
 
 (defn handle-new-game [{:keys [games game-output] :as game-runner} uid {game-name :game-name {:keys [white black]} :strategies first-player :first-player}]
   "Returns a new game id "
@@ -188,21 +204,20 @@
                     (other-color websockets-color) (negamax score-middle-blocked negamax-depth)}
         game-id (new-game games game strategies first-player)]
     (println "Game runner - Handling new game with id" game-id)
-    (notify-new-game game-output game-id uid)
-    (join-game games uid game-id)
-    (start-game games game-id)))
+    (notify-new-game game-output game-id uid)))
 
-(defn handle-player-move [{:keys [games]} uid {:keys [game-id player game-infos]}]
-  (player-move games game-id player (:move game-infos)))
+(defn handle-player-move [{:keys [games]} uid {:keys [game-id game-infos]}]
+  (player-move games game-id uid (:move game-infos)))
 
+; TODO add validation for those messages
 ; TODO pipe this through ? transform to message with protocol ?
 ; TODO 1. parse 2. execute 3. answer
 (defmulti handle-websockets-msg (fn [_ {:keys [type]}] type))
-(defmethod handle-websockets-msg :pylos/player-move [game-runner {:keys [uid message]}]
+(defmethod handle-websockets-msg :server/player-move [game-runner {:keys [uid message]}]
   (handle-player-move game-runner uid message))
-(defmethod handle-websockets-msg :pylos/new-game [game-runner {:keys [uid message]}]
+(defmethod handle-websockets-msg :server/new-game [game-runner {:keys [uid message]}]
   (handle-new-game game-runner uid message))
-(defmethod handle-websockets-msg :pylos/join-game [game-runner {:keys [uid message]}]
+(defmethod handle-websockets-msg :server/join-game [game-runner {:keys [uid message]}]
   (handle-join-game game-runner uid message))
 (defmethod handle-websockets-msg :chsk/uidport-close [game-runner {:keys [uid]}]
   (leave-all-games (:games game-runner) uid))

@@ -12,7 +12,7 @@
                           result-ch :closed
                           (choose-next-move strategy game-position) ([value _] value))
             end-time    (System/nanoTime)]
-        (println "Got game result" game-result)
+        (println "Play - Got game result" game-result)
         (if (= :closed game-result) :closed
           (if (and (:next-move game-result)
                    (= (:color (:next-move game-result)) color)
@@ -41,14 +41,14 @@
    (go-loop [[game-position time additional-infos last-move] [game-position 0 nil nil]]
      (let [player    (:player game-position)
            strategy  (get strategies player)]
-       (println "Waiting to send move" last-move)
+       (println "Play - Waiting to send move" last-move)
        ; TODO put in a timeout here
        (>! result-ch
            {:game-position game-position
             :last-move last-move
             :additional-infos additional-infos
             :time time})
-       (println "Could send move " last-move game-position strategy)
+       (println "Play - Could send move " last-move game-position strategy)
        (if (:outcome game-position)
          (end-game result-ch strategies)
          (let [game-result (<! (wait-for-valid-move game-position strategy result-ch player))]

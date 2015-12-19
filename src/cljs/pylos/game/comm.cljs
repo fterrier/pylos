@@ -3,20 +3,8 @@
             [taoensso.sente :as sente])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
-(defmulti handle-comm (fn [ _ comm] (:action comm)))
-
-(defmethod handle-comm :server/join-game [chsk-send control]
-  (println "joining game" control)
-  (chsk-send [:pylos/join-game {:game-id (:game-id control)}]))
-
-(defmethod handle-comm :server/play-move [chsk-send control]
-  (println "playing move")
-  ; TODO un-hard-code
-  (chsk-send [:pylos/player-move {:game-id (:game-id control) :player :white :game-infos (:game-infos control)}]))
-
-(defmethod handle-comm :server/start-new-game [chsk-send control]
-  (println "creating new game")
-  (chsk-send [:pylos/new-game (dissoc control :action)]))
+(defn handle-comm [chsk-send {:keys [action message] :as control}]
+  (chsk-send [action message]))
 
 (defn event-msg-handler* [pub-ch]
   (fn [{:as ev-msg :keys [id ?data event]}]
@@ -25,7 +13,7 @@
       (case id
         :chsk/state (>! pub-ch {:topic :server :action :chsk/state :message ?data})
         :chsk/recv (>! pub-ch {:topic :server :action (get ?data 0) :message (get ?data 1)})
-        :default (println "Unhandled event" id)))))
+        (println "Unhandled event" id)))))
 
 
 (defn init-server-connection [app-channels pub-ch]
