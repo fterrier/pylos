@@ -25,7 +25,6 @@
                  :init (do (require 'clj-stacktrace.repl))
                  :caught clj-stacktrace.repl/pst+}
 
-  :target-path "target/%s"
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
   :uberjar-name "pylos.jar"
 
