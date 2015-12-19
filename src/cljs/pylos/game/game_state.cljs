@@ -87,9 +87,10 @@
       (let [new-selections (conj current-selections current-position)
             playable-move  (playable-move current-game-infos new-selections)
             possible-moves (get-moves current-game-infos new-selections)]
-        (when (or playable-move (not (empty? possible-moves)))
+        (if (or playable-move (not (empty? possible-moves)))
           (-> game
               ; first update the current move
               (assoc-in [:current-move :selections] new-selections)
               (assoc-in [:current-move :must-play-move] (and playable-move (= 1 (count possible-moves))))
-              (assoc-in [:current-move :playable-move] playable-move)))))))
+              (assoc-in [:current-move :playable-move] playable-move))
+          game)))))
