@@ -53,10 +53,10 @@
 
   (wrap-json-response
    (routes 
-    (GET "/test"   [:as request
+    (GET "/inspect"   [:as request
                     :as {{:keys [game-runner]} :system-deps}]
          {:body (channel-stats game-runner)})
-
+    
     (wrap-json-body (POST "/telegram" [:as request
                                        :as {{:keys [telegram]} :system-deps}]
                           ((:event-msg-handler telegram) request)

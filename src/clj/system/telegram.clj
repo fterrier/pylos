@@ -10,13 +10,14 @@
             [system.strategy.websockets :refer [websockets]]))
 
 (defn send-to-telegram [bot-id chat-id text message-id]
-  (let [url (str "https://api.telegram.org/bot" bot-id "/sendMessage")]    
-      (println "Telegram - Sending message" url text)
-      (http/get url {:query-params {:chat_id chat-id :text text :reply_to_message_id message-id}} 
-                (fn [{:keys [status headers body error]}]
-                  (if error
-                    (println "Telegram - Failed, exception is " error)
-                    (println "Telegram - Async HTTP GET: " status body))))))
+  (let [url (str "https://api.telegram.org/bot" bot-id "/sendPhoto")]    
+    (println "Telegram - Sending message" url text)
+    (http/get url {:query-params {:chat_id chat-id :text text :reply_to_message_id message-id}
+                   :multipart [{:name "photo" :content (clojure.java.io/file "/Users/fterrier/projects/pylos/kiwi.jpeg") :filename "kiwi.jpeg"}]} 
+              (fn [{:keys [status headers body error]}]
+                (if error
+                  (println "Telegram - Failed, exception is " error)
+                  (println "Telegram - Async HTTP GET: " status body))))))
 
 (defn send-message [bot-id uid message-id]
   (fn [[type message]]
