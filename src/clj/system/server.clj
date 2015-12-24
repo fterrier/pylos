@@ -1,12 +1,12 @@
 (ns system.server
   (:require
    [org.httpkit.server :refer [run-server]]
-   [ring.middleware.defaults :refer [site-defaults]]
+   [ring.middleware.logger :as logger]
+   [ring.middleware.defaults :refer [site-defaults api-defaults]]
    [com.stuartsierra.component :as component]))
 
-
 (defn get-routes [routes]
-  (ring.middleware.defaults/wrap-defaults routes site-defaults))
+  (logger/wrap-with-logger (ring.middleware.defaults/wrap-defaults routes api-defaults)))
 
 (defrecord WebServer [port routes]
   ;; Implement the Lifecycle protocol

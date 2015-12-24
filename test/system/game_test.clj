@@ -71,34 +71,36 @@
 (deftest join-game-test
   (testing "Joining game "
     (let [[game-runner game-id] (new-game-runner-test)
-          output-ch             (join-game (:games game-runner) 123 game-id :white)
+          output-ch             (join-game (:games game-runner) {:id 123} game-id :white)
           game                  (get-in @(:games game-runner) [:games game-id])]
       (start-game (:games game-runner) game-id)
       (is (not (nil? (<!! output-ch))))
-      (is (= {123 {:color :white}} (:joined-uids game)))
-      (is (= {game-id {:output-ch output-ch}} (get-in @(:games game-runner) [:uids 123])))))
+      (is (= {123 {:color :white}} (:joined-user-ids game)))
+      (is (= {game-id {:output-ch output-ch}} (get-in @(:games game-runner) [:user-ids 123])))))
 
   (testing "Leaving game frees resources"
     (let [[game-runner game-id] (new-game-runner-test)
-          output-ch-1           (join-game (:games game-runner) 1 game-id :white)
-          output-ch-2           (join-game (:games game-runner) 2 game-id :white)]
+          output-ch-1           (join-game (:games game-runner) {:id 1} game-id :white)
+          output-ch-2           (join-game (:games game-runner) {:id 2} game-id :white)]
+      (is (= {2 {:color :white} 1 {:color :white}} (get-in @(:games game-runner) [:games game-id :joined-user-ids])))
       (start-game (:games game-runner) game-id)
-      (<!! output-ch-2)
+      (is (<!! output-ch-2))
       (is (= :timeout (alt!!
-                        (timeout 10) :timeout
+                        (timeout 100) :timeout
                         output-ch-2 :move)))
-      (<!! output-ch-1)
-      (leave-all-games (:games game-runner) 1)
+      (is (<!! output-ch-1))
+      (leave-all-games (:games game-runner) {:id 1})
+      (is (nil? (<!! output-ch-1)))
+      (is (nil? (get-in @(:games game-runner) [:user-ids 1])))
       (is (= :move (alt!!
                      (timeout 100) :timeout
                      output-ch-2 :move)))
-      (is (nil? (get-in @(:games game-runner) [:uids 1])))
-      (is (= {2 {:color :white}} (get-in @(:games game-runner) [:games game-id :joined-uids])))))
+      (is (= {2 {:color :white}} (get-in @(:games game-runner) [:games game-id :joined-user-ids])))))
 
   (testing "Joining already joined game does not block"
     (let [[game-runner game-id] (new-game-runner-test)
-          output-ch-1           (join-game (:games game-runner) 1 game-id :white)
-          output-ch-2           (join-game (:games game-runner) 1 game-id :white)]
+          output-ch-1           (join-game (:games game-runner) {:id 1} game-id :white)
+          output-ch-2           (join-game (:games game-runner) {:id 1} game-id :white)]
       (start-game (:games game-runner) game-id)
       (is (= output-ch-1 output-ch-2))
       (is (not (nil? (<!! output-ch-1)))))))
@@ -106,7 +108,7 @@
 (deftest play-move-test
   (testing "Playing move"
     (let [[game-runner game-id] (new-game-runner-websockets-test)
-          output-ch             (join-game (:games game-runner) 1 game-id :white)
+          output-ch             (join-game (:games game-runner) {:id 1} game-id :white)
           all-done-ch           (chan)]
       (start-game (:games game-runner) game-id)
       (<!! output-ch)
@@ -115,19 +117,26 @@
                                    output-ch ([move] move))
                                 [:game-position :board 0])))
           (close! all-done-ch))
-      (player-move (:games game-runner) game-id 1 (move-add :white 0))
+      (player-move (:games game-runner) game-id {:id 1} (move-add :white 0))
       (<!! all-done-ch)))
+  
+  (testing "Moves are saved in past moves"
+    (let [[game-runner game-id] (new-game-runner-test)
+          output-ch             (join-game (:games game-runner) {:id 1} game-id :none)]
+      (start-game (:games game-runner) game-id)
+      (<!! output-ch)
+      (is (= 1 (count (get-in @(:games game-runner) [:games game-id :past-game-infos]))))))
 
   (testing "Playing move on inexistant game"
     (let [[game-runner game-id] (new-game-runner-websockets-test)]
-      (player-move (:games game-runner) "inexistant" 1 (move-add :white 0))))
+      (player-move (:games game-runner) "inexistant" {:id 1} (move-add :white 0))))
 
   (testing "Playing move with uid of wrong color does nothing"
     (let [[game-runner game-id] (new-game-runner-websockets-test)
-          output-ch             (join-game (:games game-runner) 1 game-id :black)]
+          output-ch             (join-game (:games game-runner) {:id 1} game-id :black)]
       (start-game (:games game-runner) game-id)
       (<!! output-ch)
-      (player-move (:games game-runner) game-id 1 (move-add :white 0))
+      (player-move (:games game-runner) game-id {:id 1} (move-add :white 0))
       (is (= :timeout (alt!!
                         (timeout 100) :timeout
                         output-ch :move))))))

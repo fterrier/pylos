@@ -1,11 +1,11 @@
 (ns system.routes
-  (:require [hiccup.page :refer [include-css html5]]
-            [game.view :refer [include-javascript]]
-            [compojure
-             [core :as comp :refer [GET POST]]
+  (:require [compojure
+             [core :as comp :refer [GET POST routes]]
              [route :as route]]
             [component.compojure :as ccompojure]
-            [ring.middleware.json :refer [wrap-json-response]]
+            [game.view :refer [include-javascript]]
+            [hiccup.page :refer [html5 include-css]]
+            [ring.middleware.json :refer [wrap-json-body wrap-json-response]]
             [system.game :refer [channel-stats]]))
 
 (defn- content-page [content]
@@ -39,7 +39,7 @@
   (content-page [:div {:id "main-area"}]))
 
 ; websockets routes
-(ccompojure/defroutes ServerRoutes [game-runner websockets]
+(ccompojure/defroutes ServerRoutes [game-runner websockets telegram]
   ;;
   (GET  "/chsk" [:as request
                  :as {{:keys [websockets]} :system-deps}] (
@@ -50,15 +50,22 @@
                            )) request))
   (POST "/chsk" [:as request
                  :as {{:keys [websockets]} :system-deps}] ((:ring-ajax-post websockets) request))
+
   (wrap-json-response
+   (routes 
     (GET "/test"   [:as request
                     :as {{:keys [game-runner]} :system-deps}]
-                   {:body (channel-stats game-runner)}))
+         {:body (channel-stats game-runner)})
+
+    (wrap-json-body (POST "/telegram" [:as request
+                                       :as {{:keys [telegram]} :system-deps}]
+                          ((:event-msg-handler telegram) request)
+                          {:body "ok"})
+                    {:keywords? true :bigdecimals? true})))
   ; (GET  "/pylos/:game-id" [game-id] (resource-response "index.html" {:root "public"}))
 
   (GET "/"      [] (index-page))
   (route/resources "/")
-  ;;
   (route/not-found "<h1>Page not found</h1>"))
 
 (defn new-server-routes []

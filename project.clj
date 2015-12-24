@@ -11,7 +11,8 @@
                  [com.taoensso/timbre "4.1.1"]
                  [clj-stacktrace "0.2.8"]
                  [org.clojure/clojurescript "1.7.170"]
-                 [org.omcljs/om "0.9.0"]
+                 [org.omcljs/om "0.9.0"  :exclusions [cljsjs/react]]
+                 [cljsjs/react "0.14.3-0"]
                  [prismatic/om-tools "0.3.12"]
                  [com.stuartsierra/component "0.3.0"]
                  [http-kit "2.1.18"]
@@ -21,6 +22,7 @@
                  [ring/ring-defaults "0.1.5"]
                  [hiccup "1.0.5"]
                  [ring/ring-json "0.4.0"]
+                 [ring.middleware.logger "0.5.0"]
                  [valichek/component-compojure "0.2-SNAPSHOT"]]
   :repl-options {:port 7888
                  :init (do (require 'clj-stacktrace.repl))
@@ -41,6 +43,7 @@
              :dev {:source-paths ["env/dev/src/clj"]
                    :dependencies [[org.clojure/tools.namespace "0.2.11"]
                                   [figwheel-sidecar "0.5.0-2"]
+                                  [devcards "0.2.1"]
                                         ;[alembic "0.3.2"]
                                   ]
                    :plugins [[lein-figwheel "0.5.0-2"]]}})

@@ -11,7 +11,7 @@
 
 (defn init []
   (alter-var-root #'system
-                  (constantly (-> (get-system-map 8080)
+                  (constantly (-> (get-system-map 8888)
                                   (assoc :figwheel (map->Figwheel figwheel-config))))))
 
 (defn start []
