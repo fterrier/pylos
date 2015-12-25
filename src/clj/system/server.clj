@@ -1,19 +1,19 @@
 (ns system.server
   (:require
    [org.httpkit.server :refer [run-server]]
-   [ring.middleware.logger :as logger]
+   [clojure.tools.logging :as log]
    [ring.middleware.defaults :refer [site-defaults api-defaults]]
    [com.stuartsierra.component :as component]))
 
 (defn get-routes [routes]
-  (logger/wrap-with-logger (ring.middleware.defaults/wrap-defaults routes api-defaults)))
+  (ring.middleware.defaults/wrap-defaults routes api-defaults))
 
 (defrecord WebServer [port routes]
   ;; Implement the Lifecycle protocol
   component/Lifecycle
 
   (start [component]
-    (println ";; Starting server on port" port)
+    (log/info ";; Starting server on port" port)
     ;; In the 'start' method, initialize this component
     ;; and start it running. For example, connect to a
     ;; database, create thread pools, or initialize shared
@@ -23,7 +23,7 @@
                               {:port port :join? false})))
 
   (stop [component]
-    (println ";; Stopping server")
+    (log/info ";; Stopping server")
     ;; In the 'stop' method, shut down the running
     ;; component and release any external resources it has
     ;; acquired.

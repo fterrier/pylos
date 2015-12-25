@@ -1,3 +1,4 @@
+; TODO make this generic for all boards
 (ns pylos.strategy.human
   (:require [clojure.core.async :refer [go]]
             [clojure.string :as str]

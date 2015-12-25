@@ -1,5 +1,6 @@
 (ns system.websockets
   (:require [taoensso.sente :as sente]
+            [clojure.tools.logging :as log]
             [com.stuartsierra.component :as component]))
 
 (defrecord ChannelSockets [ring-ajax-post ring-ajax-get-or-ws-handshake ch-chsk chsk-send! connected-uids router server-adapter event-handler options]
@@ -32,5 +33,5 @@
                          :options options})))
 
 (defn send-infos [websockets uid infos]
-  (println "Websockets - Sending" uid infos)
+  (log/debug "Websockets - Sending" uid infos)
   ((:chsk-send! websockets) uid infos))

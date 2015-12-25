@@ -9,6 +9,19 @@
             [strategy.negamax :refer [negamax]]
             [system.strategy.websockets :refer [websockets]]))
 
+(defn create-image []
+  (let [png-trans (org.apache.batik.transcoder.image.PNGTranscoder.)
+        reader    (java.io.StringReader. (pylos.svg/print-board  (pylos.init/create-board {:board [:black :black :open :open :white :white :white :open :open :open :open :open :open :open :open :open :open :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc] :size 4}) nil))
+        input (org.apache.batik.transcoder.TranscoderInput. reader)
+        fileos (java.io.FileOutputStream. "/Users/fterrier/projects/pylos/testr.png")
+        bos (java.io.ByteArrayOutputStream.) 
+        output (org.apache.batik.transcoder.TranscoderOutput. bos)]
+    (. png-trans transcode input output)
+    (. bos writeTo fileos)
+    (. bos close)
+    (. fileos close)))
+
+
 (defn send-to-telegram [bot-id chat-id text message-id]
   (let [url (str "https://api.telegram.org/bot" bot-id "/sendPhoto")]    
     (println "Telegram - Sending message" url text)
@@ -31,7 +44,8 @@
         negamax-depth    5
         game             (new-pylos-game 4)
         strategies       {websockets-color (websockets)
-                          (other-color websockets-color) (negamax score-middle-blocked negamax-depth)}]
+                          (other-color websockets-color)
+                          (negamax score-middle-blocked negamax-depth)}]
     {:type :new-game :message {:game game :strategies strategies :first-player :white}}))
 
 (defmethod parse-message :default [id data]

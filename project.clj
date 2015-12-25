@@ -6,6 +6,9 @@
   :jvm-opts ["-Xmx4G"]
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.8.0-RC3"]
+                 [org.clojure/tools.logging "0.3.1"]
+                 [ch.qos.logback/logback-classic "1.1.3"]
+                 [org.slf4j/log4j-over-slf4j "1.7.13"]
                  [io.aviso/pretty "0.1.18"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [com.taoensso/timbre "4.1.1"]
@@ -22,9 +25,11 @@
                  [ring/ring-defaults "0.1.5"]
                  [hiccup "1.0.5"]
                  [ring/ring-json "0.4.0"]
-                 [ring.middleware.logger "0.5.0"]
+                 [org.apache.xmlgraphics/batik-transcoder "1.7"]
+                 [org.apache.xmlgraphics/batik-codec "1.7"]
                  [valichek/component-compojure "0.2-SNAPSHOT"]]
   :repl-options {:port 7888
+                 :init-ns system.init-dev
                  :init (do (require 'clj-stacktrace.repl))
                  :caught clj-stacktrace.repl/pst+}
 

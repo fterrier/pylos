@@ -4,7 +4,7 @@
             [om-tools.core :refer-macros [defcomponent]]
             [om-tools.dom :as dom :include-macros true]
             [om.core :as om]
-            [pylos.board :refer [cell board-size]]
+            [pylos.board :refer [cell]]
             [pylos.game.game-state
              :refer
              [append-game-infos
@@ -22,7 +22,9 @@
               select-current-position]]
             [pylos.game.history :refer [history-comp]]
             [pylos.game.state :refer [game] :as state]
-            [pylos.game.util :refer [circle]])
+            [pylos.game.util :refer [circle]]
+            [pylos.board :refer [board-size]]
+            [pylos.init :refer [visit-board]])
   (:require-macros [cljs.core.async.macros :refer [go-loop]]))
 
 (defn indexed-vector [m attrs]
@@ -135,7 +137,7 @@
                 next-player     (:next-player game-infos)
                 balls-remaining (:balls-remaining game-infos)
                 board           (:board game-infos)
-                layered-board   (:layered-board game-infos)]
+                layered-board   (visit-board board (fn [_ position] position))]
             (println "Rendering board" layered-board)
             (if-not (empty? game-infos)
               (dom/div {:class "main"}

@@ -3,7 +3,8 @@
             [pylos
              [board :refer [add-ball ind]]
              [core-test :as core :refer [four]]
-             [move :refer [calculate-next-moves generate-all-moves is-move-allowed move-add move-rise move-square]]]))
+             [move :refer [calculate-next-moves generate-all-moves is-move-allowed move-add move-rise move-square]]]
+            [pylos.init :refer [create-board]]))
 
 (deftest board-move-map-test
   (testing "All board-move-map test"
@@ -28,7 +29,7 @@
                         (move-square original-move #{(ind four [3 2 1]) (ind four [3 2 2])} (ind four [3 1 1]))]))
            (into #{} (generate-all-moves {:board core/full-board-square-top :player :white}))))
     (is (= 18
-           (count (into #{} (generate-all-moves {:board (pylos.init/initialize-board-meta [:open :open :open :open :black :white :black :open :black :white :white :open :white :black :white :open :no-acc :no-acc :no-acc :open :black :no-acc :black :black :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc] 4) :player :black})))))))
+           (count (into #{} (generate-all-moves {:board (create-board {:board [:open :open :open :open :black :white :black :open :black :white :white :open :white :black :white :open :no-acc :no-acc :no-acc :open :black :no-acc :black :black :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc] :size 4}) :player :black})))))))
 
 (deftest calculate-next-move-test
   (testing "Next move"

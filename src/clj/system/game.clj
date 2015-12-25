@@ -6,6 +6,7 @@
              [<! >! chan close! go go-loop mult tap untap]]
             [clojure.walk :refer [postwalk]]
             [com.stuartsierra.component :as component]
+            [clojure.tools.logging :as log]
             [game
              [board :refer [serialize-board]]
              [play :refer [play]]
@@ -22,31 +23,31 @@
 ; TODO summarize these 4 in 1 send-message method
 ; TODO abstract the output message
 (defn send-game-infos [user game-id game-infos]
-  (println "Game output - Sending game infos")
+  (log/debug "Game output - Sending game infos")
   ((:send-message user) [:msg/game-infos {:game-id game-id :game-infos (get-game-infos game-infos)}]))
 
 (defn send-past-game-infos [user game-id past-game-infos]
-  (println "Game output - Sending past game infos")
+  (log/debug "Game output - Sending past game infos")
   ((:send-message user) [:msg/past-game-infos {:game-id game-id :past-game-infos (into [] (map get-game-infos past-game-infos))}]))
 
 (defn notify-new-game [user game-id]
-  (println "Game output - Notifying new game is created")
+  (log/info "Game output - Notifying new game is created")
   ((:send-message user) [:msg/new-game {:game-id game-id}]))
 
 (defn notify-end-game [user game-id]
-  (println "Game output - Notifying game is ended")
+  (log/debug "Game output - Notifying game is ended")
   ((:send-message user) [:msg/end-game {:game-id game-id}]))
 
 ; game output API
 ; TODO replace this by a pipe to the output channel of that user
 ; then we probably don't need to keep the :user-ids map any more in the state atom
 (defn register-for-game-output [user game-id output-ch]
-  (println "Game output - Registering for game output" user)
+  (log/debug "Game output - Registering for game output" user)
   (go-loop []
     (let [result (<! output-ch)]
-      (println "Game output - Got result" user result)
+      (log/debug "Game output - Got result" user result)
       (if (nil? result)
-        (println "Game output - Game is over" user)
+        (log/debug "Game output - Game is over" user)
         (do
           (send-game-infos user game-id result)
           (recur))))))
@@ -87,7 +88,7 @@
 (defn stop-game [games game-id]
   (let [game (get-in @games [:games game-id])]
     (when-not (nil? game)
-      (println "Game Runner - Stopping game")
+      (log/debug "Game Runner - Stopping game")
       (close! (:result-ch game))
       (swap! games remove-game game-id))))
 
@@ -100,7 +101,7 @@
                                         (swap! games save-move-to-game game-id game-infos)
                                         game-infos)))
         result-mult-ch   (mult result-ch)]
-    (println "Game Runner - Creating new game" game-id strategies game)
+    (log/debug "Game Runner - Creating new game" game-id strategies game)
     (swap! games add-game game-id 
            {:result-ch result-ch
             :result-mult-ch result-mult-ch
@@ -116,32 +117,31 @@
   (let [game (get-in @games [:games game-id])]
     (when (and (not (nil? game))
                (not (:started game)))
-      (println "Game Runner - Starting game" game-id)
+      (log/debug "Game Runner - Starting game" game-id)
       (swap! games assoc-in [:games game-id :started] true)
       (play (:game game) (:strategies game) (:first-player game) (:result-ch game)))))
 
 (defn player-move [games game-id user move]
-  (println "Game Runner - Handling player move" game-id user move)
+  (log/debug "Game Runner - Handling player move" game-id user move)
   (let [game   (get-in @games [:games game-id])
         player (get-in game [:joined-user-ids (:id user) :color])]
     (if (or (nil? game) (nil? player))
       ; TODO handle game channel not found - retrieve game from persistence layer ?
-      (println "Game runner - Game or player not found" game-id user)
+      (log/debug "Game runner - Game or player not found" game-id user)
       (let [strategy (get-in game [:strategies player])
             game-ch  (get-input-channel strategy)]
-        (println "Game Runner - " game-ch strategy)
+        (log/debug "Game Runner - " game-ch strategy)
         (if (nil? game-ch)
-          (println "Game Runner - No game input channel found for this player" game-id player)
+          (log/debug "Game Runner - No game input channel found for this player" game-id player)
           (do 
-            (println "Game runner - Sending move to game channel" move)
+            (log/debug "Game runner - Sending move to game channel" move)
             (go (>! game-ch {:next-move move}))))))))
 
 (defn leave-all-games [games user]
   "Frees resources associated to that game and player and stops notifying that
   player of moves for that game."
-  (println "Game Runner - Handling leaving client" user)
+  (log/debug "Game Runner - Handling leaving client" user)
   (let [games-for-user (get-in @games [:user-ids (:id user)])]
-    (println "LEAVING CLIENT" games-for-user)
     (doseq [[game-id channels] games-for-user]
       (when-let [result-mult-ch (get-in @games [:games game-id :result-mult-ch])]
         (untap result-mult-ch (:output-ch channels)))
@@ -156,7 +156,7 @@
     (if (and game (not (contains? (:joined-user-ids game) (:id user))))
       (let [output-ch (chan)]
         (tap (:result-mult-ch game) output-ch)
-        (println "Game Runner - Joining game" game-id)
+        (log/debug "Game Runner - Joining game" game-id)
         (swap! games add-user-to-game (:id user) game-id color {:output-ch output-ch})
         output-ch)
       (get-in @games [:user-ids (:id user) game-id :output-ch]))))
@@ -175,7 +175,7 @@
 (defn handle-new-game [{:keys [games] :as game-runner} user {game :game strategies :strategies first-player :first-player}]
   "Returns a new game id "
   (let [game-id (new-game games game strategies first-player)]
-    (println "Game runner - Handling new game with id" game-id)
+    (log/debug "Game runner - Handling new game with id" game-id)
     (notify-new-game user game-id)))
 
 (defn handle-player-move [{:keys [games]} user {:keys [game-id game-infos]}]
@@ -209,11 +209,11 @@
   (go-loop []
     ; TODO exception handling and scalability here we can let a lot of workers on this
     (when-let [message (<! gamerunner-ch)]
-      (println "Game runner - Got message from websocket" message)
+      (log/debug "Game runner - Got message from websocket" message)
       ; TODO this is not allowed to fail
       (try
         (handle-message game-runner message)
-        (catch Exception e (println e)))
+        (catch Exception e (log/debug e)))
       (recur)))
   game-runner)
 

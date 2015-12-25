@@ -39,8 +39,6 @@
   ([board]
    (print-board board nil)))
 
-; (:game-position %) (:last-move %) (:additional-infos %) (:time %)
-
 (defn print-pylos-game [{{:keys [board player outcome]} :game-position, last-move :last-move, additional-infos :additional-infos, time :time :as play}]
   (let [time-ms (when time (/ time 1000000))]
   (println "====================")

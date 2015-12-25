@@ -1,14 +1,14 @@
 (ns pylos.ui
   #?@(:clj
-       [(:require
-         [pylos.board :refer [balls-remaining square-corners]]
-         [pylos.init :refer [board-indexes create-board]]
-         [pylos.move :refer [generate-all-moves]])]
-       :cljs
-       [(:require
-         [pylos.board :refer [square-corners balls-remaining]]
-         [pylos.init :refer [create-board board-indexes]]
-         [pylos.move :refer [generate-all-moves]])]))
+      [(:require
+        [pylos.board :refer [balls-remaining square-corners board-size]]
+        [pylos.init :refer [visit-board create-board]]
+        [pylos.move :refer [generate-all-moves]])]
+      :cljs
+      [(:require
+        [pylos.board :refer [square-corners balls-remaining board-size]]
+        [pylos.init :refer [create-board visit-board]]
+        [pylos.move :refer [generate-all-moves]])]))
 
 (defn- all-permutations [positions]
   (if (vector? positions) [positions]
@@ -48,7 +48,7 @@
                  ; whenever a removable move is selected display the rest as removable
                  (map (fn [[first & rest]] {(conj prefix first :all) (info-map {:removable true} rest)}) (all-permutations positions)))))))
 
-(defn move-infos [{:keys [type position low-position original-move positions] :as move} move-to-save playable-move current-selection]
+(defn- move-infos [{:keys [type position low-position original-move positions] :as move} move-to-save playable-move current-selection]
   "Generates a map of {[current-selections] :moves ... :playable-move ...}"
   (case type
     :add    [{(into [] (cons position current-selection))                  {:moves [move-to-save] :playable-move playable-move}}]
@@ -58,21 +58,23 @@
              (move-infos original-move move nil [])
              (mapcat #(move-infos original-move move move %) (all-permutations positions)))))
 
-(defn merge-move-infos [{move-1 :moves play-1 :playable-move} {move-2 :moves play-2 :playable-move}]
+(defn- merge-move-infos [{move-1 :moves play-1 :playable-move} {move-2 :moves play-2 :playable-move}]
   {:moves (concat move-1 move-2)
    :playable-move (if play-1 play-1 play-2)})
 
-(defn highlight-status
+(defn- highlight-status
   "we highlight different stuff if we are in the middle of a rise or square
   also the actual highlight position does not need to be saved, just the
   state of each balls in a map {position <state>} where <state> is
   {:addable :risable :in-square)} and position is [<current-selections> <highlighted-position>]"
   [board moves] (reduce #(apply merge-with merge %1 (highlight-infos board %2)) {} moves))
 
-(defn move-status
+(defn- move-status
   "we generate all possible path to moves"
   ([moves] (reduce #(apply merge-with merge-move-infos %1 (move-infos %2 %2 %2 [])) {} moves)))
 
+(defn- board-indexes [board]
+)
 
 (defn game-infos-with-meta [game-infos]
   (let [board-with-meta  (create-board (:board game-infos))
@@ -80,8 +82,7 @@
         possible-moves   (generate-all-moves {:board board-with-meta :player next-player})
         highlight-status (highlight-status board-with-meta possible-moves)
         move-status      (move-status possible-moves)
-        layered-board    (board-indexes board-with-meta)
         balls-remaining  {:white (balls-remaining board-with-meta :white)
                           :black (balls-remaining board-with-meta :black)}
-        game-infos       (assoc game-infos :board board-with-meta :layered-board layered-board :highlight-status highlight-status :move-status move-status :balls-remaining balls-remaining)]
+        game-infos       (assoc game-infos :board board-with-meta :highlight-status highlight-status :move-status move-status :balls-remaining balls-remaining)]
     game-infos))

@@ -45,8 +45,6 @@
     (let [message (retrieve-message id (get-user uid send-fn) ?data)] 
       (when message (go (>! gamerunner-ch message))))))
 
-; event handler create-board
-; TODO get rid of this ?
 (defrecord EventHandler [gamerunner-ch]
   component/Lifecycle
   (start [component]

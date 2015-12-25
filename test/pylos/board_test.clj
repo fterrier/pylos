@@ -33,18 +33,18 @@
     (is (= #{15} (square-corners four (ind four [1 4 4]))))
     (is (= #{(ind four [1 2 2]) (ind four [1 2 1]) (ind four [1 1 2]) (ind four [1 1 1])} (square-corners four (ind four [1 1 1]))))))
 
-(deftest calculate-all-positions-test
-  (testing "All positions"
-    (is (= (calculate-all-positions 4) [[1 1 1] [1 1 2] [1 1 3] [1 1 4]
-                                        [1 2 1] [1 2 2] [1 2 3] [1 2 4]
-                                        [1 3 1] [1 3 2] [1 3 3] [1 3 4]
-                                        [1 4 1] [1 4 2] [1 4 3] [1 4 4]
-                                        [2 1 1] [2 1 2] [2 1 3]
-                                        [2 2 1] [2 2 2] [2 2 3]
-                                        [2 3 1] [2 3 2] [2 3 3]
-                                        [3 1 1] [3 1 2]
-                                        [3 2 1] [3 2 2]
-                                        [4 1 1]]))))
+;; (deftest calculate-all-positions-test
+;;   (testing "All positions"
+;;     (is (= (calculate-all-positions 4) [[1 1 1] [1 1 2] [1 1 3] [1 1 4]
+;;                                         [1 2 1] [1 2 2] [1 2 3] [1 2 4]
+;;                                         [1 3 1] [1 3 2] [1 3 3] [1 3 4]
+;;                                         [1 4 1] [1 4 2] [1 4 3] [1 4 4]
+;;                                         [2 1 1] [2 1 2] [2 1 3]
+;;                                         [2 2 1] [2 2 2] [2 2 3]
+;;                                         [2 3 1] [2 3 2] [2 3 3]
+;;                                         [3 1 1] [3 1 2]
+;;                                         [3 2 1] [3 2 2]
+;;                                         [4 1 1]]))))
 
 (deftest position-opens-test
   (testing "Square opens layer above"

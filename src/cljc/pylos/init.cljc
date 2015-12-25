@@ -31,7 +31,7 @@
 
 
 ; Starting board creation functions
-(defn calculate-all-positions [size]
+(defn- calculate-all-positions [size]
   (into [] (apply concat (for [layer (range 1 (+ 1 size))]
                            (let [max-size (+ 2 (- size layer))]
                              (for [x     (range 1 max-size)
@@ -145,21 +145,6 @@
      :positions-map positions-map
      :all-positions all-positions}))
 
-(defn starting-board [size]
-  {:pre [(even? (count (calculate-all-positions size)))]}
-  (let [helper-meta-board   (helper-meta-board size)
-        number-of-positions (:number-of-positions helper-meta-board)
-        positions-map       (:positions-map helper-meta-board)
-        all-positions       (:all-positions helper-meta-board)
-        ; TODO optimize data structure
-        board               (into [] (map (fn [ind] (if (< ind (* size size)) :open :no-acc)) (range number-of-positions)))
-        empty-positions     (create-position-set (calculate-empty-positions all-positions) positions-map)]
-    (with-meta board (map->MetaBoard
-                       {:helper-meta-board (map->HelperMetaBoard helper-meta-board)
-                        :empty-positions empty-positions
-                        :removable-positions #{}
-                        :balls-on-board {:black #{} :white #{}}}))))
-
 ; re-init functions from here on
 (defn- retrieve-empty-positions [board all-positions]
   (into #{} (filter #(= :open (cell board %)) all-positions)))
@@ -174,7 +159,7 @@
 (defn- retrieve-removable-positions [board all-positions]
   (into #{} (filter #(can-remove-ball-no-meta board %) all-positions)))
 
-(defn initialize-board-meta [board size]
+(defn- initialize-board-meta [board size]
   "Create all meta data for a board and attach to it"
   (let [size              4
         helper-meta-board (helper-meta-board size)
@@ -190,15 +175,29 @@
                               :removable-positions (retrieve-removable-positions board all-positions)}))]
     board))
 
-(defn board-indexes [board]
+(defn starting-board [size]
+  {:pre [(even? (count (calculate-all-positions size)))]}
+  (let [helper-meta-board   (helper-meta-board size)
+        number-of-positions (:number-of-positions helper-meta-board)
+        positions-map       (:positions-map helper-meta-board)
+        all-positions       (:all-positions helper-meta-board)
+        ; TODO optimize data structure
+        board               (into [] (map (fn [ind] (if (< ind (* size size)) :open :no-acc)) (range number-of-positions)))
+        empty-positions     (create-position-set (calculate-empty-positions all-positions) positions-map)]
+    (with-meta board (map->MetaBoard
+                       {:helper-meta-board (map->HelperMetaBoard helper-meta-board)
+                        :empty-positions empty-positions
+                        :removable-positions #{}
+                        :balls-on-board {:black #{} :white #{}}}))))
+
+(defn visit-board [board visit-fn]
   (let [size           (board-size board)
         positions-map  (:positions-map (:helper-meta-board (meta board)))
         frontend-board (into [] (for [layer (range 0 size)]
                                 (into [] (for [row (range 0 (- size layer))]
-                                           (into [] (for [col (range 0 (- size layer))]
-                                                      (get positions-map [(inc layer) (inc row) (inc col)])))))))]
-  frontend-board))
-
+                                           (into [] (for [col (range 0 (- size layer))] 
+                                                      (visit-fn [layer row col] (get positions-map [(inc layer) (inc row) (inc col)]))))))))]
+    frontend-board))
 
 (defn create-board [map]
   (deserialize-board [] map))
