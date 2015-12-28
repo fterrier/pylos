@@ -16,7 +16,7 @@
 
 ; private output stuff
 (defn get-game-infos [{{:keys [board player outcome]} :game-position, move :last-move, additional-infos :additional-infos, time :time}]
-  {:board            (serialize-board board)
+  {:board            board
    :next-player      player
    :move             move
    :time             time

@@ -1,4 +1,4 @@
-(ns system.game-test
+(ns server.game-runner-test
   (:require [clojure.core.async :refer [<!! alt! alt!! chan close! go tap timeout]]
             [clojure.test :refer [deftest is testing]]
             [pylos

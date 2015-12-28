@@ -1,26 +1,36 @@
 (ns server.handlers.websockets
-  (:require [clojure.core.async :refer [<! >! chan close! go go-loop]]
+  (:require [clojure.core.async :refer [>! chan close! go]]
             [clojure.tools.logging :as log]
             [compojure.core :refer [GET POST routes]]
-            [game.game :refer [other-color]]
+            [game
+             [board :refer [serialize-board]]
+             [game :refer [other-color]]]
             [pylos
              [game :refer [new-pylos-game]]
              [score :refer [score-middle-blocked]]]
             [ring.middleware
              [keyword-params :refer [wrap-keyword-params]]
              [params :refer [wrap-params]]]
+            [server.game-runner
+             :refer
+             [->JoinGameCommand
+              ->NewGameCommand
+              ->PlayerMoveCommand
+              ->UserLeaveCommand]]
             [server.handlers.handler :refer [Handler]]
             [strategy
              [channel :refer [channel]]
              [negamax :refer [negamax]]]
-            [server.game-runner
-             :refer
-             [->JoinGameCommand ->NewGameCommand
-              ->PlayerMoveCommand ->UserLeaveCommand]]
             [taoensso.sente :refer [make-channel-socket! start-chsk-router!]]
             [taoensso.sente.server-adapters.http-kit
              :refer
-             [sente-web-server-adapter]]))
+             [sente-web-server-adapter]]
+            [server.handlers.handler :refer [start-event-handler]]
+            [server.handlers.handler :refer [parse-new-game-data]]))
+
+(defn send-infos [handler uid infos]
+  (log/debug "Websockets - Sending" uid infos)
+  ((:chsk-send! handler) uid infos))
 
 (defn- get-user [uid send-fn user-ch]
   {:id uid :channel user-ch :send-message #(send-fn uid %)})
@@ -30,44 +40,40 @@
 ; those messages
 (defmulti parse-message (fn [id _ _] id))
 
-(defmethod parse-message :server/player-move [id user {:keys [game-id game-infos]}]
+(defmethod parse-message :server/player-move [_ user {:keys [game-id game-infos]}]
   (->PlayerMoveCommand user game-id game-infos))
 
-; TODO parse this and unhardcode
-; TODO make util in handler.clj
-(defmethod parse-message :server/new-game [id user _]
-  (let [channel-color :white
-        negamax-depth 5
-        game          (new-pylos-game 4)
-        strategies    {channel-color
-                       (channel)
-                       (other-color channel-color) 
-                       (negamax score-middle-blocked negamax-depth)}]
-    (->NewGameCommand user game strategies :white)))
+(defmethod parse-message :server/new-game [_ user data]
+  (let [[game strategies first-player] (parse-new-game-data data)]
+    (->NewGameCommand user game strategies first-player)))
 
-(defmethod parse-message :server/join-game [id user {:keys [game-id color]}]
+(defmethod parse-message :server/join-game [_ user {:keys [game-id color]}]
   (->JoinGameCommand user game-id color))
 
-(defmethod parse-message :chsk/uidport-close [id user data]
+(defmethod parse-message :chsk/uidport-close [_ user data]
   (->UserLeaveCommand user))
 
 (defmethod parse-message :default [_ _ _])
+
+(defn- serialize-game-infos [game-infos]
+  (assoc game-infos :board (serialize-board (:board game-infos))))
+
+(defn- format-message-for-client [{:keys [type] :as message}]
+  (let [data (dissoc message :type :user)]
+    [type (case type
+            :msg/game-infos 
+            (update data :game-infos serialize-game-infos)
+            :msg/past-game-infos 
+            (update data :past-game-infos #(map serialize-game-infos %))
+            data)]))
 
 (defn- event-msg-handler* [gamerunner-ch user-ch]
   (fn [{:as ev-msg :keys [id uid ?data event send-fn]}]
     (let [message (parse-message id (get-user uid send-fn user-ch) ?data)] 
       (when message (go (>! gamerunner-ch message))))))
 
-(defn- start-event-handler []
-  (let [user-ch (chan)]
-    (go-loop []
-      (when-let [{:keys [user type] :as message} (<! user-ch)]
-        (log/debug "Websockets Handler - Got message from game runner" message user)
-        (try
-          ((:send-message user) [type (dissoc message :type :user)])
-          (catch Exception e (log/error e)))
-        (recur)))
-    user-ch))
+(defn- gamerunner-msg-handle [{:keys [user] :as message}]
+  ((:send-message user) (format-message-for-client message)))
 
 (defn- app-routes [ring-ajax-post ring-ajax-get-or-ws-handshake]
   (-> (routes
@@ -79,14 +85,10 @@
       wrap-keyword-params
       wrap-params))
 
-(defn send-infos [handler uid infos]
-  (log/debug "Websockets - Sending" uid infos)
-  ((:chsk-send! handler) uid infos))
-
 (defrecord WebsocketsHandler [options]
   Handler
   (start-handler [handler gamerunner-ch]
-    (let [user-ch           (start-event-handler)
+    (let [user-ch           (start-event-handler gamerunner-msg-handle)
           event-msg-handler (event-msg-handler* gamerunner-ch user-ch)
           {:keys [ch-recv send-fn ajax-post-fn ajax-get-or-ws-handshake-fn connected-uids]}
                             (make-channel-socket! 

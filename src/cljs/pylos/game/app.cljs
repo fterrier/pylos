@@ -47,7 +47,7 @@
 (defmethod handle-notif :msg/new-game [comm-ch {:keys [message]}]
   (navigate-to-game (:game-id message)))
 
-(defmethod handle-notif :chsk/state [comm-ch message]
+(defmethod handle-notif :chsk/state [comm-ch {:keys [message]}]
   (when (:first-open? message)
     (hook-browser-navigation!)))
 
@@ -74,11 +74,12 @@
   (render-state [_ _]
           (dom/div 
            (dom/button {:on-click 
-                        (fn [e] (put! (:comm-ch (om/get-shared owner)) {:action :server/new-game 
-                                                                        :message {:first-player :white
-                                                                                  :white {:strategy :websockets}
-                                                                                  :back  {:strategy :negamax
-                                                                                          :options {:depth 4}}}}) 
+                        (fn [e] (put! (:comm-ch (om/get-shared owner)) 
+                                      {:action :server/new-game 
+                                       :message {:first-player :white
+                                                 :white {:strategy :channel}
+                                                 :black  {:strategy :negamax
+                                                          :options {:depth 4}}}}) 
                           (. e preventDefault))} "new game")
            (om/build game-comp nil))))
 

@@ -1,20 +1,22 @@
 (ns server.handlers.telegram
-(:require [clojure.core.async :refer [<! >! chan close! go go-loop thread]]
-[clojure.tools.logging :as log]
-[com.stuartsierra.component :as component]
-[compojure.core :refer [POST]]
-[game.game :refer [other-color]]
-[org.httpkit.client :as http]
-[pylos
-[game :refer [new-pylos-game]]
-[score :refer [score-middle-blocked]]
-[svg :refer [print-board]]]
-[ring.middleware.json :refer [wrap-json-body wrap-json-response]]
-[server.game-runner :refer [->JoinGameCommand ->NewGameCommand]]
-[server.handlers.handler :refer [Handler]]
-[strategy
-[channel :refer [channel]]
-[negamax :refer [negamax]]]))
+  (:require [com.stuartsierra.component :as component]
+            [game.game :refer [other-color]]
+            [org.httpkit.client :as http]
+            [pylos
+             [game :refer [new-pylos-game]]
+             [score :refer [score-middle-blocked]]
+             [svg :refer [print-board]]]
+            [strategy.negamax :refer [negamax]]
+            [strategy.channel :refer [channel]]
+            [clojure.tools.logging :as log]
+            [server.game-runner :refer [->NewGameCommand ->JoinGameCommand]]
+            [clojure.core.async :refer [go-loop chan close! <! >! go thread]]
+            [ring.middleware.json :refer [wrap-json-response]]
+            [ring.middleware.json :refer [wrap-json-body]]
+            [compojure.core :refer [POST]]
+            [server.handlers.handler :refer [Handler]]
+            [server.handlers.handler :refer [start-event-handler]]
+            [server.handlers.handler :refer [parse-new-game-data]]))
 
 (defn create-image [board]
   (let [png-trans (org.apache.batik.transcoder.image.PNGTranscoder.)
@@ -45,7 +47,9 @@
                     {:query-params 
                      {:chat_id chat-id :reply_to_message_id message-id} 
                      :multipart 
-                     [{:name "photo" :content (create-image board) :filename "board.png"}]}))
+                     [{:name "photo" 
+                       :content (create-image board) 
+                       :filename "board.png"}]}))
 
 (defn send-message [bot-id uid message-id]
   (fn [[type message]]
@@ -53,20 +57,14 @@
 
 (defmulti parse-message (fn [[command & args] user data] command))
 
-; TODO write a util for this
 (defmethod parse-message "/new" [_ user data]
-  (let [channel-color  :white
-        negamax-depth  5
-        game           (new-pylos-game 4)
-        strategies     {channel-color (channel)
-                        (other-color channel-color)
-                        (negamax score-middle-blocked negamax-depth)}]
-    (->NewGameCommand user game strategies :white)))
+  (let [[game strategies first-player] (parse-new-game-data data)]
+    (->NewGameCommand user game strategies first-player)))
 
 (defmethod parse-message "/join" [[_ game-id & args] user data]
   (->JoinGameCommand user game-id :none))
 
-(defmethod parse-message :default [text user data]
+(defmethod parse-message :default [_ user data]
   (log/debug "unrecognised message" data))
 
 (defn- get-user [chat-id user-ch]
@@ -76,6 +74,7 @@
 ; reuse this particular method and retrieve-message
 (defn- event-msg-handler* [bot-id gamerunner-ch user-ch]
   (fn [{:as ev-msg :keys [body]}]
+    (log/debug "Got message from telegram client" body)
     (let [{{:keys [text chat message_id]} :message} body
           chat-id (:id chat)
           message (parse-message (remove clojure.string/blank? (clojure.string/split text #" ")) (get-user chat-id user-ch) nil)] 
@@ -91,27 +90,19 @@
 (defmethod forward-message :default [message _]
   (log/debug "unrecognized message to forward" message))
 
-(defn- start-event-handler [bot-id gamerunner-ch]
-  (let [user-ch (chan)]
-    (go-loop []
-      (when-let [{:keys [user type] :as message} (<! user-ch)]
-        (log/debug "Telegram Handler - Got message from game runner" message user)
-        (try
-          (forward-message message bot-id)
-          (catch Exception e (log/error e)))
-        (recur)))
-    user-ch))
+(defn- gamerunner-msg-handler* [bot-id]
+  (fn [message]
+    (forward-message message bot-id)))
 
 (defn- app-routes [event-msg-handler]
-  (-> (POST "/telegram" [request]
-            (event-msg-handler request) {:body "ok"})
-      (wrap-json-response {:keywords? true :bigdecimals? true})
-      wrap-json-body))
+  (-> (POST "/telegram" request (event-msg-handler request) {:body "ok"})
+      (wrap-json-body {:keywords? true :bigdecimals? true})
+      wrap-json-response))
 
 (defrecord TelegramHandler [bot-id]
   Handler
   (start-handler [handler gamerunner-ch]
-    (let [user-ch           (start-event-handler bot-id gamerunner-ch)
+    (let [user-ch           (start-event-handler (gamerunner-msg-handler* bot-id))
           event-msg-handler (event-msg-handler* bot-id gamerunner-ch user-ch)
           routes            (app-routes event-msg-handler)]
       (assoc handler :routes routes :user-ch user-ch)))
