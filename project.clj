@@ -5,31 +5,31 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :jvm-opts ["-Xmx4G"]
   :min-lein-version "2.0.0"
-  :dependencies [[org.clojure/clojure "1.8.0-RC3"]
-                 [org.clojure/tools.logging "0.3.1"]
-                 [ch.qos.logback/logback-classic "1.1.3"]
-                 [org.slf4j/log4j-over-slf4j "1.7.13"]
-                 [io.aviso/pretty "0.1.18"]
-                 [org.clojure/math.numeric-tower "0.0.4"]
-                 [com.taoensso/timbre "4.1.1"]
+  :dependencies [[ch.qos.logback/logback-classic "1.1.3"]
                  [clj-stacktrace "0.2.8"]
-                 [org.clojure/clojurescript "1.7.170"]
-                 [org.omcljs/om "0.9.0"  :exclusions [cljsjs/react]]
                  [cljsjs/react "0.14.3-0"]
-                 [prismatic/om-tools "0.3.12"]
                  [com.stuartsierra/component "0.3.0"]
-                 [http-kit "2.1.18"]
-                 [secretary "1.2.3"]
-                 [compojure "1.4.0"]
                  [com.taoensso/sente "1.6.0"]
-                 [ring/ring-defaults "0.1.5"]
+                 [com.taoensso/timbre "4.2.0"]
+                 [compojure "1.4.0"]
                  [hiccup "1.0.5"]
-                 [ring/ring-json "0.4.0"]
-                 [org.apache.xmlgraphics/batik-transcoder "1.7"]
+                 [http-kit "2.1.18"]
+                 [io.aviso/pretty "0.1.18"]
                  [org.apache.xmlgraphics/batik-codec "1.7"]
+                 [org.apache.xmlgraphics/batik-transcoder "1.7"]
+                 [org.clojure/clojure "1.8.0-RC3"]
+                 [org.clojure/clojurescript "1.7.170"]
+                 [org.clojure/math.numeric-tower "0.0.4"]
+                 [org.clojure/tools.logging "0.3.1"]
+                 [org.omcljs/om "0.9.0"  :exclusions [cljsjs/react]]
+                 [org.slf4j/log4j-over-slf4j "1.7.13"]
+                 [prismatic/om-tools "0.4.0"]
+                 [ring/ring-defaults "0.1.5"]
+                 [ring/ring-json "0.4.0"]
+                 [secretary "1.2.3"]
                  [valichek/component-compojure "0.2-SNAPSHOT"]]
   :repl-options {:port 7888
-                 :init-ns system.init-dev
+                 :init-ns user
                  :init (do (require 'clj-stacktrace.repl))
                  :caught clj-stacktrace.repl/pst+}
 
@@ -46,9 +46,8 @@
                                                              :optimizations :advanced
                                                              :pretty-print false}}}}}
              :dev {:source-paths ["env/dev/src/clj"]
-                   :dependencies [[org.clojure/tools.namespace "0.2.11"]
-                                  [figwheel-sidecar "0.5.0-2"]
+                   :dependencies [;[alembic "0.3.2"]
                                   [devcards "0.2.1"]
-                                        ;[alembic "0.3.2"]
-                                  ]
+                                  [figwheel-sidecar "0.5.0-2"]
+                                  [org.clojure/tools.namespace "0.2.11"]]
                    :plugins [[lein-figwheel "0.5.0-2"]]}})

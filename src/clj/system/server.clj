@@ -27,7 +27,8 @@
     ;; In the 'stop' method, shut down the running
     ;; component and release any external resources it has
     ;; acquired.
-    ((:server component) :timeout 100)
+    (when-let [server (:server component)]
+      (server :timeout 100))
     ;; Return the component, optionally modified. Remember that if you
     ;; dissoc one of a record's base fields, you get a plain map.
     (assoc component :server nil)))

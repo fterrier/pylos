@@ -1,4 +1,4 @@
-(ns system.game
+(ns server.game-runner
   (:require [clojure.core.async
              :as
              async
@@ -20,27 +20,23 @@
    :time             time
    :additional-infos additional-infos})
 
-; TODO summarize these 4 in 1 send-message method
-; TODO abstract the output message
-(defn send-game-infos [user game-id game-infos]
-  (log/debug "Game output - Sending game infos")
-  ((:send-message user) [:msg/game-infos {:game-id game-id :game-infos (get-game-infos game-infos)}]))
+;; (defprotocol User
+;;   (id [this] "Get this user's uid")
+;;   (channel [this] "Get a way to communicate to this user"))
 
-(defn send-past-game-infos [user game-id past-game-infos]
-  (log/debug "Game output - Sending past game infos")
-  ((:send-message user) [:msg/past-game-infos {:game-id game-id :past-game-infos (into [] (map get-game-infos past-game-infos))}]))
+(defn make-game-infos-msg [user game-id game-infos]
+  {:type :msg/game-infos :user user :game-id game-id :game-infos (get-game-infos game-infos)})
 
-(defn notify-new-game [user game-id]
-  (log/info "Game output - Notifying new game is created")
-  ((:send-message user) [:msg/new-game {:game-id game-id}]))
+(defn make-past-game-infos-msg [user game-id past-game-infos]
+  {:type :msg/past-game-infos :user user :game-id game-id :past-game-infos (into [] (map get-game-infos past-game-infos))})
 
-(defn notify-end-game [user game-id]
-  (log/debug "Game output - Notifying game is ended")
-  ((:send-message user) [:msg/end-game {:game-id game-id}]))
+(defn make-notify-new-game-msg [user game-id]
+  {:type :msg/new-game :user user :game-id game-id})
 
-; game output API
-; TODO replace this by a pipe to the output channel of that user
-; then we probably don't need to keep the :user-ids map any more in the state atom
+(defn make-notify-end-game-msg [user game-id]
+  {:type :msg/end-game :user user :game-id game-id})
+
+ 
 (defn register-for-game-output [user game-id output-ch]
   (log/debug "Game output - Registering for game output" user)
   (go-loop []
@@ -49,7 +45,7 @@
       (if (nil? result)
         (log/debug "Game output - Game is over" user)
         (do
-          (send-game-infos user game-id result)
+          (go (>! (:channel user) (make-game-infos-msg user game-id result)))
           (recur))))))
 
 (defn- random-string [length]
@@ -163,57 +159,60 @@
 
 ; the handle-* methods parse the game message, do something
 ; then answer with a message
-(defn handle-join-game [{:keys [games]} user {:keys [game-id color]}]
+(defn handle-join-game [{:keys [games]} user game-id color]
   "Start notifying the given user of the moves for the given game-id.
    Sends the past moves so the game is updated and starts the game if not already started."
   (let [output-ch (join-game games user game-id color)]
     (when output-ch (register-for-game-output user game-id output-ch))
-    (send-past-game-infos user game-id (get-in @games [:games game-id :past-game-infos]))
+    (go (>! (:channel user) (make-past-game-infos-msg 
+                             user game-id (get-in @games [:games game-id :past-game-infos]))))
     ; we auto-start the game here
     (start-game games game-id)))
 
-(defn handle-new-game [{:keys [games] :as game-runner} user {game :game strategies :strategies first-player :first-player}]
+(defn handle-new-game [{:keys [games] :as game-runner} user game strategies first-player]
   "Returns a new game id "
   (let [game-id (new-game games game strategies first-player)]
     (log/debug "Game runner - Handling new game with id" game-id)
-    (notify-new-game user game-id)))
+    (go (>! (:channel user) (make-notify-new-game-msg user game-id)))))
 
-(defn handle-player-move [{:keys [games]} user {:keys [game-id game-infos]}]
+(defn handle-player-move [{:keys [games]} user game-id game-infos]
   (player-move games game-id user (:move game-infos)))
 
-; no need to validate those messages as they should have been validated by the 
-; readers, we could have them create an object which we can just call a method on
-;; (defprotocol GameRunnerMessage
-;;   (handle-message [this]))
-;; (defrecord PlayerMoveMessage)
+; no need to validate those messages as they should have been validated by the readers
+; TODO maybe add "answer here"
+; maybe reorganise this in game-runner/runner+commands
+(defprotocol CommandHandler
+  (handle-command [this game-runner]))
 
-(defmulti handle-message (fn [_ {:keys [type]}] type))
+(defrecord PlayerMoveCommand [user game-id game-infos]
+  CommandHandler
+  (handle-command [this game-runner]
+    (handle-player-move game-runner user game-id game-infos)))
 
-(defmethod handle-message :player-move [game-runner {:keys [user message]}]
-  (handle-player-move game-runner user message))
+(defrecord NewGameCommand [user game strategies first-player]
+  CommandHandler
+  (handle-command [this game-runner]
+    (handle-new-game game-runner user game strategies first-player)))
 
-(defmethod handle-message :new-game [game-runner {:keys [user message]}]
-  (handle-new-game game-runner user message))
+(defrecord JoinGameCommand [user game-id color]
+  CommandHandler
+  (handle-command [this game-runner]
+    (handle-join-game game-runner user game-id color)))
 
-(defmethod handle-message :join-game [game-runner {:keys [user message]}]
-  (handle-join-game game-runner user message))
+(defrecord UserLeaveCommand [user]
+  CommandHandler
+  (handle-command [this game-runner]
+    (leave-all-games (:games game-runner) user)))
 
-(defmethod handle-message :user-leave [game-runner {:keys [user message]}]
-  (leave-all-games (:games game-runner) user))
-
-(defmethod handle-message :default [game-runner data]
-  ; nothing
-  )
-
-(defn start-game-runner [{:keys [gamerunner-ch games] :as game-runner}]
+(defn start-game-runner [{:keys [gamerunner-ch] :as game-runner}]
   (go-loop []
     ; TODO exception handling and scalability here we can let a lot of workers on this
-    (when-let [message (<! gamerunner-ch)]
-      (log/debug "Game runner - Got message from websocket" message)
+    (when-let [command (<! gamerunner-ch)]
+      (log/debug "Game runner - Got command from websocket" command)
       ; TODO this is not allowed to fail
       (try
-        (handle-message game-runner message)
-        (catch Exception e (log/debug e)))
+        (handle-command command game-runner)
+        (catch Exception e (log/error e)))
       (recur)))
   game-runner)
 
@@ -227,15 +226,10 @@
                            (coll? el) el 
                            :else (str el))) @games))
 
-(defrecord GameRunner [gamerunner-ch games]
-  component/Lifecycle
-  (start [component]
-    (start-game-runner component))
-  (stop [component]
-    ; TODO this should not be here
-    (close! gamerunner-ch)
-    (stop-game-runner component)
-    component))
+;(defn routes [games])
 
-(defn new-game-runner []
-  (map->GameRunner {:games (atom {:games {} :user-ids {}})}))
+(defrecord GameRunner [gamerunner-ch games])
+
+(defn game-runner [gamerunner-ch]
+  (map->GameRunner {:gamerunner-ch gamerunner-ch 
+                    :games (atom {:games {} :user-ids {}})}))

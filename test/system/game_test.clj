@@ -5,35 +5,36 @@
              [game :refer [new-pylos-game]]
              [move :refer [move-add]]
              [score :refer [score-middle-blocked]]]
-            [strategy.negamax :refer [negamax]]
-            [system.game
+            [strategy
+             [channel :refer [channel]]
+             [negamax :refer [negamax]]]
+            [server.game-runner
              :refer
              [channel-stats
               join-game
               leave-all-games
               new-game
-              new-game-runner
+              game-runner
               player-move
               start-game
-              stop-game]]
-            [system.strategy.websockets :refer [websockets]]))
+              stop-game]]))
 
 (def test-system 
   )
 
 (defn new-game-runner-test []
-  (let [game-runner      (new-game-runner)
+  (let [game-runner      (game-runner (chan))
         negamax-strategy (negamax score-middle-blocked 2)
         game-id          (new-game (:games game-runner) (new-pylos-game 4)
                                    {:white negamax-strategy :black negamax-strategy} :white)]
     [game-runner game-id]))
 
 (defn new-game-runner-websockets-test []
-  (let [game-runner      (new-game-runner)
+  (let [game-runner      (game-runner (chan))
         negamax-strategy (negamax score-middle-blocked 2)
-        websockets-strategy (websockets)
+        channel-strategy (channel)
         game-id          (new-game (:games game-runner) (new-pylos-game 4)
-                                   {:white websockets-strategy :black negamax-strategy} :white)]
+                                   {:white channel-strategy :black negamax-strategy} :white)]
     [game-runner game-id]))
 
 

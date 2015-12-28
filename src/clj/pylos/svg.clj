@@ -1,10 +1,10 @@
 (ns pylos.svg
-(:require [hiccup
-[core :refer [html]]
-[page :refer [xml-declaration]]]
-[pylos
-[board :refer [cell]]
-[init :refer [create-board visit-board]]]))
+  (:require [hiccup
+             [core :refer [html]]
+             [page :refer [xml-declaration]]]
+            [pylos
+             [board :refer [cell]]
+             [init :refer [create-board visit-board]]]))
 
 (defn print-board
   [board last-move]

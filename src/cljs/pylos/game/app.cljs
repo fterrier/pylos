@@ -41,14 +41,14 @@
 
 (defmulti handle-notif (fn [_ control] (:action control)))
 
-(defmethod handle-notif :join-game [comm-ch control]
-  (put! comm-ch {:action :server/join-game :message control}))
+(defmethod handle-notif :join-game [comm-ch {:keys [game-id color]}]
+  (put! comm-ch {:action :server/join-game :message {:game-id game-id :color color}}))
 
-(defmethod handle-notif :msg/new-game [comm-ch control]
-  (navigate-to-game (:game-id (:message control))))
+(defmethod handle-notif :msg/new-game [comm-ch {:keys [message]}]
+  (navigate-to-game (:game-id message)))
 
-(defmethod handle-notif :chsk/state [comm-ch control]
-  (when (:first-open? (:message control))
+(defmethod handle-notif :chsk/state [comm-ch message]
+  (when (:first-open? message)
     (hook-browser-navigation!)))
 
 (defmethod handle-notif :default [_ control]

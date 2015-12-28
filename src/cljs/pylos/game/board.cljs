@@ -187,13 +187,13 @@
 (defmethod handle-notif :join-game [game comm-ch control]
   (om/transact! game #(join-game % (:game-id control))))
 
-(defmethod handle-notif :msg/game-infos [game comm-ch control]
+(defmethod handle-notif :msg/game-infos [game comm-ch {:keys [message]}]
   ; TODO validate game id
-  (om/transact! game #(append-game-infos % (:game-infos (:message control)))))
+  (om/transact! game #(append-game-infos % (:game-infos message))))
 
-(defmethod handle-notif :msg/past-game-infos [game comm-ch control]
+(defmethod handle-notif :msg/past-game-infos [game comm-ch {:keys [message]}]
   ; TODO validate game id
-  (om/transact! game #(append-past-game-infos % (:past-game-infos (:message control)))))
+  (om/transact! game #(append-past-game-infos % (:past-game-infos message))))
 
 (defmethod handle-notif :default [_ _ _])
 

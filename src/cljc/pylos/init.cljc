@@ -71,10 +71,13 @@
 (defn- calculate-empty-positions [all-positions]
   (filter (fn [[layer _ _]] (= 1 layer)) all-positions))
 
+(defn- ceil [value]
+  #?(:clj (math/ceil value) :cljs (. js/Math ceil value)))
+
 (defn- calculate-middle-positions [positions-right-down size]
   (let [middle-positions (for [layer (range 1 (- size 1))]
                            (let [size-of-layer (- size (- layer 1))
-                                 middle        #?(:clj (math/ceil  (/ size-of-layer 2)) :cljs nil)
+                                 middle        (ceil (/ size-of-layer 2))
                                  one-ball      (= 1 (mod size-of-layer 2))]
                              (if one-ball [[layer middle middle]]
                                (positions-right-down [layer middle middle]))))

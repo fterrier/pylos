@@ -7,8 +7,9 @@
             [pylos
              [game :refer [new-pylos-game]]
              [score :refer [score-middle-blocked]]]
-            [strategy.negamax :refer [negamax]]
-            [system.strategy.websockets :refer [websockets]]))
+            [strategy
+             [channel :refer [channel]]
+             [negamax :refer [negamax]]]))
 
 (deftest game-cancellation-test
   (testing "Can cancel game"
@@ -36,9 +37,9 @@
   (testing "Does not accept stupid moves"
     (let [game       (new-pylos-game 4)
           negamax    (negamax score-middle-blocked 10)
-          websockets (websockets)
-          input-ch   (get-input-channel websockets)
-          result-ch  (play game {:white negamax :black websockets} :black)]
+          channel (channel)
+          input-ch   (get-input-channel channel)
+          result-ch  (play game {:white negamax :black channel} :black)]
       ; we take the first move out of the channel
       (<!! result-ch)
       ; we pass a stupid move to the game
@@ -56,9 +57,9 @@
   (testing "Does not accept move from wrong player"
     (let [game      (new-pylos-game 4)
           negamax   (negamax score-middle-blocked 10)
-          websockets (websockets)
-          input-ch  (get-input-channel websockets)
-          result-ch (play game {:white negamax :black websockets} :black)]
+          channel   (channel)
+          input-ch  (get-input-channel channel)
+          result-ch (play game {:white negamax :black channel} :black)]
       ; we take the first move out of the channel
       (<!! result-ch)
       ; we pass a move from the wrong player to the game
