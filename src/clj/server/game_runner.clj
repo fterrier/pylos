@@ -10,7 +10,9 @@
             [game
              [board :refer [serialize-board]]
              [play :refer [play]]
-             [strategy :refer [get-input-channel]]]))
+             [strategy :refer [get-input-channel]]]
+            [ring.middleware.json :refer [wrap-json-response]]
+            [compojure.core :refer [GET]]))
 
 ; private output stuff
 (defn get-game-infos [{{:keys [board player outcome]} :game-position, move :last-move, additional-infos :additional-infos, time :time}]
@@ -226,10 +228,12 @@
                            (coll? el) el 
                            :else (str el))) @games))
 
-;(defn routes [games])
+(defn get-routes [game-runner]
+  (-> (GET "/inspect" [request] {:body (channel-stats game-runner)})
+      wrap-json-response))
 
 (defrecord GameRunner [gamerunner-ch games])
 
 (defn game-runner [gamerunner-ch]
-  (map->GameRunner {:gamerunner-ch gamerunner-ch 
+  (map->GameRunner {:gamerunner-ch gamerunner-ch
                     :games (atom {:games {} :user-ids {}})}))

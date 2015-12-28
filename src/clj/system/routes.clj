@@ -7,13 +7,11 @@
 (defrecord Routes [game-runner websockets-handler telegram-handler]
   component/Lifecycle
   (start [component]
-    (log/info "Starting Routes with routes" 
-              (:routes websockets-handler)
-              (:routes telegram-handler)
-              view-routes)
+    (log/info "Starting Routes with routes" )
     (assoc component :routes (routes 
                               (:routes websockets-handler) 
                               (:routes telegram-handler)
+                              (:routes game-runner)
                               view-routes)))
   (stop [component] component))
 

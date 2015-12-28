@@ -1,28 +1,26 @@
 (ns server.handlers.websockets
-(:require [clojure.core.async :refer [<! >! chan close! go go-loop]]
-[clojure.tools.logging :as log]
-[compojure.core :refer [GET POST routes]]
-[game.game :refer [other-color]]
-[pylos
-[game :refer [new-pylos-game]]
-[score :refer [score-middle-blocked]]]
-[ring.middleware
-[keyword-params :refer [wrap-keyword-params]]
-[params :refer [wrap-params]]]
-[server.game-runner
- :refer
- [->JoinGameCommand
-  ->NewGameCommand
-  ->PlayerMoveCommand
-  ->UserLeaveCommand]]
-[server.handlers.handler :refer [Handler]]
-[strategy
-[channel :refer [channel]]
-[negamax :refer [negamax]]]
-[taoensso.sente :refer [make-channel-socket! start-chsk-router!]]
-[taoensso.sente.server-adapters.http-kit
- :refer
- [sente-web-server-adapter]]))
+  (:require [clojure.core.async :refer [<! >! chan close! go go-loop]]
+            [clojure.tools.logging :as log]
+            [compojure.core :refer [GET POST routes]]
+            [game.game :refer [other-color]]
+            [pylos
+             [game :refer [new-pylos-game]]
+             [score :refer [score-middle-blocked]]]
+            [ring.middleware
+             [keyword-params :refer [wrap-keyword-params]]
+             [params :refer [wrap-params]]]
+            [server.handlers.handler :refer [Handler]]
+            [strategy
+             [channel :refer [channel]]
+             [negamax :refer [negamax]]]
+            [server.game-runner
+             :refer
+             [->JoinGameCommand ->NewGameCommand
+              ->PlayerMoveCommand ->UserLeaveCommand]]
+            [taoensso.sente :refer [make-channel-socket! start-chsk-router!]]
+            [taoensso.sente.server-adapters.http-kit
+             :refer
+             [sente-web-server-adapter]]))
 
 (defn- get-user [uid send-fn user-ch]
   {:id uid :channel user-ch :send-message #(send-fn uid %)})
@@ -36,7 +34,7 @@
   (->PlayerMoveCommand user game-id game-infos))
 
 ; TODO parse this and unhardcode
-; TODO make util
+; TODO make util in handler.clj
 (defmethod parse-message :server/new-game [id user _]
   (let [channel-color :white
         negamax-depth 5

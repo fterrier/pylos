@@ -19,9 +19,6 @@
               start-game
               stop-game]]))
 
-(def test-system 
-  )
-
 (defn new-game-runner-test []
   (let [game-runner      (game-runner (chan))
         negamax-strategy (negamax score-middle-blocked 2)

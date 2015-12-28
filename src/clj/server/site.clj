@@ -1,12 +1,11 @@
 (ns server.site
-(:require [compojure
-[core :as comp :refer [GET POST routes]]
-[route :as route]]
-[component.compojure :as ccompojure]
-[game.view :refer [include-javascript]]
-[hiccup.page :refer [html5 include-css]]
-[ring.middleware.json :refer [wrap-json-body wrap-json-response]]
-[server.game-runner :refer [channel-stats]]))
+  (:require [compojure
+             [core :as comp :refer [GET POST routes]]
+             [route :as route]]
+            [component.compojure :as ccompojure]
+            [game.view :refer [include-javascript]]
+            [hiccup.page :refer [html5 include-css]]
+            [ring.middleware.json :refer [wrap-json-body wrap-json-response]]))
 
 (defn- content-page [content]
   (let [description ""
@@ -40,9 +39,6 @@
 
 (def view-routes
   (routes
-   ;; (GET "/inspect"   [:as request
-   ;;                    :as {{:keys [game-runner]} :system-deps}]
-   ;;      {:body (channel-stats game-runner)})
    (GET "/"      [] (index-page))
    (route/resources "/")
    (route/not-found "<h1>Page not found</h1>")))
