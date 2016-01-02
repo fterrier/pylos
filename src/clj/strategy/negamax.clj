@@ -1,9 +1,9 @@
 (ns strategy.negamax
-  (:require [clojure.core.async :refer [go]]
-            [game.game :refer [make-move generate-moves]]
-            [game.strategy :refer [Strategy choose-next-move]]
-            ; TODO get rid of this
-            [pylos.board :refer :all]))
+(:require [clojure.core.async :refer [go]]
+[game
+[game :refer [generate-moves make-move]]
+[strategy :refer [choose-next-move Strategy]]]
+[pylos.board :refer :all]))
 
 (def negamax-table (atom {}))
 

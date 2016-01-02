@@ -15,12 +15,13 @@
             [compojure.core :refer [GET]]))
 
 ; private output stuff
-(defn get-game-infos [{{:keys [board player outcome]} :game-position, move :last-move, additional-infos :additional-infos, time :time}]
-  {:board            board
-   :next-player      player
-   :move             move
-   :time             time
-   :additional-infos additional-infos})
+(defn get-game-infos [{{:keys [board player outcome intermediate-board]} :game-position, move :last-move, additional-infos :additional-infos, time :time}]
+  {:board              board
+   :intermediate-board intermediate-board
+   :player             player
+   :move               move
+   :time               time
+   :additional-infos   additional-infos})
 
 ;; (defprotocol User
 ;;   (id [this] "Get this user's uid")
@@ -37,7 +38,6 @@
 
 (defn make-notify-end-game-msg [user game-id]
   {:type :msg/end-game :user user :game-id game-id})
-
  
 (defn register-for-game-output [user game-id output-ch]
   (log/debug "Game output - Registering for game output" user)
@@ -119,8 +119,8 @@
       (swap! games assoc-in [:games game-id :started] true)
       (play (:game game) (:strategies game) (:first-player game) (:result-ch game)))))
 
-(defn player-move [games game-id user move]
-  (log/debug "Game Runner - Handling player move" game-id user move)
+(defn player-move [games game-id user input]
+  (log/debug "Game Runner - Handling player move" game-id user input)
   (let [game   (get-in @games [:games game-id])
         player (get-in game [:joined-user-ids (:id user) :color])]
     (if (or (nil? game) (nil? player))
@@ -132,8 +132,8 @@
         (if (nil? game-ch)
           (log/debug "Game Runner - No game input channel found for this player" game-id player)
           (do 
-            (log/debug "Game runner - Sending move to game channel" move)
-            (go (>! game-ch {:next-move move}))))))))
+            (log/debug "Game runner - Sending move to game channel" input)
+            (go (>! game-ch input))))))))
 
 (defn leave-all-games [games user]
   "Frees resources associated to that game and player and stops notifying that
@@ -177,8 +177,8 @@
     (log/debug "Game runner - Handling new game with id" game-id)
     (go (>! (:channel user) (make-notify-new-game-msg user game-id)))))
 
-(defn handle-player-move [{:keys [games]} user game-id game-infos]
-  (player-move games game-id user (:move game-infos)))
+(defn handle-player-move [{:keys [games]} user game-id input]
+  (player-move games game-id user input))
 
 ; no need to validate those messages as they should have been validated by the readers
 ; TODO maybe add "answer here"
@@ -186,10 +186,10 @@
 (defprotocol CommandHandler
   (handle-command [this game-runner]))
 
-(defrecord PlayerMoveCommand [user game-id game-infos]
+(defrecord PlayerMoveCommand [user game-id input]
   CommandHandler
   (handle-command [this game-runner]
-    (handle-player-move game-runner user game-id game-infos)))
+    (handle-player-move game-runner user game-id input)))
 
 (defrecord NewGameCommand [user game strategies first-player]
   CommandHandler

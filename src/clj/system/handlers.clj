@@ -12,7 +12,8 @@
     (let [handler (start-handler handler gamerunner-ch)]
       (assoc component :handler handler :routes (get-routes handler))))
   (stop [component] 
-    (assoc component :handler (stop-handler handler))))
+    (when handler
+      (assoc component :handler (stop-handler handler)))))
 
 (defn new-handler [handler]
   (map->HandlerComponent {:handler handler}))

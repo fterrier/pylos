@@ -14,24 +14,25 @@
             [ring.middleware.json :refer [wrap-json-response]]
             [ring.middleware.json :refer [wrap-json-body]]
             [compojure.core :refer [POST]]
-            [server.handlers.handler :refer [Handler]]
-            [server.handlers.handler :refer [start-event-handler]]
-            [server.handlers.handler :refer [parse-new-game-data]]))
+            [server.handlers.handler :refer [Handler start-event-handler]]
+            [pylos.move :refer [generate-all-moves]]
+            [pylos.strategy.encoded :refer [encoded]]
+            [server.game-runner :refer [->PlayerMoveCommand]]))
 
 (defn create-image [board]
   (let [png-trans (org.apache.batik.transcoder.image.PNGTranscoder.)
         reader    (java.io.StringReader. (print-board board nil))
-        input (org.apache.batik.transcoder.TranscoderInput. reader)
-        is (java.io.PipedInputStream.)
-        os (java.io.PipedOutputStream. is)
-        output (org.apache.batik.transcoder.TranscoderOutput. os)]
+        input     (org.apache.batik.transcoder.TranscoderInput. reader)
+        is        (java.io.PipedInputStream.)
+        os        (java.io.PipedOutputStream. is)
+        output    (org.apache.batik.transcoder.TranscoderOutput. os)]
     (thread (. png-trans transcode input output)
             (. os close))
     is))
 
-(defn- send-to-telegram [bot-id command options]
+;; START TELEGRAM CLIENT
+(defn- send-telegram [bot-id command options]
   (let [url (str "https://api.telegram.org/bot" bot-id "/" command)]
-    (println "Telegram, sending")
     (log/debug "Telegram - Sending message" url options)
     (http/get url options 
               (fn [{:keys [status headers body error]}]
@@ -39,36 +40,74 @@
                   (log/error "Telegram - Failed, exception is " error)
                   (log/debug "Telegram - Async HTTP GET: " status body))))))
 
-(defn- send-message-to-telegram [bot-id chat-id text message-id]
-  (send-to-telegram bot-id "sendMessage" {:query-params {:chat_id chat-id :text text :reply_to_message_id message-id}}))
 
-(defn send-board-to-telegram [bot-id chat-id board message-id]
-  (send-to-telegram bot-id "sendPhoto"
+(defmulti send-to-telegram (fn [_ {:keys [type]}] type))
+
+(defmethod send-to-telegram :message [bot-id {:keys [chat-id text message-id]}]
+  (send-telegram bot-id "sendMessage" {:query-params {:chat_id chat-id :text text :reply_to_message_id message-id}}))
+
+(defmethod send-to-telegram :photo [bot-id {:keys [chat-id board message-id]}]
+  (send-telegram bot-id "sendPhoto"
                     {:query-params 
                      {:chat_id chat-id :reply_to_message_id message-id} 
                      :multipart 
                      [{:name "photo" 
                        :content (create-image board) 
                        :filename "board.png"}]}))
+;; END OF TELEGRAM CLIENT
 
-(defn send-message [bot-id uid message-id]
-  (fn [[type message]]
-    (send-to-telegram bot-id uid (str message) nil)))
+;; MESSAGE PARSER FROM TELEGRAM
+(defn- parse-new-game-data [args]
+  [(new-pylos-game 4) {:white (encoded) :black (negamax score-middle-blocked 5)} :white])
 
-(defmulti parse-message (fn [[command & args] user data] command))
+(defn- format-possible-moves [possible-moves]
 
-(defmethod parse-message "/new" [_ user data]
-  (let [[game strategies first-player] (parse-new-game-data data)]
-    (->NewGameCommand user game strategies first-player)))
+)
 
-(defmethod parse-message "/join" [[_ game-id & args] user data]
-  (->JoinGameCommand user game-id :none))
+(defmulti parse-telegram-message (fn [[command & args] user message-id] command))
+(defmulti handle-gamerunner-message (fn [{:keys [type]}] type))
 
-(defmethod parse-message :default [_ user data]
-  (log/debug "unrecognised message" data))
+(defmethod parse-telegram-message "/new" [[_ & args] user message-id]
+  (let [[game strategies first-player] (parse-new-game-data args)]
+    [[:gamerunner (->NewGameCommand user game strategies first-player)]]))
+
+(defmethod parse-telegram-message "/join" [[_ game-id & args] user message-id]
+  [[:gamerunner (->JoinGameCommand user game-id :none)]])
+
+(defmethod parse-telegram-message "/play" [[_ game-id position] user message-id]
+  [[:gamerunner (->PlayerMoveCommand user game-id position)]])
+
+(defmethod parse-telegram-message :default [data user message-id]
+  [[:telegram {:type :message 
+                :chat-id (:id user) 
+                :text "Sorry, did not get that"
+                :message-id message-id}]])
+;; END OF MESSAGE PARSER
+
+(defmethod handle-gamerunner-message :msg/new-game [{:keys [user game-id]}]
+  [[:gamerunner (->JoinGameCommand user game-id :white)]])
+
+(defmethod handle-gamerunner-message :msg/game-infos [{:keys [type user game-id game-infos]}]
+  [[:telegram {:type :photo :chat-id (:id user) :board 
+               (if (:intermediate-board game-infos)
+                 (:intermediate-board game-infos)
+                 (:board game-infos))}]
+   ;; (let [possible-moves (generate-all-moves game-infos)]
+   ;;   [:telegram {:type :message :chat-id (:id user) :text (pr-str possible-moves)}])
+   ])
+
+(defmethod handle-gamerunner-message :default [message]
+  (log/debug "Unrecognized message to forward" message)
+  [])
 
 (defn- get-user [chat-id user-ch]
   {:id chat-id :channel user-ch})
+
+(defn- forward-messages [messages gamerunner-ch bot-id] 
+  (doseq [[dest message] messages]
+    (case dest
+      :telegram (send-to-telegram bot-id message)
+      :gamerunner (go (>! gamerunner-ch message)))))
 
 ; TODO maybe write a handler protocol so that we can 
 ; reuse this particular method and retrieve-message
@@ -76,23 +115,15 @@
   (fn [{:as ev-msg :keys [body]}]
     (log/debug "Got message from telegram client" body)
     (let [{{:keys [text chat message_id]} :message} body
-          chat-id (:id chat)
-          message (parse-message (remove clojure.string/blank? (clojure.string/split text #" ")) (get-user chat-id user-ch) nil)] 
-      (if message (go (>! gamerunner-ch message))
-          (send-to-telegram bot-id chat-id "sorry did not get that" message_id)))))
+          messages (parse-telegram-message (remove clojure.string/blank? 
+                                         (clojure.string/split text #" ")) 
+                                 (get-user (:id chat) user-ch) message_id)] 
+      (forward-messages messages gamerunner-ch bot-id))))
 
-(defmulti forward-message (fn [{:keys [type]} _] type))
-
-(defmethod forward-message :msg/game-infos [{:keys [type user game-id game-infos]} bot-id]
-  ; TODO this create-board should not be here
-  (send-board-to-telegram bot-id (:id user) (pylos.init/create-board (:board game-infos)) nil))
-
-(defmethod forward-message :default [message _]
-  (log/debug "unrecognized message to forward" message))
-
-(defn- gamerunner-msg-handler* [bot-id]
+(defn- gamerunner-msg-handler* [bot-id gamerunner-ch]
   (fn [message]
-    (forward-message message bot-id)))
+    (let [messages (handle-gamerunner-message message)]
+      (forward-messages messages gamerunner-ch bot-id))))
 
 (defn- app-routes [event-msg-handler]
   (-> (POST "/telegram" request (event-msg-handler request) {:body "ok"})
@@ -102,7 +133,8 @@
 (defrecord TelegramHandler [bot-id]
   Handler
   (start-handler [handler gamerunner-ch]
-    (let [user-ch           (start-event-handler (gamerunner-msg-handler* bot-id))
+    (let [user-ch           (start-event-handler 
+                             (gamerunner-msg-handler* bot-id gamerunner-ch))
           event-msg-handler (event-msg-handler* bot-id gamerunner-ch user-ch)
           routes            (app-routes event-msg-handler)]
       (assoc handler :routes routes :user-ch user-ch)))

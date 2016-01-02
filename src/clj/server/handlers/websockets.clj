@@ -25,23 +25,33 @@
             [taoensso.sente.server-adapters.http-kit
              :refer
              [sente-web-server-adapter]]
-            [server.handlers.handler :refer [start-event-handler]]
-            [server.handlers.handler :refer [parse-new-game-data]]))
+            [server.handlers.handler :refer [start-event-handler]]))
 
-(defn send-infos [handler uid infos]
+(defn send-infos [{:keys [handler]} uid infos]
   (log/debug "Websockets - Sending" uid infos)
   ((:chsk-send! handler) uid infos))
 
 (defn- get-user [uid send-fn user-ch]
   {:id uid :channel user-ch :send-message #(send-fn uid %)})
 
+(defn- parse-strategy [{:keys [strategy options]}]
+  (case strategy
+    :channel (channel)
+    :negamax (negamax score-middle-blocked (:depth options))))
+
+(defn- parse-new-game-data [{:keys [first-player white black]}]
+  (let [game          (new-pylos-game 4)
+        strategies    {:white (parse-strategy white)
+                       :black (parse-strategy black)}]
+       [game strategies first-player]))
+
 ; TODO maybe define a protocol to 
 ; 1. parse 2. validate 3. transform
 ; those messages
 (defmulti parse-message (fn [id _ _] id))
 
-(defmethod parse-message :server/player-move [_ user {:keys [game-id game-infos]}]
-  (->PlayerMoveCommand user game-id game-infos))
+(defmethod parse-message :server/player-move [_ user {:keys [game-id input]}]
+  (->PlayerMoveCommand user game-id input))
 
 (defmethod parse-message :server/new-game [_ user data]
   (let [[game strategies first-player] (parse-new-game-data data)]
@@ -56,7 +66,9 @@
 (defmethod parse-message :default [_ _ _])
 
 (defn- serialize-game-infos [game-infos]
-  (assoc game-infos :board (serialize-board (:board game-infos))))
+  (-> game-infos 
+      (assoc :board (serialize-board (:board game-infos)))
+      (dissoc :intermediate-board)))
 
 (defn- format-message-for-client [{:keys [type] :as message}]
   (let [data (dissoc message :type :user)]

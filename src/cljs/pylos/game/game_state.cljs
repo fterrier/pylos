@@ -50,7 +50,9 @@
 
 ; change state
 (defn append-game-infos [game game-infos]
+
   (let [game-infos-with-meta (game-infos-with-meta game-infos)]
+    (println "Appending game infos with meta" game-infos-with-meta)
     (-> game 
         (assoc :current-move {:selections [] :playable-move nil :must-play-move false})
         (update :game-infos conj game-infos-with-meta))))

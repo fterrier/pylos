@@ -134,7 +134,7 @@
           (let [all-game-infos  (om/observe owner (game-infos (game)))
                 current-index   (om/observe owner (current-index (game)))
                 game-infos      (current-game-infos (game) current-index)
-                next-player     (:next-player game-infos)
+                next-player     (:player game-infos)
                 balls-remaining (:balls-remaining game-infos)
                 board           (:board game-infos)
                 layered-board   (visit-board board (fn [_ position] position))]
@@ -163,7 +163,7 @@
 (defn- play-move [game-id board move comm-ch]
   ; TODO check if we have to send the board size here as well
   ; TODO send player color as well here
-  (put! comm-ch {:action :server/player-move :message {:game-id game-id :game-infos {:board board :move move}}}))
+  (put! comm-ch {:action :server/player-move :message {:game-id game-id :input {:next-move move}}}))
 
 (defn- play-move-when-must-play [{:keys [current-move] :as game} comm-ch]
   (let [{:keys [must-play-move playable-move]} current-move

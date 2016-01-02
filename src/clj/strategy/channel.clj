@@ -4,7 +4,8 @@
 
 (defrecord ChannelStrategy [game-ch]
   Strategy
-  (choose-next-move [this game-position] game-ch)
+  (choose-next-move [this game-position] 
+    (println "PROUTasd") game-ch)
   (get-input-channel [this] game-ch))
 
 (defn channel []
