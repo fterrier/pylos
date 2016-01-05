@@ -36,8 +36,7 @@
               {:next-game-position 
                (assoc game-position 
                       :selected-positions new-selected-positions
-                      :intermediate-board (:intermediate-board new-move)
-)})))))))
+                      :intermediate-board (:intermediate-board new-move))})))))))
 
 (defrecord EncodedStrategy [game-ch]
   Strategy
@@ -45,7 +44,7 @@
     (choose-move-with-context game-ch game-position))
   (get-input-channel [this] game-ch))
 
-;; (send-user-input [this input result-ch])
+;; (send-user-input [this input])
 ;; (notify-end-game [this)
 
 (defn encoded []

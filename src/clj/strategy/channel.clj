@@ -1,12 +1,14 @@
 (ns strategy.channel
-  (:require [game.strategy :refer [Strategy]]
-            [clojure.core.async :as async :refer [<! go chan sub]]))
+  (:require clojure.core
+            [clojure.core.async :as async :refer [chan close!]]
+            [game.strategy :refer [Strategy]]))
 
 (defrecord ChannelStrategy [game-ch]
   Strategy
   (choose-next-move [this game-position] 
-    (println "PROUTasd") game-ch)
-  (get-input-channel [this] game-ch))
+    game-ch)
+  (get-input-channel [this] game-ch)
+  (notify-end-game [this] (close! game-ch)))
 
 (defn channel []
   (->ChannelStrategy (chan)))

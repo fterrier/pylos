@@ -115,30 +115,29 @@
   (let [game (get-in @games [:games game-id])]
     (when (and (not (nil? game))
                (not (:started game)))
-      (log/debug "Game Runner - Starting game" game-id)
+      (log/debug "Starting game" game-id)
       (swap! games assoc-in [:games game-id :started] true)
       (play (:game game) (:strategies game) (:first-player game) (:result-ch game)))))
 
 (defn player-move [games game-id user input]
-  (log/debug "Game Runner - Handling player move" game-id user input)
+  (log/debug "Handling player move" game-id user input)
   (let [game   (get-in @games [:games game-id])
         player (get-in game [:joined-user-ids (:id user) :color])]
     (if (or (nil? game) (nil? player))
       ; TODO handle game channel not found - retrieve game from persistence layer ?
-      (log/debug "Game runner - Game or player not found" game-id user)
+      (log/debug "Game or player not found" game-id user)
       (let [strategy (get-in game [:strategies player])
             game-ch  (get-input-channel strategy)]
-        (log/debug "Game Runner - " game-ch strategy)
         (if (nil? game-ch)
-          (log/debug "Game Runner - No game input channel found for this player" game-id player)
+          (log/debug "No game input channel found for this player" game-id player)
           (do 
-            (log/debug "Game runner - Sending move to game channel" input)
+            (log/debug "Sending move to game channel" input)
             (go (>! game-ch input))))))))
 
 (defn leave-all-games [games user]
   "Frees resources associated to that game and player and stops notifying that
   player of moves for that game."
-  (log/debug "Game Runner - Handling leaving client" user)
+  (log/debug "Handling leaving client" user)
   (let [games-for-user (get-in @games [:user-ids (:id user)])]
     (doseq [[game-id channels] games-for-user]
       (when-let [result-mult-ch (get-in @games [:games game-id :result-mult-ch])]
@@ -154,7 +153,7 @@
     (if (and game (not (contains? (:joined-user-ids game) (:id user))))
       (let [output-ch (chan)]
         (tap (:result-mult-ch game) output-ch)
-        (log/debug "Game Runner - Joining game" game-id)
+        (log/debug "Joining game" game-id)
         (swap! games add-user-to-game (:id user) game-id color {:output-ch output-ch})
         output-ch)
       (get-in @games [:user-ids (:id user) game-id :output-ch]))))
@@ -174,7 +173,7 @@
 (defn handle-new-game [{:keys [games] :as game-runner} user game strategies first-player]
   "Returns a new game id "
   (let [game-id (new-game games game strategies first-player)]
-    (log/debug "Game runner - Handling new game with id" game-id)
+    (log/debug "Handling new game with id" game-id)
     (go (>! (:channel user) (make-notify-new-game-msg user game-id)))))
 
 (defn handle-player-move [{:keys [games]} user game-id input]

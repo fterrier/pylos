@@ -3,7 +3,8 @@
             [clojure.tools.logging :as log]
             [game
              [game :refer [initial-game-position make-move move-allowed?]]
-             [strategy :refer [choose-next-move get-input-channel]]]))
+             [strategy :refer [choose-next-move get-input-channel]]]
+            [game.strategy :refer [notify-end-game]]))
 
 (defn- wait-for-valid-move [game-position strategy result-ch color]
   {:pre [(not (or (nil? game-position) 
@@ -42,9 +43,7 @@
 (defn- end-game [result-ch strategies]
   (close! result-ch)
   (doseq [[_ strategy] strategies]
-    (when-let [channel (get-input-channel strategy)]
-      (log/debug "Closing input channel for strategy" strategy channel)
-      (close! channel))))
+    (notify-end-game strategy)))
 
 (defn play-game
   ([game strategies]
