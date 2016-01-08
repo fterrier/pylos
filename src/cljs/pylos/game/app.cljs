@@ -45,7 +45,8 @@
   (put! comm-ch {:action :server/join-game :message {:game-id game-id :color color}}))
 
 (defmethod handle-notif :msg/new-game [comm-ch {:keys [message]}]
-  (navigate-to-game (:game-id message)))
+  (navigate-to-game (:game-id message))
+  (put! comm-ch {:action :server/start-game :message {:game-id (:game-id message)}}))
 
 (defmethod handle-notif :chsk/state [comm-ch {:keys [message]}]
   (when (:first-open? message)

@@ -1,13 +1,9 @@
 (ns server.handlers.websockets
-  (:require [clojure.core.async :refer [>! chan close! go]]
+  (:require [clojure.core.async :refer [>! close! go]]
             [clojure.tools.logging :as log]
             [compojure.core :refer [GET POST routes]]
-            [game
-             [board :refer [serialize-board]]
-             [game :refer [other-color]]]
-            [pylos
-             [game :refer [new-pylos-game]]
-             [score :refer [score-middle-blocked]]]
+            [game.board :refer [serialize-board]]
+            [pylos.game :refer [new-pylos-game]]
             [ring.middleware
              [keyword-params :refer [wrap-keyword-params]]
              [params :refer [wrap-params]]]
@@ -16,16 +12,13 @@
              [->JoinGameCommand
               ->NewGameCommand
               ->PlayerMoveCommand
+              ->StartGameCommand
               ->UserLeaveCommand]]
-            [server.handlers.handler :refer [Handler]]
-            [strategy
-             [channel :refer [channel]]
-             [negamax :refer [negamax]]]
+            [server.handlers.handler :refer [Handler start-event-handler]]
             [taoensso.sente :refer [make-channel-socket! start-chsk-router!]]
             [taoensso.sente.server-adapters.http-kit
              :refer
-             [sente-web-server-adapter]]
-            [server.handlers.handler :refer [start-event-handler]]))
+             [sente-web-server-adapter]]))
 
 (defn send-infos [{:keys [handler]} uid infos]
   (log/debug "Websockets - Sending" uid infos)
@@ -34,16 +27,14 @@
 (defn- get-user [uid send-fn user-ch]
   {:id uid :channel user-ch :send-message #(send-fn uid %)})
 
-(defn- parse-strategy [{:keys [strategy options]}]
-  (case strategy
-    :channel (channel)
-    :negamax (negamax score-middle-blocked (:depth options))))
+;; (defn- parse-strategy [{:keys [strategy options]}]
+;;   (case strategy
+;;     :channel (channel)
+;;     :negamax (negamax score-middle-blocked (:depth options))))
 
 (defn- parse-new-game-data [{:keys [first-player white black]}]
-  (let [game          (new-pylos-game 4)
-        strategies    {:white (parse-strategy white)
-                       :black (parse-strategy black)}]
-       [game strategies first-player]))
+  (let [game (new-pylos-game 4)]
+    [game first-player]))
 
 ; TODO maybe define a protocol to 
 ; 1. parse 2. validate 3. transform
@@ -54,11 +45,16 @@
   (->PlayerMoveCommand user game-id input))
 
 (defmethod parse-message :server/new-game [_ user data]
-  (let [[game strategies first-player] (parse-new-game-data data)]
-    (->NewGameCommand user game strategies first-player)))
+  (let [[game first-player] (parse-new-game-data data)]
+    (->NewGameCommand user game first-player)))
 
 (defmethod parse-message :server/join-game [_ user {:keys [game-id color]}]
-  (->JoinGameCommand user game-id color))
+  ;; TODO here we should leave all other games of that player
+  ;; or the client should check for the right game id and unsubscribe
+  (->JoinGameCommand user game-id color :channel))
+
+(defmethod parse-message :server/start-game [_ user {:keys [game-id]}]
+  (->StartGameCommand game-id))
 
 (defmethod parse-message :chsk/uidport-close [_ user data]
   (->UserLeaveCommand user))
@@ -84,7 +80,7 @@
     (let [message (parse-message id (get-user uid send-fn user-ch) ?data)] 
       (when message (go (>! gamerunner-ch message))))))
 
-(defn- gamerunner-msg-handle [{:keys [user] :as message}]
+(defn- gamerunner-msg-handle [{:keys [user type] :as message}]
   ((:send-message user) (format-message-for-client message)))
 
 (defn- app-routes [ring-ajax-post ring-ajax-get-or-ws-handshake]

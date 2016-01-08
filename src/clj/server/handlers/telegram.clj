@@ -1,23 +1,19 @@
 (ns server.handlers.telegram
-  (:require [com.stuartsierra.component :as component]
-            [game.game :refer [other-color]]
+  (:require [clojure.core.async :refer [>! close! go thread]]
+            [clojure.tools.logging :as log]
+            [compojure.core :refer [POST]]
             [org.httpkit.client :as http]
             [pylos
              [game :refer [new-pylos-game]]
-             [score :refer [score-middle-blocked]]
              [svg :refer [print-board]]]
-            [strategy.negamax :refer [negamax]]
-            [strategy.channel :refer [channel]]
-            [clojure.tools.logging :as log]
-            [server.game-runner :refer [->NewGameCommand ->JoinGameCommand]]
-            [clojure.core.async :refer [go-loop chan close! <! >! go thread]]
-            [ring.middleware.json :refer [wrap-json-response]]
-            [ring.middleware.json :refer [wrap-json-body]]
-            [compojure.core :refer [POST]]
-            [server.handlers.handler :refer [Handler start-event-handler]]
-            [pylos.move :refer [generate-all-moves]]
-            [pylos.strategy.encoded :refer [encoded]]
-            [server.game-runner :refer [->PlayerMoveCommand]]))
+            [ring.middleware.json :refer [wrap-json-body wrap-json-response]]
+            [server.game-runner
+             :refer
+             [->JoinGameCommand
+              ->NewGameCommand
+              ->PlayerMoveCommand
+              ->StartGameCommand]]
+            [server.handlers.handler :refer [Handler start-event-handler]]))
 
 (defn create-image [board]
   (let [png-trans (org.apache.batik.transcoder.image.PNGTranscoder.)
@@ -58,34 +54,53 @@
 
 ;; MESSAGE PARSER FROM TELEGRAM
 (defn- parse-new-game-data [args]
-  [(new-pylos-game 4) {:white (encoded) :black (negamax score-middle-blocked 5)} :white])
+  [(new-pylos-game 4) :white])
 
 (defn- format-possible-moves [possible-moves]
 
 )
 
-(defmulti parse-telegram-message (fn [[command & args] user message-id] command))
+(defmulti parse-telegram-message (fn [[command & args] users message-id] command))
 (defmulti handle-gamerunner-message (fn [{:keys [type]}] type))
 
-(defmethod parse-telegram-message "/new" [[_ & args] user message-id]
-  (let [[game strategies first-player] (parse-new-game-data args)]
-    [[:gamerunner (->NewGameCommand user game strategies first-player)]]))
+(defmethod parse-telegram-message "/new" [[_ & args] users message-id]
+  (if-let [[game first-player] (parse-new-game-data args)]
+    [[:gamerunner (->NewGameCommand (:chat users) game first-player)]]
+    ;; TODO didn't understand
+    []))
 
-(defmethod parse-telegram-message "/join" [[_ game-id & args] user message-id]
-  [[:gamerunner (->JoinGameCommand user game-id :none)]])
+(defmethod parse-telegram-message "/start" [[_ game-id & args] user message-id]
+  [[:gamerunner (->StartGameCommand game-id)]])
 
-(defmethod parse-telegram-message "/play" [[_ game-id position] user message-id]
-  [[:gamerunner (->PlayerMoveCommand user game-id position)]])
+;; TODO split register for output from join
+(defmethod parse-telegram-message "/join" [[_ game-id color-text & args] users message-id]
+  (if-let [color (case color-text
+                   "white" :white 
+                   "w" :white 
+                   "black" :black 
+                   "b" :black 
+                   nil)]
+    [[:gamerunner (->JoinGameCommand (:chat users) game-id color :encoded)]]
+    []))
 
-(defmethod parse-telegram-message :default [data user message-id]
+(defmethod parse-telegram-message "/play" [[_ game-id position] users message-id]
+  [[:gamerunner (->PlayerMoveCommand (:user users) game-id position)]])
+
+(defmethod parse-telegram-message :default [data users message-id]
   [[:telegram {:type :message 
-                :chat-id (:id user) 
-                :text "Sorry, did not get that"
-                :message-id message-id}]])
+               :chat-id (:id (:chat users))
+               :text "Sorry, did not get that"
+               :message-id message-id}]])
 ;; END OF MESSAGE PARSER
 
 (defmethod handle-gamerunner-message :msg/new-game [{:keys [user game-id]}]
-  [[:gamerunner (->JoinGameCommand user game-id :white)]])
+  ;; TODO reply message 
+  [[:telegram {:type :message
+               :chat-id (:id user)
+               :text game-id}]]
+  ;; [[:gamerunner (->JoinGameCommand user game-id :white :encoded)]
+  ;;  [:gamerunner (->StartGameCommand game-id)]]
+  )
 
 (defmethod handle-gamerunner-message :msg/game-infos [{:keys [type user game-id game-infos]}]
   [[:telegram {:type :photo :chat-id (:id user) :board 
@@ -100,8 +115,9 @@
   (log/debug "Unrecognized message to forward" message)
   [])
 
-(defn- get-user [chat-id user-ch]
-  {:id chat-id :channel user-ch})
+(defn- get-users [user-id chat-id user-ch]
+  {:chat {:id chat-id :channel user-ch}
+   :user {:id user-id :channel user-ch}})
 
 (defn- forward-messages [messages gamerunner-ch bot-id] 
   (doseq [[dest message] messages]
@@ -109,15 +125,15 @@
       :telegram (send-to-telegram bot-id message)
       :gamerunner (go (>! gamerunner-ch message)))))
 
-; TODO maybe write a handler protocol so that we can 
-; reuse this particular method and retrieve-message
+;; TODO maybe write a handler protocol so that we can 
+;; reuse this particular method and retrieve-message
 (defn- event-msg-handler* [bot-id gamerunner-ch user-ch]
   (fn [{:as ev-msg :keys [body]}]
     (log/debug "Got message from telegram client" body)
-    (let [{{:keys [text chat message_id]} :message} body
+    (let [{{:keys [text chat message_id from]} :message} body
           messages (parse-telegram-message (remove clojure.string/blank? 
                                          (clojure.string/split text #" ")) 
-                                 (get-user (:id chat) user-ch) message_id)] 
+                                 (get-users (:id from) (:id chat) user-ch) message_id)] 
       (forward-messages messages gamerunner-ch bot-id))))
 
 (defn- gamerunner-msg-handler* [bot-id gamerunner-ch]
