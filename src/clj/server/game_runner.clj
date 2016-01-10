@@ -27,29 +27,29 @@
 
 ;; (defprotocol User
 ;;   (id [this] "Get this user's uid")
-;;   (channel [this] "Get a way to communicate to this user"))
+; [this] "Get a way to communicate to this user"))
 
-(defn make-game-infos-msg [user game-id game-infos]
-  {:type :msg/game-infos :user user :game-id game-id :game-infos (get-game-infos game-infos)})
+(defn make-game-infos-msg [client game-id game-infos]
+  {:type :msg/game-infos :client client :game-id game-id :game-infos (get-game-infos game-infos)})
 
-(defn make-past-game-infos-msg [user game-id past-game-infos]
-  {:type :msg/past-game-infos :user user :game-id game-id :past-game-infos (into [] (map get-game-infos past-game-infos))})
+(defn make-past-game-infos-msg [client game-id past-game-infos]
+  {:type :msg/past-game-infos :client client :game-id game-id :past-game-infos (into [] (map get-game-infos past-game-infos))})
 
-(defn make-notify-new-game-msg [user game-id]
-  {:type :msg/new-game :user user :game-id game-id})
+(defn make-notify-new-game-msg [client game-id]
+  {:type :msg/new-game :client client :game-id game-id})
 
-(defn make-notify-end-game-msg [user game-id]
-  {:type :msg/end-game :user user :game-id game-id})
+(defn make-notify-end-game-msg [client game-id]
+  {:type :msg/end-game :client client :game-id game-id})
  
-(defn register-for-game-output [user game-id output-ch]
-  (log/debug "Game output - Registering for game output" user)
+(defn register-for-game-output [client game-id output-ch]
+  (log/debug "Game output - Registering for game output" client)
   (go-loop []
     (let [result (<! output-ch)]
-      (log/debug "Game output - Got result" user result)
+      (log/debug "Game output - Got result" client result)
       (if (nil? result)
-        (log/debug "Game output - Game is over" user)
+        (log/debug "Game output - Game is over" client)
         (do
-          (go (>! (:channel user) (make-game-infos-msg user game-id result)))
+          (go (>! (:channel client) (make-game-infos-msg client game-id result)))
           (recur))))))
 
 (defn- random-string [length]
@@ -63,26 +63,35 @@
   (-> games
       (update-in [:games] dissoc game-id)))
 
-(defn add-user-to-game [games user-id game-id color channel-key {:keys [output-ch]}]
+(defn add-user-to-game [games user-id game-id color channel-key]
   (-> games
-      (assoc-in [:user-ids user-id game-id] {:output-ch output-ch})
+      (update-in [:users user-id :games] #(if (nil? %) #{game-id} (conj % game-id)))
       (update-in [:games game-id :joined-user-ids] assoc user-id {:color color :channel channel-key})))
 
+; TODO remove if not there any more
 (defn remove-user-from-game [games user-id game-id]
   (-> games
-      (update-in [:user-ids user-id] dissoc user-id)
+      (update-in [:users user-id :games] disj game-id)
       (update :games #(->> %
                            (map (fn [[game-id game-map]] 
                                   [game-id (update game-map :joined-user-ids dissoc user-id)]))
-                           (into {})))))
+                           (into {})))
+      (update :users #(if (empty? (get-in [user-id :games] %))
+                        (dissoc % user-id) %))))
 
 (defn save-move-to-game [games game-id game-infos]
   (-> games
       (update-in [:games game-id :past-game-infos] conj game-infos)))
 
-(defn remove-user [games user-id]
+(defn add-output-to-game [games client-id game-id output-ch]
   (-> games
-      (update :user-ids dissoc user-id)))
+      (assoc-in [:channels client-id game-id] output-ch)))
+
+(defn remove-output-from-game [games client-id game-id]
+  (-> games
+      (update-in [:channels client-id] dissoc game-id)
+      (update :channels #(if (empty? (get client-id %))
+                        (dissoc % client-id) %))))
 
 ; precondition of this is that all user-ids have left
 (defn stop-game [games game-id]
@@ -110,8 +119,7 @@
             :first-player first-player
             :game game
             :past-game-infos []
-            :started false})
-    game-id))
+            :started false}) game-id))
 
 (defn start-game [games game-id]
   (let [game (get-in @games [:games game-id])]
@@ -126,74 +134,111 @@
   (let [game   (get-in @games [:games game-id])
         player (get-in game [:joined-user-ids (:id user)])]
     (if (or (nil? game) (nil? player))
-      ; TODO handle game channel not found - retrieve game from persistence layer ?
+      ; TODO handleclient not found - retrieve game from persistence layer ?
       (log/debug "Game or player not found" game-id user)
       (let [multi   (get-in game [:strategies (:color player)])]
         (if (nil? multi)
-          (log/debug "No game input channel found for this player" game-id player)
+          (log/debug "No game input client found for this player" game-id player)
           (let [strategy (get-strategy multi (:channel player))]
             (if (nil? strategy)
-              (log/debug "No strategy found for channel" player)
+              (log/debug "No strategy found for client" player)
               (let [game-ch  (get-input-channel strategy)]                
-                (log/debug "Sending move to game channel" input)
+                (log/debug "Sending move to game client" input)
                 (go (>! game-ch input))))))))))
 
-(defn leave-all-games [games user]
+(defn subscribe-to-game [games client game-id]
+  "Subscribe to game output, returns the output client."
+  (let [output-ch (get-in @games [:channels (:id client) game-id])]
+    (if output-ch output-ch
+        (when-let [game (get-in @games [:games game-id])]
+          (let [output-ch (chan)]
+            (tap (:result-mult-ch game) output-ch)
+            (log/debug "Subscribing to game" game-id)
+            (swap! games add-output-to-game (:id client) game-id output-ch)
+            output-ch)))))
+
+; game-id can be null
+(defn unsubscribe-from-game [games client game-id]
   "Frees resources associated to that game and player and stops notifying that
   player of moves for that game."
-  (log/debug "Handling leaving client" user)
-  (let [games-for-user (get-in @games [:user-ids (:id user)])]
-    (doseq [[game-id channels] games-for-user]
-      (when-let [result-mult-ch (get-in @games [:games game-id :result-mult-ch])]
-        (untap result-mult-ch (:output-ch channels)))
-      (when (:output-ch channels) (close! (:output-ch channels)))
-      (swap! games remove-user-from-game (:id user) game-id))
-    (swap! games remove-user (:id user))))
+  (log/debug "Unsubscribing client" client)
+  (let [game-ids-to-unsubscribe (if game-id [game-id] (keys (get-in @games [:channels (:id client)])))]
+    (log/debug "Unsubscribing from games" game-ids-to-unsubscribe)
+    (doseq [game-id game-ids-to-unsubscribe]
+      (let [result-mult-ch (get-in @games [:games game-id :result-mult-ch])
+            output-ch      (get-in @games [:channels (:id client) game-id])]
+        (when (and result-mult-ch output-ch)
+          (untap result-mult-ch output-ch)
+          (close! output-ch)
+          (swap! games remove-output-from-game (:id client) game-id))))))
 
 (defn join-game [games user game-id color channel-key]
-  "Joins the game, subscribing to all game output, and also allows that
-  player to play the given color, both if :both is given (TODO NOT SUPPORTED YET), or none for all other values"
+  "Joins the game, allowing that player to play the given color, both if :both is given (TODO NOT SUPPORTED YET), or none for all other values"
   (let [game (get-in @games [:games game-id])]
-    (if (and game (not (contains? (:joined-user-ids game) (:id user))))
-      (let [output-ch (chan)]
-        (tap (:result-mult-ch game) output-ch)
-        (log/debug "Joining game" game-id)
-        (swap! games add-user-to-game (:id user) game-id color channel-key {:output-ch output-ch})
-        output-ch)
-      (get-in @games [:user-ids (:id user) game-id :output-ch]))))
+    (when (and game (not (contains? (:joined-user-ids game) (:id user))))
+      (log/debug "Joining game" game-id)
+      (swap! games add-user-to-game (:id user) game-id color channel-key))))
+
+; game-id can be null
+(defn leave-game [games user game-id]
+  "Leave game so the player cannot play moves on that game anymore"
+  (let [game-ids-to-leave (if game-id [game-id] (get-in @games [:users (:id user) :games]))]
+    (log/debug "Leaving games" game-ids-to-leave)
+    (doseq [game-id game-ids-to-leave]
+      (swap! games remove-user-from-game (:id user) game-id))))
 
 (defn add-strategy [games game-id color channel-key strategy]
-  "Adds the strategy to the multi channel if it is not there already."
-  (log/debug "Adding strategy to game" game-id color channel-key strategy)
+  "Adds the strategy to the multi client if it is not there already."
   (when-let [multi (get-in @games [:games game-id :strategies color])]
     (when-not (get-strategy multi channel-key)
-      (let [new-strategy (or strategy (case channel-key
-                                        :encoded (encoded)
-                                        :channel (channel)
-                                        (throw (java.lang.IllegalArgumentException.))))]
+      (let [new-strategy (or strategy 
+                             (case channel-key
+                               :encoded (encoded)
+                               :channel (channel)
+                               (throw (java.lang.IllegalArgumentException.))))]
+        (log/debug "Adding strategy to game" game-id color channel-key strategy)
         (add-strategies multi {channel-key new-strategy})))))
+
+(defn handle-subscribe-game [{:keys [games]} client game-id]
+  "Start notifiying the given user of the moves for the given game-id.
+   Sends the past moves so the game is updated."
+  (let [output-ch (subscribe-to-game games client game-id)]
+    ;; if there is no output ch, the game was not found
+    (when output-ch 
+      (register-for-game-output client game-id output-ch)
+      (go (>! (:channel client) 
+              (make-past-game-infos-msg 
+               client game-id (get-in @games [:games game-id :past-game-infos])))))))
+
+(defn handle-unsubscribe-game [{:keys [games]} client game-id]
+  "Stops notifying the given user of the moves for the given game-id."
+  (unsubscribe-from-game games client game-id)
+  ;; TODO clean up if no more from this user
+  )
 
 ; the handle-* methods parse the game message, do something
 ; then answer with a message
-(defn handle-join-game [{:keys [games]} user game-id color channel-key]
-  "Start notifying the given user of the moves for the given game-id.
-   Sends the past moves so the game is updated."
-  (let [output-ch (join-game games user game-id color channel-key)]
-    ;; if there is no output ch, the game was not found
-    (when output-ch (register-for-game-output user game-id output-ch)
-          (go (>! (:channel user) (make-past-game-infos-msg 
-                                   user game-id (get-in @games [:games game-id :past-game-infos]))))
-          ;; we add the channel to the multi strategy if not already there
-          (add-strategy games game-id color channel-key nil))))
+(defn handle-join-game [{:keys [games]} client user game-id color channel-key]
+  "Allows the user to play moves on that game."
+  ;; we adclient to the multi strategy if not already there
+  (add-strategy games game-id color channel-key nil)
+  (join-game games user game-id color channel-key))
 
-(defn handle-new-game [{:keys [games] :as game-runner} user game first-player]
+; TODO remove user id when needed
+(defn handle-leave-game [{:keys [games]} client user game-id]
+  "User won't be able to play game on that game any more"
+  (leave-game games user game-id)
+  ;; TODO clean up if no more from this user
+  )
+
+(defn handle-new-game [{:keys [games] :as game-runner} client game first-player]
   "Returns a new game id and starts the game."
   (log/debug "New game")
   (let [game-id (new-game games game {:white (multi-channel) :black (multi-channel)} first-player)]
     (log/debug "Handling new game with id" game-id)
-    (go (>! (:channel user) (make-notify-new-game-msg user game-id)))))
+    (go (>! (:channel client) (make-notify-new-game-msg client game-id)))))
 
-(defn handle-player-move [{:keys [games]} user game-id input]
+(defn handle-player-move [{:keys [games]} client user game-id input]
   (player-move games game-id user input))
 
 ; no need to validate those messages as they should have been validated by the readers
@@ -202,32 +247,44 @@
 (defprotocol CommandHandler
   (handle-command [this game-runner]))
 
-(defrecord PlayerMoveCommand [user game-id input]
+(defrecord SubscribeCommand [client game-id]
   CommandHandler
   (handle-command [this game-runner]
-    (handle-player-move game-runner user game-id input)))
+    (handle-subscribe-game game-runner client game-id)))
 
-(defrecord NewGameCommand [user game first-player]
+; game-id can be null
+(defrecord UnsubscribeCommand [client game-id]
   CommandHandler
   (handle-command [this game-runner]
-    (handle-new-game game-runner user game first-player)))
+    (handle-unsubscribe-game game-runner client game-id)))
 
-(defrecord StartGameCommand [game-id]
+(defrecord NewGameCommand [client game first-player]
+  CommandHandler
+  (handle-command [this game-runner]
+    (handle-new-game game-runner client game first-player)))
+
+(defrecord StartGameCommand [client game-id]
   CommandHandler
   (handle-command [this game-runner]
     (start-game (:games game-runner) game-id)))
 
-;; TODO probably the channel-key should be on the player-move command
-;; then we don't need to save it anywhere
-(defrecord JoinGameCommand [user game-id color channel-key]
+(defrecord PlayerMoveCommand [client user game-id input]
   CommandHandler
   (handle-command [this game-runner]
-    (handle-join-game game-runner user game-id color channel-key)))
+    (handle-player-move game-runner client user game-id input)))
 
-(defrecord UserLeaveCommand [user]
+;; TODO probablcchannel should be on the player-move command
+;; then we don't need to save it anywhere
+(defrecord JoinGameCommand [client user game-id color channel-key]
   CommandHandler
   (handle-command [this game-runner]
-    (leave-all-games (:games game-runner) user)))
+    (handle-join-game game-runner client user game-id color channel-key)))
+
+; game-id can be null
+(defrecord LeaveGameCommand [client user game-id]
+  CommandHandler
+  (handle-command [this game-runner]
+    (handle-leave-game game-runner client user game-id)))
 
 (defn start-game-runner [{:keys [gamerunner-ch] :as game-runner}]
   (go-loop []
@@ -242,22 +299,22 @@
   game-runner)
 
 (defn stop-game-runner [{:keys [games]}]
-  ; (doseq [[_ game-ch] (deref channels)]
+  ; (doseq [[_ game-ch] (clients)]
   ; (close! game-ch))
   )
 
-(defn channel-stats [{:keys [games]}]
+(defn gamerunner-stats [{:keys [games]}]
   (prewalk (fn [el] (cond (keyword? el) el 
                            (coll? el) el 
                            (= clojure.lang.Atom (type el)) @el
                            :else (str el))) @games))
 
 (defn get-routes [game-runner]
-  (-> (GET "/inspect" [request] {:body (channel-stats game-runner)})
+  (-> (GET "/inspect" [request] {:body (gamerunner-stats game-runner)})
       wrap-json-response))
 
 (defrecord GameRunner [gamerunner-ch games])
 
 (defn game-runner [gamerunner-ch]
   (map->GameRunner {:gamerunner-ch gamerunner-ch
-                    :games (atom {:games {} :user-ids {}})}))
+                    :games (atom {:games {} :users {} :channels {}})}))

@@ -10,10 +10,12 @@
             [server.game-runner
              :refer
              [->JoinGameCommand
+              ->LeaveGameCommand
               ->NewGameCommand
               ->PlayerMoveCommand
               ->StartGameCommand
-              ->UserLeaveCommand]]
+              ->SubscribeCommand
+              ->UnsubscribeCommand]]
             [server.handlers.handler :refer [Handler start-event-handler]]
             [taoensso.sente :refer [make-channel-socket! start-chsk-router!]]
             [taoensso.sente.server-adapters.http-kit
@@ -24,12 +26,12 @@
   (log/debug "Websockets - Sending" uid infos)
   ((:chsk-send! handler) uid infos))
 
-(defn- get-user [uid send-fn user-ch]
+(defn- get-client [uid send-fn user-ch]
   {:id uid :channel user-ch :send-message #(send-fn uid %)})
 
 ;; (defn- parse-strategy [{:keys [strategy options]}]
 ;;   (case strategy
-;;     :channel (channel)
+;;     :client (client)
 ;;     :negamax (negamax score-middle-blocked (:depth options))))
 
 (defn- parse-new-game-data [{:keys [first-player white black]}]
@@ -39,27 +41,29 @@
 ; TODO maybe define a protocol to 
 ; 1. parse 2. validate 3. transform
 ; those messages
-(defmulti parse-message (fn [id _ _] id))
+(defmulti parse-message (fn [id _ _ _] id))
 
-(defmethod parse-message :server/player-move [_ user {:keys [game-id input]}]
-  (->PlayerMoveCommand user game-id input))
+(defmethod parse-message :server/player-move [_ client user {:keys [game-id input]}]
+  [(->PlayerMoveCommand client user game-id input)])
 
-(defmethod parse-message :server/new-game [_ user data]
+(defmethod parse-message :server/new-game [_ client user data]
   (let [[game first-player] (parse-new-game-data data)]
-    (->NewGameCommand user game first-player)))
+    [(->NewGameCommand client game first-player)]))
 
-(defmethod parse-message :server/join-game [_ user {:keys [game-id color]}]
+(defmethod parse-message :server/join-game [_ client user {:keys [game-id color]}]
   ;; TODO here we should leave all other games of that player
   ;; or the client should check for the right game id and unsubscribe
-  (->JoinGameCommand user game-id color :channel))
+  [(->SubscribeCommand client game-id)
+   (->JoinGameCommand client user game-id color :channel)])
 
-(defmethod parse-message :server/start-game [_ user {:keys [game-id]}]
-  (->StartGameCommand game-id))
+(defmethod parse-message :server/start-game [_ client user {:keys [game-id]}]
+  [(->StartGameCommand client game-id)])
 
-(defmethod parse-message :chsk/uidport-close [_ user data]
-  (->UserLeaveCommand user))
+(defmethod parse-message :chsk/uidport-close [_ client user data]
+  [(->LeaveGameCommand client user nil)
+   (->UnsubscribeCommand client nil)])
 
-(defmethod parse-message :default [_ _ _])
+(defmethod parse-message :default [_ _ _ _])
 
 (defn- serialize-game-infos [game-infos]
   (-> game-infos 
@@ -67,7 +71,7 @@
       (dissoc :intermediate-board)))
 
 (defn- format-message-for-client [{:keys [type] :as message}]
-  (let [data (dissoc message :type :user)]
+  (let [data (dissoc message :type :client)]
     [type (case type
             :msg/game-infos 
             (update data :game-infos serialize-game-infos)
@@ -77,11 +81,12 @@
 
 (defn- event-msg-handler* [gamerunner-ch user-ch]
   (fn [{:as ev-msg :keys [id uid ?data event send-fn]}]
-    (let [message (parse-message id (get-user uid send-fn user-ch) ?data)] 
-      (when message (go (>! gamerunner-ch message))))))
+    (let [messages (parse-message id (get-client uid send-fn user-ch) {:id uid} ?data)]
+      (doseq [message messages]
+        (go (>! gamerunner-ch message))))))
 
-(defn- gamerunner-msg-handle [{:keys [user type] :as message}]
-  ((:send-message user) (format-message-for-client message)))
+(defn- gamerunner-msg-handle [{:keys [client type] :as message}]
+  ((:send-message client) (format-message-for-client message)))
 
 (defn- app-routes [ring-ajax-post ring-ajax-get-or-ws-handshake]
   (-> (routes

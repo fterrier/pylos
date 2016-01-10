@@ -10,8 +10,8 @@
 (defn start-event-handler [handling-fn]
   (let [user-ch (chan)]
     (go-loop []
-      (when-let [{:keys [user] :as message} (<! user-ch)]
-        (log/debug "Got message from game runner" message user)
+      (when-let [{:keys [channel] :as message} (<! user-ch)]
+        (log/debug "Got message from game runner" message channel)
         (try
           (handling-fn message)
           (catch Exception e (log/error e)))

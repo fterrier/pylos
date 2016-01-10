@@ -13,7 +13,8 @@
               ->NewGameCommand
               ->PlayerMoveCommand
               ->StartGameCommand]]
-            [server.handlers.handler :refer [Handler start-event-handler]]))
+            [server.handlers.handler :refer [Handler start-event-handler]]
+            [server.game-runner :refer [->SubscribeCommand]]))
 
 (defn create-image [board]
   (let [png-trans (org.apache.batik.transcoder.image.PNGTranscoder.)
@@ -60,64 +61,60 @@
 
 )
 
-(defmulti parse-telegram-message (fn [[command & args] users message-id] command))
+(defmulti parse-telegram-message (fn [[command & args] client user message-id] command))
 (defmulti handle-gamerunner-message (fn [{:keys [type]}] type))
 
-(defmethod parse-telegram-message "/new" [[_ & args] users message-id]
+(defmethod parse-telegram-message "/new" [[_ & args] client user message-id]
   (if-let [[game first-player] (parse-new-game-data args)]
-    [[:gamerunner (->NewGameCommand (:chat users) game first-player)]]
+    [[:gamerunner (->NewGameCommand client game first-player)]]
     ;; TODO didn't understand
     []))
 
-(defmethod parse-telegram-message "/start" [[_ game-id & args] user message-id]
-  [[:gamerunner (->StartGameCommand game-id)]])
+(defmethod parse-telegram-message "/start" [[_ game-id & args] client user message-id]
+  [[:gamerunner (->StartGameCommand client game-id)]])
 
 ;; TODO split register for output from join
-(defmethod parse-telegram-message "/join" [[_ game-id color-text & args] users message-id]
+(defmethod parse-telegram-message "/join" [[_ game-id color-text & args] client user message-id]
   (if-let [color (case color-text
                    "white" :white 
                    "w" :white 
                    "black" :black 
                    "b" :black 
                    nil)]
-    [[:gamerunner (->JoinGameCommand (:chat users) game-id color :encoded)]]
+    [[:gamerunner (->JoinGameCommand client user game-id color :encoded)]]
     []))
 
-(defmethod parse-telegram-message "/play" [[_ game-id position] users message-id]
-  [[:gamerunner (->PlayerMoveCommand (:user users) game-id position)]])
+(defmethod parse-telegram-message "/play" [[_ game-id position] client user message-id]
+  [[:gamerunner (->PlayerMoveCommand client user game-id position)]])
 
-(defmethod parse-telegram-message :default [data users message-id]
+(defmethod parse-telegram-message :default [data client user message-id]
   [[:telegram {:type :message 
-               :chat-id (:id (:chat users))
+               :chat-id (:id client)
                :text "Sorry, did not get that"
                :message-id message-id}]])
 ;; END OF MESSAGE PARSER
 
-(defmethod handle-gamerunner-message :msg/new-game [{:keys [user game-id]}]
+(defmethod handle-gamerunner-message :msg/new-game [{:keys [client game-id]}]
   ;; TODO reply message 
   [[:telegram {:type :message
-               :chat-id (:id user)
-               :text game-id}]]
-  ;; [[:gamerunner (->JoinGameCommand user game-id :white :encoded)]
-  ;;  [:gamerunner (->StartGameCommand game-id)]]
+               :chat-id (:id client)
+               :text game-id}]
+   [:gamerunner (->SubscribeCommand client game-id)]]
+  ;;  [:gamerunner (->StartGameCommand game-id)]
   )
 
-(defmethod handle-gamerunner-message :msg/game-infos [{:keys [type user game-id game-infos]}]
-  [[:telegram {:type :photo :chat-id (:id user) :board 
+(defmethod handle-gamerunner-message :msg/game-infos [{:keys [type client game-id game-infos]}]
+  [[:telegram {:type :photo :chat-id (:id client) :board 
                (if (:intermediate-board game-infos)
                  (:intermediate-board game-infos)
-                 (:board game-infos))}]
-   ;; (let [possible-moves (generate-all-moves game-infos)]
-   ;;   [:telegram {:type :message :chat-id (:id user) :text (pr-str possible-moves)}])
-   ])
+                 (:board game-infos))}]])
 
 (defmethod handle-gamerunner-message :default [message]
   (log/debug "Unrecognized message to forward" message)
   [])
 
-(defn- get-users [user-id chat-id user-ch]
-  {:chat {:id chat-id :channel user-ch}
-   :user {:id user-id :channel user-ch}})
+(defn- get-client [chat-id user-ch]
+  {:id chat-id :channel user-ch})
 
 (defn- forward-messages [messages gamerunner-ch bot-id] 
   (doseq [[dest message] messages]
@@ -133,7 +130,7 @@
     (let [{{:keys [text chat message_id from]} :message} body
           messages (parse-telegram-message (remove clojure.string/blank? 
                                          (clojure.string/split text #" ")) 
-                                 (get-users (:id from) (:id chat) user-ch) message_id)] 
+                                 (get-client (:id chat) user-ch) from message_id)] 
       (forward-messages messages gamerunner-ch bot-id))))
 
 (defn- gamerunner-msg-handler* [bot-id gamerunner-ch]
