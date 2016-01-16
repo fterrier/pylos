@@ -1,23 +1,22 @@
 (ns server.game-runner-test
-(:require [clojure.core.async :refer [<!! alt! alt!! chan close! go tap timeout]]
-[clojure.test :refer [deftest is testing]]
-[pylos
-[game :refer [new-pylos-game]]
-[move :refer [move-add]]
-[score :refer [score-middle-blocked]]]
-[server.game-runner
- :refer
- [gamerunner-stats
-  game-runner
-  join-game
-  new-game
-  player-move
-  start-game
-  stop-game
-  unsubscribe-from-game]]
-[strategy
-[channel :refer [channel]]
-[negamax :refer [negamax]]]))
+  (:require [clojure.core.async :refer [<!! alt! alt!! chan close! go tap timeout]]
+            [clojure.test :refer [deftest is testing]]
+            [pylos
+             [game :refer [new-pylos-game]]
+             [move :refer [move-add]]
+             [score :refer [score-middle-blocked]]]
+            [server.game-runner
+             :refer
+             [game-runner
+              join-game
+              new-game
+              player-move
+              start-game
+              stop-game
+              unsubscribe-from-game]]
+            [strategy
+             [channel :refer [channel]]
+             [negamax :refer [negamax]]]))
 
 (defn new-game-runner-test []
   (let [game-runner      (game-runner (chan))
@@ -139,7 +138,7 @@
                         (timeout 100) :timeout
                         output-ch :move))))))
 
-(deftest channel-stats-test
-  (testing "Retrieving game runner stats"
-    (let [[game-runner game-id] (new-game-runner-test)]
-      (is (not (nil? (gamerunner-stats game-runner)))))))
+;; (deftest channel-stats-test
+;;   (testing "Retrieving game runner stats"
+;;     (let [[game-runner game-id] (new-game-runner-test)]
+;;       (is (not (nil? (gamerunner-stats game-runner)))))))

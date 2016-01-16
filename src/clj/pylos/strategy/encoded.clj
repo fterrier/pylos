@@ -20,11 +20,12 @@
           {:next-move (:playable-move current-move)}
           ;; we try to get a valid move again
           (recur [game-ch game-position selected-positions]))
-        (let [user-input             (try (read-string user-input)
-                                          (catch Exception e nil))
+        (let [user-input      (if (number? user-input) user-input 
+                                  (try (read-string user-input)
+                                       (catch Exception e nil)))
               new-selected-positions (conj selected-positions user-input)
               new-move               (get move-status new-selected-positions)]
-          (log/debug "Found new move" new-move)
+          (log/debug "Found new move" user-input new-move)
           (if (nil? new-move)
             ;; we try to get a valid move
             (recur [game-ch game-position selected-positions])

@@ -5,7 +5,8 @@
             [component.compojure :as ccompojure]
             [game.view :refer [include-javascript]]
             [hiccup.page :refer [html5 include-css]]
-            [ring.middleware.json :refer [wrap-json-body wrap-json-response]]))
+            [ring.middleware.json :refer [wrap-json-body wrap-json-response]]
+            [clojure.walk :refer [prewalk]]))
 
 (defn- content-page [content]
   (let [description ""
@@ -36,6 +37,12 @@
 
 (defn- index-page []
   (content-page [:div {:id "main-area"}]))
+
+(defn convert-to-json [games]
+  (prewalk (fn [el] (cond (keyword? el) el 
+                          (coll? el) el 
+                          (= clojure.lang.Atom (type el)) @el
+                          :else (str el))) games))
 
 (def view-routes
   (routes
