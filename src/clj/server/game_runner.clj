@@ -92,6 +92,10 @@
       (update :clients #(if (empty? (get client-id %))
                         (dissoc % client-id) %))))
 
+(defn get-joined-user-ids [games game-id]
+  (let [joined-user-ids (get-in games [:games game-id :joined-user-ids])]
+    (keys (merge (:white joined-user-ids) (:black joined-user-ids)))))
+
 ;; getters
 ;; (defn get-unique-game-or-nil [games client-id game-id]
 ;;   (if game-id 
@@ -101,18 +105,17 @@
 ;;         (get (first game-ids) 0)
 ;;         nil))))
 
+;; game runner API
 ;; precondition of this is that all user-ids have left
-(defn stop-game [games game-id]
+(defn- stop-game [games game-id]
   (let [game (get-in @games [:games game-id])]
     (when-not (nil? game)
       (log/debug "Game Runner - Stopping game")
       (close! (:result-ch game))
-      ;; TODO have all users on that game leave
       (swap! games remove-game game-id))))
 
-; game runner API
-; TODO timeout in play.clj
-(defn new-game [games game strategies first-player]
+;; TODO timeout in play.clj
+(defn- new-game [games game strategies first-player]
   "This creates a new game."
   (let [game-id          (random-string 8)
         result-ch        (chan 1 (map (fn [game-infos] 
@@ -130,7 +133,7 @@
             :past-game-infos []
             :started false}) game-id))
 
-(defn start-game [games game-id]
+(defn- start-game [games game-id]
   (let [game (get-in @games [:games game-id])]
     (when (and (not (nil? game))
                (not (:started game)))
@@ -138,7 +141,7 @@
       (swap! games assoc-in [:games game-id :started] true)
       (play (:game game) (:strategies game) (:first-player game) (:result-ch game)))))
 
-(defn player-move [games game-id user color input]
+(defn- player-move [games game-id user color input]
   (log/debug "Handling player move" game-id user input)
   (let [game        (get-in @games [:games game-id])
         channel-key (get-in game [:joined-user-ids color (:id user)])]
@@ -155,7 +158,7 @@
                 (log/debug "Sending move to game client" game-ch input)
                 (go (>! game-ch input))))))))))
 
-(defn register-for-game-output [client game-id output-ch]
+(defn- register-for-game-output [client game-id output-ch]
   (log/debug "Registering for game output" client)
   (go-loop []
     (let [result (<! output-ch)]
@@ -166,7 +169,7 @@
           (go (>! (:channel client) (make-game-infos-msg client game-id result)))
           (recur))))))
 
-(defn subscribe-to-game [games client game-id]
+(defn- subscribe-to-game [games client game-id]
   "Subscribe to game output, returns the output client."
   (let [output-ch (get-in @games [:clients (:id client) game-id])]
     (if output-ch output-ch
@@ -178,7 +181,7 @@
             output-ch)))))
 
 ; game-id can be null
-(defn unsubscribe-from-game [games client game-id]
+(defn- unsubscribe-from-game [games client game-id]
   "Frees resources associated to that game and player and stops notifying that
   player of moves for that game."
   (log/debug "Unsubscribing client" client)
@@ -192,22 +195,22 @@
           (close! output-ch)
           (swap! games remove-output-from-game (:id client) game-id))))))
 
-(defn join-game [games client user game-id color channel-key]
+(defn- join-game [games client user-id game-id color channel-key]
   "Joins the game, allowing that player to play the given color, both if :both is given (TODO NOT SUPPORTED YET), or none for all other values."
   (let [game (get-in @games [:games game-id])]
-    (when (and game (not (contains? (:joined-user-ids game) (:id user))))
+    (when (and game (not (contains? (:joined-user-ids game) user-id)))
       (log/debug "Joining game" game-id)
-      (swap! games add-user-to-game (:id user) game-id color channel-key))))
+      (swap! games add-user-to-game user-id game-id color channel-key))))
 
 ; game-id can be null
-(defn leave-game [games user game-id]
+(defn- leave-game [games user-id game-id]
   "Leave game so the player cannot play moves on that game anymore"
-  (let [game-ids-to-leave (if game-id [game-id] (get-in @games [:users (:id user) :games]))]
+  (let [game-ids-to-leave (if game-id [game-id] (get-in @games [:users user-id :games]))]
     (log/debug "Leaving games" game-ids-to-leave)
     (doseq [game-id game-ids-to-leave]
-      (swap! games remove-user-from-game (:id user) game-id))))
+      (swap! games remove-user-from-game user-id game-id))))
 
-(defn add-strategy [games game-id color channel-key strategy]
+(defn- add-strategy [games game-id color channel-key strategy]
   "Adds the strategy to the multi client if it is not there already."
   (when-let [multi (get-in @games [:games game-id :strategies color])]
     (when-not (get-strategy multi channel-key)
@@ -219,13 +222,13 @@
         (log/debug "Adding strategy to game" game-id color channel-key strategy)
         (add-strategies multi {channel-key new-strategy})))))
 
-(defn parse-strategy-options [{:keys [type options]}]
+(defn- parse-strategy-options [{:keys [type options]}]
   ;; TODO type is ignored for now we just create negamax
   (negamax score-middle-blocked (:depth options)))
 
-; the handle-* methods parse the game message, do something
-; then answer with a message
-(defn handle-subscribe-game [{:keys [games]} client game-id]
+;; the handle-* methods parse the game message, do something
+;; then answer with a message
+(defn- handle-subscribe-game [{:keys [games]} client game-id]
   "Start notifiying the given user of the moves for the given game-id.
    Sends the past moves so the game is updated."
   (let [output-ch (subscribe-to-game games client game-id)]
@@ -236,43 +239,45 @@
               (make-past-game-infos-msg 
                client game-id (get-in @games [:games game-id :past-game-infos])))))))
 
-(defn handle-unsubscribe-game [{:keys [games]} client game-id]
+(defn- handle-unsubscribe-game [{:keys [games]} client game-id]
   "Stops notifying the given user of the moves for the given game-id."
   (unsubscribe-from-game games client game-id))
 
-(defn handle-join-game [{:keys [games]} client user game-id color channel-key]
+(defn- handle-join-game [{:keys [games]} client user game-id color channel-key]
   "Allows the user to play moves on that game."
   ;; we add the channel to the multi strategy if not already there
   (add-strategy games game-id color channel-key nil)
-  (join-game games client user game-id color channel-key))
+  (join-game games client (:id user) game-id color channel-key))
 
-(defn handle-npc [{:keys [games]} client game-id color strategy-options]
+(defn- handle-npc [{:keys [games]} client game-id color strategy-options]
   "Adds a NPC on this game."
   (if-let [strategy (parse-strategy-options strategy-options)]
     (add-strategy games game-id color (:type strategy) strategy)))
 
-(defn handle-leave-game [{:keys [games]} client user game-id]
+(defn- handle-leave-game [{:keys [games]} client user game-id]
   "User won't be able to play game on that game any more"
-  (leave-game games user game-id))
+  (leave-game games (:id user) game-id))
 
-(defn handle-new-game [{:keys [games] :as game-runner} client game first-player]
+(defn- handle-new-game [{:keys [games] :as game-runner} client game first-player]
   "Returns a new game id and starts the game."
   (log/debug "New game")
   (let [game-id (new-game games game {:white (multi-channel) :black (multi-channel)} first-player)]
     (log/debug "Handling new game with id" game-id)
     (go (>! (:channel client) (make-notify-new-game-msg client game-id)))))
 
-(defn handle-start-game [{:keys [games] :as game-runner} game-id]
+(defn- handle-start-game [{:keys [games] :as game-runner} game-id]
   (start-game games game-id))
 
-(defn handle-stop-game [{:keys [games] :as game-runner} game-id]
+(defn- handle-stop-game [{:keys [games] :as game-runner} game-id]
+  (doseq [user-id (get-joined-user-ids @games game-id)]
+    (leave-game games user-id game-id))
   (stop-game games game-id))
 
-(defn handle-player-move [{:keys [games]} client user game-id color input]
+(defn- handle-player-move [{:keys [games]} client user game-id color input]
   (player-move games game-id user color input))
 
 ;; validation
-(defn validate-game-id [errors games client game-id]
+(defn- validate-game-id [errors games client game-id]
   (let [game-id (get-in @games [:games game-id])]
     (if (nil? game-id) (conj errors [:game-id nil :not-found]) errors)))
 
