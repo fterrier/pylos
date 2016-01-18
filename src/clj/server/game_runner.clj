@@ -26,19 +26,17 @@
 ;;   (id [this] "Get the user's id"))
 
 ;; private output stuff
-(defn get-game-infos [{{:keys [board player outcome intermediate-board]} :game-position, move :last-move, additional-infos :additional-infos, time :time}]
-  {:board              board
-   :intermediate-board intermediate-board
-   :player             player
-   :move               move
-   :time               time
-   :additional-infos   additional-infos})
+;; (defn get-game-infos [{{:keys [board player outcome intermediate-board selected-positions]} :game-position, move :last-move, additional-infos :additional-infos, time :time}]
+;;   {:game-position     game-position
+;;    :last-move         last-move
+;;    :time              time
+;;    :additional-infos  additional-infos})
 
 (defn- make-game-infos-msg [client game-id game-infos]
-  {:type :msg/game-infos :client client :game-id game-id :game-infos (get-game-infos game-infos)})
+  {:type :msg/game-infos :client client :game-id game-id :game-infos game-infos})
 
 (defn- make-past-game-infos-msg [client game-id past-game-infos]
-  {:type :msg/past-game-infos :client client :game-id game-id :past-game-infos (into [] (map get-game-infos past-game-infos))})
+  {:type :msg/past-game-infos :client client :game-id game-id :past-game-infos past-game-infos})
 
 (defn- make-notify-new-game-msg [client game-id]
   {:type :msg/new-game :client client :game-id game-id})
@@ -228,6 +226,9 @@
 
 ;; the handle-* methods parse the game message, do something
 ;; then answer with a message
+;; TODO just have the other methods above return a new state
+;; all methods above should be pure functions
+;; state change should only happen in the handle-* functions
 (defn- handle-subscribe-game [{:keys [games]} client game-id]
   "Start notifiying the given user of the moves for the given game-id.
    Sends the past moves so the game is updated."

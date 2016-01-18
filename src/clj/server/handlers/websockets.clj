@@ -67,8 +67,8 @@
 
 (defn- serialize-game-infos [game-infos]
   (-> game-infos 
-      (assoc :board (serialize-board (:board game-infos)))
-      (dissoc :intermediate-board)))
+      (assoc :board (serialize-board (:board (:game-position game-infos))))
+      (dissoc :game-position)))
 
 (defn- format-message-for-client [{:keys [type] :as message}]
   (let [data (dissoc message :type :client)]
