@@ -1,5 +1,5 @@
 (ns pylos.strategy.encoded
-  (:require [clojure.core.async :refer [<! chan go-loop]]
+  (:require [clojure.core.async :refer [<! chan go-loop close!]]
             [clojure.tools.logging :as log]
             [game.strategy :refer [Strategy]]
             [pylos
@@ -43,6 +43,8 @@
   Strategy
   (choose-next-move [this game-position] 
     (choose-move-with-context game-ch game-position))
+  (notify-end-game [this]
+    (close! game-ch))
   (get-input-channel [this] game-ch))
 
 ;; (send-user-input [this input])
