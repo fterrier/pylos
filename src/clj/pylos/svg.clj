@@ -11,7 +11,7 @@
 (defn print-board
   [board last-move highlight-status selected-positions]
   (html {:mode :xml}
-        (xml-declaration "UTF-8")
+        (xml-declaration "UTF-8")  
         "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">"
         (into 
          [:svg {:version 1.1 :xmlns "http://www.w3.org/2000/svg" :xmlns:xlink "http://www.w3.org/1999/xlink" :x "0px" :y "0px" :width "400px" :height "400px"}]
@@ -23,11 +23,14 @@
                   (let [cell  (cell board position)
                         x     (+ (* 100 col) (* (inc layer) 50))
                         y     (+ (* 100 row) (* (inc layer) 50))
-                        border-color (case cell 
-                                       :open "grey"
-                                       :black "grey"
-                                       :white "grey"
-                                       :no-acc nil)
+                        border-color (if (contains? (into #{} selected-positions)
+                                                    position)
+                                       "red"
+                                       (case cell
+                                         :open "grey"
+                                         :black "grey"
+                                         :white "grey"
+                                         :no-acc nil))
                         font-color   (case cell
                                        :open "black"
                                        :black "white"
@@ -67,7 +70,8 @@
                (apply concat)
                (apply concat))))))
 
-;(print-board (create-board {:board [:black :black :open :open :white :white :white :open :open :open :open :open :open :open :open :open :open :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc] :size 4}) nil)
+;;(print-board (create-board {:board [:black :black :open :open :white :white :white :open :open :open :open :open :open :open :open :open :open :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc] :size 4}) nil)
 
 
-  
+(+ 1 1)  
+(println "Boooooris")

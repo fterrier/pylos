@@ -22,12 +22,13 @@
               ->NPCCommand
               ->StopGameCommand]]
             [server.handlers.handler :refer [Handler start-event-handler]]
-            [server.site :refer [convert-to-json]]))
+            [server.site :refer [convert-to-json]]
+            [pylos.init :refer [visit-board]]))
 
-(defn create-image [board highlight-status selected-positions]
+(defn create-image [board last-move highlight-status selected-positions]
   (let [png-trans (org.apache.batik.transcoder.image.PNGTranscoder.)
         reader    (java.io.StringReader. 
-                   (print-board board nil highlight-status selected-positions)) 
+                   (print-board last-move board highlight-status selected-positions)) 
         input     (org.apache.batik.transcoder.TranscoderInput. reader)
         is        (java.io.PipedInputStream.)
         os        (java.io.PipedOutputStream. is)
@@ -35,6 +36,21 @@
     (thread (. png-trans transcode input output)
             (. os close))
     is))
+
+(defn get-keyboard [{:keys [board selected-positions] :as game-position} 
+                    highlight-status]
+  (->> (visit-board
+        board
+        (fn [[layer row col] position]
+          (let [position-info 
+                (merge
+                 (get highlight-status (conj selected-positions position))
+                 (get highlight-status (conj selected-positions :all)))]
+            (if (get position-info position)
+              (str (inc position)) nil))))
+       (apply concat)
+       (map #(remove nil? %))
+       (remove empty?)))
 
 ;; START TELEGRAM CLIENT
 (defn- send-telegram [bot-id command options]
@@ -52,7 +68,7 @@
 (defmethod send-to-telegram :message [bot-id {:keys [chat-id text message-id parse-mode reply-markup]}]
   (send-telegram bot-id "sendMessage" {:query-params {:chat_id chat-id :text text :reply_to_message_id message-id :parse_mode parse-mode :reply_markup (generate-string reply-markup)}}))
 
-(defmethod send-to-telegram :photo [bot-id {:keys [chat-id game-position message-id parse-mode caption]}]
+(defmethod send-to-telegram :photo [bot-id {:keys [chat-id game-position highlight-status last-move message-id parse-mode caption]}]
   (let [{:keys [board 
                 intermediate-board 
                 selected-positions 
@@ -60,19 +76,21 @@
                 outcome]} game-position
         score (score game-position)]
     (log/debug "Game position to send" game-position)
-    (send-telegram bot-id "sendPhoto"
-                   {:query-params 
-                    {:chat_id chat-id :reply_to_message_id message-id :parse_mode parse-mode 
-                     :caption (if intermediate-board "" 
-                                  (str "Balls left: White " (:white score) " - " (:black score) " Black"))}
-                    :multipart 
-                    [{:name "photo" 
-                      :content (create-image 
-                                (if intermediate-board intermediate-board board)
-                                (highlight-status board 
-                                                  (generate-moves game-position)) 
-                                selected-positions)
-                      :filename "board.png"}]})))
+    (send-telegram 
+     bot-id "sendPhoto"
+     {:query-params 
+      {:chat_id chat-id 
+       :reply_to_message_id message-id 
+       :parse_mode parse-mode 
+       :caption (if intermediate-board "" 
+                    (str "Balls left: White " (:white score) " - " (:black score) " Black"))}
+      :multipart
+      [{:name "photo" 
+        :content (create-image 
+                  (if intermediate-board intermediate-board board)
+                  last-move
+                  highlight-status selected-positions)
+        :filename "board.png"}]})))
 ;; END OF TELEGRAM CLIENT
 
 (defn- make-game-not-found-msg [client]
@@ -91,7 +109,8 @@
 (defn- add-game [games game-id]
   (-> games 
       (assoc-in [:games game-id] {:colors {:black #{} :white #{}}
-                                  :users {}})))
+                                  :users {}
+                                  :started false})))
 
 (defn- remove-game [games game-id]
   (-> games
@@ -102,12 +121,23 @@
       (update-in [:games game-id :colors color] conj {:id user-id :username username})
       (update-in [:games game-id :users user-id] #(if (nil? %) #{color} (conj % color)))))
 
+(defn- mark-game-as-started [games game-id]
+  (-> games
+      (assoc-in [:games game-id :started] true)))
+
 (defn- get-game-for-client [games client-id game-id]
   (or game-id (get-in games [:clients client-id])))
 
 (defn- has-infos-for-both-players [games game-id]
   (and (> (count (get-in games [:games game-id :colors :black])) 0)
        (> (count (get-in games [:games game-id :colors :white])) 0)))
+
+(defn- get-missing-player [games game-id]
+  (if (has-infos-for-both-players games game-id)
+    nil
+    (if (> (count (get-in games [:games game-id :colors :black])) 0)
+      :white
+      :black)))
 
 (defn- get-user-in-game [games game-id color]
   (get-in games [:games game-id :colors color]))
@@ -168,13 +198,21 @@
                     :message-id (:message_id message)}]]])))
 
 (defn start-game-if-necessary [messages games client game-id]
-  (if (has-infos-for-both-players games game-id)
-    (conj messages 
-          [:gamerunner (->StartGameCommand client game-id)]
-          [:telegram {:type :message
-                      :chat-id (:id client)
-                      :text "Both players have joined, your game is starting! To play, use the keyboard below or \"/play <position>\"."}])
-    messages))
+  ;; TODO game is already started
+  (if (get-in games [:games game-id :started])
+    [games messages]
+    (if (has-infos-for-both-players games game-id)
+      [(-> games 
+           (mark-game-as-started game-id))
+       (conj messages 
+             [:gamerunner (->StartGameCommand client game-id)]
+             [:telegram {:type :message
+                         :chat-id (:id client)
+                         :text "Both players have joined, your game is starting! To play, use the keyboard below or \"/play <position>\"."}])]
+      [games (conj messages
+                   [:telegram {:type :message
+                               :chat-id (:id client)
+                               :text (str "The game still needs a " (name (get-missing-player games game-id)) " player, it will start as soon as one have joined.")}])])))
 
 (defn- handle-join [games client user message args]
   (let [{:keys [game-id color]} (parse-args args)
@@ -198,24 +236,21 @@
                                          :selective true}}]]]
       :else
       (let [new-games (add-user-to-game games game-id (:id user) (:username user) color)]
-        [new-games
-         (let [messages
-               [[:gamerunner (->SubscribeCommand client game-id)]
-                [:gamerunner (->JoinGameCommand client user 
-                                                game-id color :encoded)]
-                ;; TODO wait for game runner ACK
-                [:telegram {:type :message
-                            :chat-id (:id client)
-                            ;; TODO only say the game will start if the game is not already started
-                            ;; TODO let the users know which color has been picked already
-                            :text (str "You joined the game as " (name color) ", your game will start when both players have joined.")
-                            :message-id (:message_id message)}]]]
-           (start-game-if-necessary messages new-games client game-id))]))))
+        (let [messages
+              [[:gamerunner (->SubscribeCommand client game-id)]
+               [:gamerunner (->JoinGameCommand client user 
+                                               game-id color :encoded)]
+               ;; TODO wait for game runner ACK
+               [:telegram {:type :message
+                           :chat-id (:id client)
+                           :text (str "You joined the game as " (name color) ".")
+                           :message-id (:message_id message)}]]]
+          (start-game-if-necessary messages new-games client game-id))))))
 
-(defmethod parse-telegram-message "Black" [[_ & args] games client user message]
+(defmethod parse-telegram-message "black" [[_ & args] games client user message]
   (handle-join games client user message ["black"]))
 
-(defmethod parse-telegram-message "White" [[_ & args] games client user message]
+(defmethod parse-telegram-message "white" [[_ & args] games client user message]
   (handle-join games client user message ["white"]))
 
 (defmethod parse-telegram-message "/join" [[_ & args] games client user message]
@@ -244,29 +279,23 @@
                           :message-id (:message_id message)}]]]
       :else
       (let [new-games (add-user-to-game games game-id user-id nil color)]
-        [new-games
-         (let [strategy-options {:type :negamax 
-                                 :options {:depth (if (number? number) number 4)}}]
-           (let [messages
-                 [[:gamerunner (->SubscribeCommand client game-id)]
-                  [:gamerunner 
-                   (->NPCCommand client user game-id color strategy-options)]
-                  ;; TODO wait for game runner ACK
-                  [:telegram {:type :message
-                              :chat-id (:id client)
-                              ;; TODO only say the game will start if the game is not already started
-                              ;; TODO let the users know which color has been picked already
-                              :text (str "The bot has joined the game as " (name color) ", your game will start wh
-en both players have joined.")
-                              :message-id (:message_id message)}]]]
-             (start-game-if-necessary messages new-games client game-id)))]))))
+        (let [strategy-options {:type :negamax 
+                                :options {:depth (if (number? number) number 4)}}]
+          (let [messages
+                [[:gamerunner (->SubscribeCommand client game-id)]
+                 [:gamerunner 
+                  (->NPCCommand client user game-id color strategy-options)]
+                 ;; TODO wait for game runner ACK
+                 [:telegram {:type :message
+                             :chat-id (:id client)
+                             :text (str "The bot has joined the game as " (name color) ".")
+                             :message-id (:message_id message)}]]]
+            (start-game-if-necessary messages new-games client game-id)))))))
 
-
-
-(defmethod parse-telegram-message "White-Bot" [[_ & args] games client user message]
+(defmethod parse-telegram-message "white-bot" [[_ & args] games client user message]
   (handle-bot games client user message ["white"]))
 
-(defmethod parse-telegram-message "Black-Bot" [[_ & args] games client user message]
+(defmethod parse-telegram-message "black-bot" [[_ & args] games client user message]
   (handle-bot games client user message ["black"]))
 
 (defmethod parse-telegram-message "/bot" [[_ & args] games client user message]
@@ -343,20 +372,22 @@ en both players have joined.")
 Your game will start as soon as a black and a white player have joined.")}]]])
 
 (defmethod handle-gamerunner-message :msg/game-infos [{:keys [type client game-id game-infos]} games]
-  (let [game-position     (:game-position game-infos)
+  (let [{:keys [board] :as game-position} 
+                          (:game-position game-infos)
+        highlight-status  (highlight-status board (generate-moves game-position))
         current-users     (get-user-in-game games game-id (:player game-position))
         current-usernames (remove nil? (map :username current-users))
         messages [[:telegram {:type :photo 
                               :chat-id (:id client) 
-                              :game-position (:game-position game-infos)}]]
+                              :game-position (:game-position game-infos)
+                              :last-move (:last-move game-infos)
+                              :highlight-status highlight-status}]]
         messages (if (empty? current-usernames) messages
                    (conj messages 
                          [:telegram {:type :message
                                      :chat-id (:id client)
-                                     :text (str (clojure.string/join ", " (map #(str "@" %) current-usernames)) 
-                                                ": your turn!")
-                                     ;; TODO finish keyboard
-                                     :reply-markup {:keyboard [["123", "prout"]]
+                                     :text (str (clojure.string/join ", " (map #(str "@" %) current-usernames)) ": your turn!")
+                                     :reply-markup {:keyboard (get-keyboard game-position highlight-status)
                                                     :one_time_keyboard true
                                                     :selective true}}]))
         outcome  (get-in game-infos [:game-position :outcome])]
@@ -371,10 +402,8 @@ Your game will start as soon as a black and a white player have joined.")}]]])
 Start a new game using /new.")}] 
              [:gamerunner (->UnsubscribeCommand client game-id)]
              [:gamerunner (->StopGameCommand client game-id)])]
-      ;; TODO mention player and show keyboard to play
       [games messages])))
 
-;; TODO remove game if multi game error ?
 (defmethod handle-gamerunner-message :msg/errors [{:keys [client errors]} games]
   [games (remove nil? (map (fn [[field value error]] 
                              (case [field error]
@@ -389,7 +418,9 @@ Start a new game using /new.")}]
   {:id chat-id :channel user-ch})
 
 (defn- get-user [chat-id from]
-  {:id (str (:id from) "-" chat-id) :username (:username from)})
+  {:id (str (:id from) "-" chat-id)
+   :user-id (:id from)
+   :username (or (:username from) (:first_name from))})
 
 (defn- forward-messages [messages gamerunner-ch bot-id] 
   (log/debug "Forwarding messages" messages)
@@ -402,8 +433,9 @@ Start a new game using /new.")}]
   (let [[first-arg & rest] (into [] (remove clojure.string/blank? 
                             (clojure.string/split text #" ")))]
     (if (clojure.string/starts-with? first-arg "/")
-      (cons (get (clojure.string/split first-arg #"@") 0) rest)
-      (cons first-arg rest))))
+      (cons (clojure.string/lower-case 
+             (get (clojure.string/split first-arg #"@") 0)) rest)
+      (cons (clojure.string/lower-case first-arg) rest))))
 
 ;; TODO write a function to transform ID to text messages
 
