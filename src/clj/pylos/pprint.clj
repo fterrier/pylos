@@ -5,7 +5,7 @@
             [clojure.pprint :as pprint]))
 
 
-(defn- bold-positions-from-move [last-move]
+(defn bold-positions-from-move [last-move]
   (case (:type last-move)
     :rise   [(:low-position last-move) (:position last-move)]
     :add    [(:position last-move)]

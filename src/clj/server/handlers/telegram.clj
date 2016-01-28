@@ -28,7 +28,7 @@
 (defn create-image [board last-move highlight-status selected-positions]
   (let [png-trans (org.apache.batik.transcoder.image.PNGTranscoder.)
         reader    (java.io.StringReader. 
-                   (print-board last-move board highlight-status selected-positions)) 
+                   (print-board board last-move highlight-status selected-positions)) 
         input     (org.apache.batik.transcoder.TranscoderInput. reader)
         is        (java.io.PipedInputStream.)
         os        (java.io.PipedOutputStream. is)
@@ -62,7 +62,7 @@
                   (log/error "Telegram - Failed, exception is " error)
                   (log/debug "Telegram - Async HTTP GET: " status body))))))
 
-;; make this somehow sequential
+;; TODO make this somehow sequential
 (defmulti send-to-telegram (fn [_ {:keys [type]}] type))
 
 (defmethod send-to-telegram :message [bot-id {:keys [chat-id text message-id parse-mode reply-markup]}]

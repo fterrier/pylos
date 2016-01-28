@@ -5,6 +5,7 @@
     [core :refer [html]]
     [page :refer [xml-declaration]]]
    [pylos
+    [pprint :refer [bold-positions-from-move]]
     [board :refer [cell]]
     [init :refer [create-board visit-board]]]))
 
@@ -23,8 +24,11 @@
                   (let [cell  (cell board position)
                         x     (+ (* 100 col) (* (inc layer) 50))
                         y     (+ (* 100 row) (* (inc layer) 50))
-                        border-color (if (contains? (into #{} selected-positions)
-                                                    position)
+                        border-color (if (or (contains? (into #{} selected-positions)
+                                                        position)
+                                             ;; TODO replace by good abstraction
+                                             (contains? (into #{} (bold-positions-from-move last-move))
+                                                        position))
                                        "red"
                                        (case cell
                                          :open "grey"
@@ -71,7 +75,3 @@
                (apply concat))))))
 
 ;;(print-board (create-board {:board [:black :black :open :open :white :white :white :open :open :open :open :open :open :open :open :open :open :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc :no-acc] :size 4}) nil)
-
-
-(+ 1 1)  
-(println "Boooooris")
