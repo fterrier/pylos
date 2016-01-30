@@ -23,7 +23,11 @@
               ->StopGameCommand]]
             [server.handlers.handler :refer [Handler start-event-handler]]
             [server.site :refer [convert-to-json]]
-            [pylos.init :refer [visit-board]]))
+            [pylos.init :refer [visit-board]]
+            [clojure.core.async :refer [>!!]]
+            [clojure.core.async :refer [chan]]
+            [clojure.core.async :refer [go-loop]]
+            [clojure.core.async :refer [<!]]))
 
 (defn create-image [board last-move highlight-status selected-positions]
   (let [png-trans (org.apache.batik.transcoder.image.PNGTranscoder.)
@@ -62,7 +66,6 @@
                   (log/error "Telegram - Failed, exception is " error)
                   (log/debug "Telegram - Async HTTP GET: " status body))))))
 
-;; TODO make this somehow sequential
 (defmulti send-to-telegram (fn [_ {:keys [type]}] type))
 
 (defmethod send-to-telegram :message [bot-id {:keys [chat-id text message-id parse-mode reply-markup]}]
@@ -377,7 +380,6 @@
 (defmulti handle-gamerunner-message (fn [{:keys [type]} games] type))
 
 (defmethod handle-gamerunner-message :msg/new-game [{:keys [client game-id]} games]
-  ;; TODO reply message 
   [(-> games 
        (add-or-replace-client (:id client) game-id)
        (add-game game-id))
@@ -445,12 +447,23 @@ Start a new game using /new.")}]
 
 (defn- forward-messages [messages gamerunner-ch bot-id] 
   (log/debug "Forwarding messages" messages)
-  (let [grouped-messages (group-by (fn [[dest _]] dest) messages)]
-    (go 
-      (doseq [[_ message] (:gamerunner grouped-messages)]
-        (>! gamerunner-ch message)))
-    (doseq [[_ message] (:telegram grouped-messages)]
-      (send-to-telegram bot-id message))))
+  (doseq [[dest message] messages]
+    (case dest
+      :gamerunner 
+      (>!! gamerunner-ch message)
+      :telegram
+      @(send-to-telegram bot-id message))))
+
+(defn- create-or-retrieve-client-channel [games client gamerunner-ch bot-id]
+  (when-not (get-in @games [:channels (:id client)])
+    (let [client-ch (chan 100)]
+      (swap! games assoc-in [:channels (:id client)] client-ch)
+      (go-loop []
+        (let [messages (<! client-ch)]
+          (when messages
+            (forward-messages messages gamerunner-ch bot-id)
+            (recur))))))
+  (get-in @games [:channels (:id client)]))
 
 (defn- sanitize-input [text]
   (let [[first-arg & rest] (into [] (remove clojure.string/blank? 
@@ -460,7 +473,7 @@ Start a new game using /new.")}]
              (get (clojure.string/split first-arg #"@") 0)) rest)
       (cons (clojure.string/lower-case first-arg) rest))))
 
-;; TODO write a function to transform ID to text messages
+;; TODO I18n write a function to transform ID to text messages
 
 ;; TODO maybe write a handler protocol so that we can 
 ;; reuse this particular method and retrieve-message
@@ -468,15 +481,16 @@ Start a new game using /new.")}]
   (fn [{:as ev-msg :keys [body]}]
     (log/debug "Got message from telegram client" body)
     (let [{{:keys [text chat from]} :message} body
-          [new-games messages] 
-          (parse-telegram-message 
-           (if text (sanitize-input text) text) @games
-           (get-client (:id chat) user-ch) 
-           (get-user (:id chat) from) (:message body))]
+          client               (get-client (:id chat) user-ch)
+          user                 (get-user (:id chat) from)
+          [new-games messages] (parse-telegram-message 
+                                (if text (sanitize-input text) text) 
+                                @games client user (:message body))]
       (log/debug "Swapping game atom" new-games)
       (reset! games new-games)
-      (forward-messages messages gamerunner-ch bot-id))))
-
+      ;; we send this blocking to the client channel
+      (>!! (create-or-retrieve-client-channel games client gamerunner-ch bot-id) 
+           messages))))
 
 (defn- gamerunner-msg-handler* [bot-id games gamerunner-ch]
   (fn [message]
@@ -508,4 +522,4 @@ Start a new game using /new.")}]
     (:routes handler)))
 
 (defn telegram-handler [bot-id]
-  (map->TelegramHandler {:bot-id bot-id :games (atom {:clients {} :games {}})}))
+  (map->TelegramHandler {:bot-id bot-id :games (atom {:clients {} :games {} :channels {}})}))

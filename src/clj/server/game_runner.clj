@@ -25,13 +25,6 @@
 ;; (defprotocol User
 ;;   (id [this] "Get the user's id"))
 
-;; private output stuff
-;; (defn get-game-infos [{{:keys [board player outcome intermediate-board selected-positions]} :game-position, move :last-move, additional-infos :additional-infos, time :time}]
-;;   {:game-position     game-position
-;;    :last-move         last-move
-;;    :time              time
-;;    :additional-infos  additional-infos})
-
 (defn- make-game-infos-msg [client game-id game-infos]
   {:type :msg/game-infos :client client :game-id game-id :game-infos game-infos})
 
@@ -164,6 +157,7 @@
       (if (nil? result)
         (log/debug "Got nil result for game output" client)
         (do
+          ;; TODO communication to the clients should be sequential
           (go (>! (:channel client) (make-game-infos-msg client game-id result)))
           (recur))))))
 
@@ -236,6 +230,7 @@
     ;; if there is no output ch, the game was not found
     (when output-ch 
       (register-for-game-output client game-id output-ch)
+      ;; TODO communication to the clients should be sequential
       (go (>! (:channel client) 
               (make-past-game-infos-msg 
                client game-id (get-in @games [:games game-id :past-game-infos])))))))
@@ -264,6 +259,7 @@
   (log/debug "New game")
   (let [game-id (new-game games game {:white (multi-channel) :black (multi-channel)} first-player)]
     (log/debug "Handling new game with id" game-id)
+    ;; TODO communication to the clients should be sequential
     (go (>! (:channel client) (make-notify-new-game-msg client game-id)))))
 
 (defn- handle-start-game [{:keys [games] :as game-runner} game-id]
@@ -368,6 +364,7 @@
         (let [validation-infos (validate-command command game-runner)]
           (log/debug "Validation result" validation-infos)
           (if (and validation-infos (not (empty? validation-infos)))
+            ;; TODO communication to the clients should be sequential
             (go (>! (:channel (:client command)) 
                     (make-error-msg (:client command) validation-infos)))
             (handle-command command game-runner)))

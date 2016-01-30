@@ -11,6 +11,7 @@
     (when-not @(:ended strategy)
       (swap! (:strategies strategy) merge new-strategies)
       ;; we notify the strategy that it has to re-loop on the moves
+      ;; we can use go here since the order is not important
       (go (>! (:notify-ch strategy) :new)))))
 
 (defn get-strategy [strategy key]
