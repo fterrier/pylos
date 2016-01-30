@@ -6,7 +6,6 @@
              [move :refer [generate-all-moves]]
              [ui :refer [move-status]]]))
 
-;; TODO test termination (closing game-ch terminates this)
 (defn choose-move-with-context [game-ch game-position]
   (go-loop [[game-ch {:keys [board selected-positions player] :as game-position}]
             [game-ch game-position]]
@@ -15,31 +14,30 @@
           move-status        (move-status board player
                                           (generate-all-moves game-position))
           current-move       (get move-status selected-positions)]
-      (when-not (nil? user-input)
-        (log/debug "Got user input" user-input)
-        (if (= "play" user-input)
-          (if (:playable-move current-move)
-            {:next-move (:playable-move current-move)}
-            ;; we try to get a valid move again
-            (recur [game-ch game-position selected-positions]))
-          (let [user-input      (if (number? user-input) user-input 
-                                    (try (read-string user-input)
-                                         (catch Exception e nil)))
-                new-selected-positions (conj selected-positions user-input)
-                new-move               (get move-status new-selected-positions)]
-            (log/debug "Found new move" user-input new-move)
-            (if (nil? new-move)
-              ;; we try to get a valid move
-              (recur [game-ch game-position selected-positions])
-              (if (and (= 1 (count (:moves new-move)))
-                       (:playable-move new-move))
-                ;; we play this 1 playable move that we found
-                {:next-move (:playable-move new-move)}
-                ;; we send that game position again with the move selected
-                {:next-game-position 
-                 (assoc game-position 
-                        :selected-positions new-selected-positions
-                        :intermediate-board (:intermediate-board new-move))}))))))))
+      (log/debug "Got user input" user-input)
+      (if (= :done user-input)
+        (if (:playable-move current-move)
+          {:next-move (:playable-move current-move)}
+          ;; we try to get a valid move again
+          (recur [game-ch game-position selected-positions]))
+        (let [user-input      (if (number? user-input) user-input 
+                                  (try (read-string user-input)
+                                       (catch Exception e nil)))
+              new-selected-positions (conj selected-positions user-input)
+              new-move               (get move-status new-selected-positions)]
+          (log/debug "Found new move" user-input new-move)
+          (if (nil? new-move)
+            ;; we try to get a valid move
+            (recur [game-ch game-position selected-positions])
+            (if (and (= 1 (count (:moves new-move)))
+                     (:playable-move new-move))
+              ;; we play this 1 playable move that we found
+              {:next-move (:playable-move new-move)}
+              ;; we send that game position again with the move selected
+              {:next-game-position 
+               (assoc game-position 
+                      :selected-positions new-selected-positions
+                      :intermediate-board (:intermediate-board new-move))})))))))
 
 (defrecord EncodedStrategy [game-ch]
   Strategy

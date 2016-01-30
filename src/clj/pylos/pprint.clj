@@ -9,7 +9,7 @@
   (case (:type last-move)
     :rise   [(:low-position last-move) (:position last-move)]
     :add    [(:position last-move)]
-    :square [concat (:positions last-move) (bold-positions-from-move (:original-move last-move))]
+    :square (concat (:positions last-move) (bold-positions-from-move (:original-move last-move)))
     []))
 
 (defn- print-cell [board position last-move]

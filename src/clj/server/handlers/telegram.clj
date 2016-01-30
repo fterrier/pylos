@@ -154,15 +154,28 @@
     "b" :black 
     nil))
 
-(defn- parse-args [args]
+(defn parse-args-keep-order [args]
   (log/debug "Parsing args from client" args)
-  (into {} (map #(cond (try (number? (read-string %)) (catch Exception e false)) 
-                       [:number (read-string %)]
-                       (not (nil? (parse-color-text %))) 
-                       [:color (parse-color-text %)]
-                       :else 
-                       [:game-id %]) 
-                (remove nil? args))))
+  (map #(cond (try (number? (read-string %)) (catch Exception e false)) 
+              [:number (read-string %)]
+              (= "done" (->> % clojure.string/lower-case))
+              [:done true]
+              (not (nil? (parse-color-text %))) 
+              [:color (parse-color-text %)]
+              :else 
+              [:game-id %]) 
+       (remove nil? args)))
+
+(defn parse-args-for-play [args]
+  (let [parsed-args (parse-args-keep-order args)]
+    (reduce (fn [acc [type value]]
+              (case type
+                :number (update acc :play conj value)
+                :done (update acc :play conj :done)
+                (assoc acc type value))) {:play []}  parsed-args)))
+
+(defn parse-args [args]
+  (into {} (parse-args-keep-order args)))
 
 (defmulti parse-telegram-message (fn [[command & args] games client user message] command))
 
@@ -214,6 +227,7 @@
                                :chat-id (:id client)
                                :text (str "The game still needs a " (name (get-missing-player games game-id)) " player, it will start as soon as one have joined.")}])])))
 
+;; TODO disallow 2 human players on same color
 (defn- handle-join [games client user message args]
   (let [{:keys [game-id color]} (parse-args args)
         game-id                 (get-game-for-client games (:id client) game-id)
@@ -301,8 +315,9 @@
 (defmethod parse-telegram-message "/bot" [[_ & args] games client user message]
   (handle-bot games client user message args))
 
+;; TODO error : it is not your turn to play
 (defn- handle-play [games client user message args]
-  (let [{:keys [game-id color number]} (parse-args args) 
+  (let [{:keys [game-id color play]} (parse-args-for-play args) 
         game-id                  (get-game-for-client games (:id client) game-id)
         joined-colors            (get-in games [:games game-id :users (:id user)])]
     (cond 
@@ -319,7 +334,9 @@
                           :chat-id (:id client)
                           :text "You haven't joined any games yet. Please create a game using /new and join it using /join."}]]]
       :else
-      [games [[:gamerunner (->PlayerMoveCommand client user (get-game-for-client games (:id client) game-id) (or color (first joined-colors)) (dec number))]]])))
+      [games (into [] (map (fn [number-or-done] 
+                             [:gamerunner (->PlayerMoveCommand client user (get-game-for-client games (:id client) game-id) (or color (first joined-colors)) (if (number? number-or-done) (dec number-or-done) number-or-done))]) play))]
+      )))
 
 (defmethod parse-telegram-message "/play" [[_ & args] games client user message]
   (handle-play games client user message args))
@@ -427,6 +444,7 @@ Start a new game using /new.")}]
   (doseq [[dest message] messages]
     (case dest
       :telegram (send-to-telegram bot-id message)
+      ;; TODO this go here makes things break because it could be out of sequence
       :gamerunner (go (>! gamerunner-ch message)))))
 
 (defn- sanitize-input [text]
