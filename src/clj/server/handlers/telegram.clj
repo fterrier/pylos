@@ -334,9 +334,13 @@
                           :chat-id (:id client)
                           :text "You haven't joined any games yet. Please create a game using /new and join it using /join."}]]]
       :else
-      [games (into [] (map (fn [number-or-done] 
-                             [:gamerunner (->PlayerMoveCommand client user (get-game-for-client games (:id client) game-id) (or color (first joined-colors)) (if (number? number-or-done) (dec number-or-done) number-or-done))]) play))]
-      )))
+      [games
+       [[:gamerunner
+          (->PlayerMoveCommand
+           client user
+           (get-game-for-client games (:id client) game-id)
+           (or color (first joined-colors))
+           (map #(if (number? %) (dec %) %) play))]]])))
 
 (defmethod parse-telegram-message "/play" [[_ & args] games client user message]
   (handle-play games client user message args))
@@ -441,11 +445,12 @@ Start a new game using /new.")}]
 
 (defn- forward-messages [messages gamerunner-ch bot-id] 
   (log/debug "Forwarding messages" messages)
-  (doseq [[dest message] messages]
-    (case dest
-      :telegram (send-to-telegram bot-id message)
-      ;; TODO this go here makes things break because it could be out of sequence
-      :gamerunner (go (>! gamerunner-ch message)))))
+  (let [grouped-messages (group-by (fn [[dest _]] dest) messages)]
+    (go 
+      (doseq [[_ message] (:gamerunner grouped-messages)]
+        (>! gamerunner-ch message)))
+    (doseq [[_ message] (:telegram grouped-messages)]
+      (send-to-telegram bot-id message))))
 
 (defn- sanitize-input [text]
   (let [[first-arg & rest] (into [] (remove clojure.string/blank? 

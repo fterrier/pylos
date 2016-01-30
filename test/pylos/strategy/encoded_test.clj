@@ -26,6 +26,24 @@
                                   (alt!! result-ch ([value _] value)
                                          (timeout 100) :timeout))) 1)))
       (close! result-ch)))
+
+  (testing "Does not crash with BS"
+    (let [game       (new-pylos-game 4)
+          negamax    (negamax score-middle-blocked 10)
+          encoded    (encoded)
+          input-ch   (get-input-channel encoded)
+          result-ch  (play game {:white negamax :black encoded} :black)]
+      ;; we take the first move out of the channel - it is the empty board
+      (<!! result-ch)
+      ;; we pass a simple move to the game
+      (>!! input-ch "lskd")
+      (is (= :timeout (alt!! result-ch ([value _] value)
+                             (timeout 100) :timeout)))
+      (>!! input-ch 1)
+      ;; this time we should get something
+      (is (not= :timeout (alt!! result-ch ([value _] value)
+                             (timeout 100) :timeout)))
+      (close! result-ch)))
   
   (testing "Can play rise"
     (let [game       {:game-position (->PylosGamePosition pylos.core-test/four-square-test :white nil)}
@@ -39,6 +57,22 @@
       (>!! input-ch 6)
       (is (= [6] (:selected-positions (:game-position (<!! result-ch)))))
       (>!! input-ch 16)
+      ;; this time we should get something
+      (is (= :white (get (:board (:game-position 
+                                  (alt!! result-ch ([value _] value)
+                                         (timeout 100) :timeout))) 16)))
+      (close! result-ch)))
+
+  (testing "Can play rise in one move"
+    (let [game       {:game-position (->PylosGamePosition pylos.core-test/four-square-test :white nil)}
+          negamax    (negamax score-middle-blocked 10)
+          encoded    (encoded)
+          input-ch   (get-input-channel encoded)
+          result-ch  (play-game game {:white encoded :black negamax})]
+      ;; we take the first move out of the channel - it is the empty board
+      (<!! result-ch)
+      ;; we pass a rise to the game
+      (>!! input-ch [6 16])
       ;; this time we should get something
       (is (= :white (get (:board (:game-position 
                                   (alt!! result-ch ([value _] value)
@@ -94,7 +128,7 @@
       (is (= [28] (:selected-positions (:game-position (<!! result-ch)))))
       (>!! input-ch 28)
       (is (= [28 28] (:selected-positions (:game-position (<!! result-ch)))))      
-      (>!! input-ch "play")
+      (>!! input-ch :done)
       ;; this time we should get the square
       (is (= :open (get (:board (:game-position (alt!! result-ch    ([value _] value)
                                                        (timeout 100) :timeout))) 28)))
