@@ -13,18 +13,18 @@
         [pylos.board :refer [add-ball remove-ball has-ball]])]))
 
 (defn- all-permutations [positions]
+  "Returns a vector of [permutation complete]"
   (if (vector? positions) 
     (if (= 2 (count positions)) 
-      [[(get positions 0)] positions] 
-      [positions])
+      [[[(get positions 0)] false] [positions true]] 
+      [[positions true]])
     (let [position-vec (into [] positions)]
       (if (= 2 (count position-vec))
-        [[(get position-vec 0) (get position-vec 1)]
-         [(get position-vec 1) (get position-vec 0)]
-         [(get position-vec 0)]
-         [(get position-vec 1)]]
-      [position-vec]))))
-
+        [[[(get position-vec 0) (get position-vec 1)] true]
+         [[(get position-vec 1) (get position-vec 0)] true]
+         [[(get position-vec 0)] false]
+         [[(get position-vec 1)] false]]
+        [[position-vec true]]))))
 
 (defn- info-map [info positions]
   (into {} (map (fn [position] [position info]) positions)))
@@ -51,11 +51,10 @@
                  ;; whenever original move is made, highlight all removable positions
                  [{(conj prefix :all) (info-map {:removable true} positions)}]
                  ;; whenever a removable move is selected display the rest as removable
-                 (map (fn [[first & rest]] {(conj prefix first :all) (info-map {:removable true} rest)}) (all-permutations positions)))))))
+                 (map (fn [[[first & rest] _]] {(conj prefix first :all) (info-map {:removable true} rest)}) (all-permutations positions)))))))
 
 (defn- move-infos [board {:keys [type position low-position original-move positions color] :as move} move-to-save playable-move current-selection]
   "Generates a map of {[current-selections] :moves ... :playable-move ...}"
-;  (println board color position)
   (case type
     :add    {(into [] (cons position current-selection))                  
              {:moves [move-to-save] :playable-move playable-move}}
@@ -70,8 +69,9 @@
     :square (merge
              (move-infos board original-move move nil [])
              (apply merge
-                    (map (fn [removed-balls]
-                           (move-infos board original-move move move removed-balls))
+                    (map (fn [[removed-balls complete]]
+                           (move-infos board original-move move 
+                                       (if complete move nil) removed-balls))
                          (all-permutations positions))))))
 
 (defn- merge-move-infos [{move-1 :moves play-1 :playable-move} {move-2 :moves play-2 :playable-move}]

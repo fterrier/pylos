@@ -27,7 +27,8 @@
             [clojure.core.async :refer [>!!]]
             [clojure.core.async :refer [chan]]
             [clojure.core.async :refer [go-loop]]
-            [clojure.core.async :refer [<!]]))
+            [clojure.core.async :refer [<!]]
+            [pylos.ui :refer [move-status]]))
 
 (defn create-image [board last-move highlight-status selected-positions]
   (let [png-trans (org.apache.batik.transcoder.image.PNGTranscoder.)
@@ -42,19 +43,22 @@
     is))
 
 (defn get-keyboard [{:keys [board selected-positions] :as game-position} 
-                    highlight-status]
-  (->> (visit-board
-        board
-        (fn [[layer row col] position]
-          (let [position-info 
-                (merge
-                 (get highlight-status (conj selected-positions position))
-                 (get highlight-status (conj selected-positions :all)))]
-            (if (get position-info position)
-              (str (inc position)) nil))))
-       (apply concat)
-       (map #(remove nil? %))
-       (remove empty?)))
+                    highlight-status move-status]
+  (let [keyboard 
+        (->> (visit-board
+              board
+              (fn [[layer row col] position]
+                (let [position-info 
+                      (merge
+                       (get highlight-status (conj selected-positions position))
+                       (get highlight-status (conj selected-positions :all)))]
+                  (if (get position-info position)
+                    (str (inc position)) nil))))
+             (apply concat)
+             (map #(remove nil? %))
+             (remove empty?))]
+    (if (:playable-move (get move-status selected-positions))
+      (conj keyboard ["Play!"]) keyboard)))
 
 ;; START TELEGRAM CLIENT
 (defn- send-telegram [bot-id command options]
@@ -348,6 +352,9 @@
 (defmethod parse-telegram-message "/play" [[_ & args] games client user message]
   (handle-play games client user message args))
 
+(defmethod parse-telegram-message "play!" [[_ & args] games client user message]
+  (handle-play games client user message ["done"]))
+
 (defn- handle-start [games client user message]
   [games [[:telegram {:type :message
                       :chat-id (:id client)
@@ -395,9 +402,11 @@
 Your game will start as soon as a black and a white player have joined.")}]]])
 
 (defmethod handle-gamerunner-message :msg/game-infos [{:keys [type client game-id game-infos]} games]
-  (let [{:keys [board] :as game-position} 
+  (let [{:keys [board player] :as game-position} 
                           (:game-position game-infos)
-        highlight-status  (highlight-status board (generate-moves game-position))
+        moves             (generate-moves game-position)
+        highlight-status  (highlight-status board moves)
+        move-status       (move-status board player moves)
         current-users     (get-user-in-game games game-id (:player game-position))
         current-usernames (remove nil? (map :username current-users))
         messages [[:telegram {:type :photo 
@@ -410,7 +419,7 @@ Your game will start as soon as a black and a white player have joined.")}]]])
                          [:telegram {:type :message
                                      :chat-id (:id client)
                                      :text (str (clojure.string/join ", " (map #(str "@" %) current-usernames)) ": your turn!")
-                                     :reply-markup {:keyboard (get-keyboard game-position highlight-status)
+                                     :reply-markup {:keyboard (get-keyboard game-position highlight-status move-status)
                                                     :one_time_keyboard true
                                                     :selective true}}]))
         outcome  (get-in game-infos [:game-position :outcome])]

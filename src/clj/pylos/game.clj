@@ -9,6 +9,7 @@
 
 (defrecord PylosGamePosition [board player outcome]
   GamePosition
+  ; TODO move this somewhere else
   (score [game-position]
     {:white (balls-remaining board :white) :black (balls-remaining board :black)})
   (move-allowed? [game-position move]

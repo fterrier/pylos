@@ -163,6 +163,7 @@
                                     :stats          (:stats result)})))))
               {:additional-infos []}
               (range 1 (+ 1 depth)))))
+  (notify-end-game [this])
   (get-input-channel [this]))
 
 (defn negamax [score-fun depth]

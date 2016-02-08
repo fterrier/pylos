@@ -98,7 +98,7 @@
                                          (timeout 100) :timeout))) 16)))     
       (close! result-ch)))
   
-  (testing "Can play square"
+  (testing "Can play square test"
     (let [game      {:game-position (->PylosGamePosition pylos.core-test/full-board-square-top :white nil)}
           negamax   (negamax score-middle-blocked 2)
           encoded   (encoded)
@@ -108,7 +108,8 @@
       ;; we pass a square
       (>!! input-ch 28)
       (is (= [28] (:selected-positions (:game-position (<!! result-ch)))))
-      (>!! input-ch 28)
+      ;; we try with an array
+      (>!! input-ch [28])
       (is (= [28 28] (:selected-positions (:game-position (<!! result-ch)))))
       (>!! input-ch 25)
       ;; this time we should get the square
@@ -132,4 +133,22 @@
       ;; this time we should get the square
       (is (= :open (get (:board (:game-position (alt!! result-ch    ([value _] value)
                                                        (timeout 100) :timeout))) 28)))
+      (close! result-ch)))
+  
+  (testing "Can play square and stop in middle in one move"
+    (let [game      {:game-position (->PylosGamePosition pylos.core-test/full-board-square-top :white nil)}
+          negamax   (negamax score-middle-blocked 2)
+          encoded   (encoded)
+          input-ch  (get-input-channel encoded)
+          result-ch (play-game game {:white encoded :black negamax})]
+      (<!! result-ch)
+      ;; we pass a square
+      (>!! input-ch 28)
+      (is (= [28] (:selected-positions (:game-position (<!! result-ch)))))
+      (>!! input-ch [28 :done])
+      ;; this time we should get the square
+      (let [game-position (:game-position (alt!! result-ch    ([value _] value)
+                                                 (timeout 100) :timeout))]
+        (is (= :white (get (:board game-position) 27)))
+        (is (= :open (get (:board game-position) 28))))
       (close! result-ch))))
