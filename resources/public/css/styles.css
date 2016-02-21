@@ -102,39 +102,66 @@ body {
 }
 
 .circle {
-	position: relative;
-	width: 100px;
-	height: 100px;
-	border: 0px solid gray;
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border: 0px solid gray;
 }
 
 .circle-open svg circle {
-	pointer-events: all;
-	cursor: pointer;
+    pointer-events: all;
 }
 
 .circle svg circle {
-	stroke: gray;
-	stroke-width: 1;
-	fill: transparent;
+    stroke: gray;
+    stroke-width: 1;
+    fill: transparent;
 }
 
 .circle-black svg circle {
-	pointer-events: all;
-	stroke: white;
-	fill: black;
-	stroke-width: 2;
+    pointer-events: all;
+    stroke: white;
+    fill: black;
+    stroke-width: 2;
 }
 
 .circle-white svg circle {
-	pointer-events: all;
-	stroke: black;
-	fill: white;
-	stroke-width: 2;
+    pointer-events: all;
+    stroke: black;
+    fill: white;
+    stroke-width: 2;
+}
+
+.circle-no-acc {
+    visibility: hidden;
+}
+
+.circle-black {
+    color: white;
 }
 
 .circle svg circle:hover {
-	stroke-width: 3;
+    stroke-width: 3;
+}
+
+.circle-hover-red svg circle:hover {
+    stroke: red;
+    cursor: pointer;
+}
+
+.circle-hover-green svg circle:hover {
+    stroke: green;
+    cursor: pointer;
+}
+
+.circle-highlight-red svg circle {
+    stroke: red;
+    stroke-width: 3;
+}
+
+.circle-highlight-green svg circle {
+    stroke: green;
+    stroke-width: 3;
 }
 
 /*.circle-black svg circle:hover {
@@ -145,7 +172,7 @@ body {
 	stroke: #DDDDDD;
 }*/
 
-.circle-low-position svg circle {
+/*.circle-low-position svg circle {
 	stroke: green;
 	stroke-width: 3;
 }
@@ -168,15 +195,8 @@ body {
 .circle-selected svg circle {
 	stroke-width: 3;
 	stroke: red;
-}
+}*/
 
-.circle-no-acc {
-	visibility: hidden;
-}
-
-.circle-black {
-	color: white;
-}
 
 .circle-content {
 	position: absolute;

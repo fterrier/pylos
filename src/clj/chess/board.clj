@@ -32,4 +32,5 @@
      [:white :king] [:white :bishop] [:white :knight] [:white :tower]]]))
 
 
-(parse-board [])
+;;(parse-board [])
+

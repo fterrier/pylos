@@ -1,9 +1,10 @@
 (ns user
-(:require [clojure.tools.namespace.repl :as repl]
-[com.stuartsierra.component :as component]
-[system
-[figwheel :refer [figwheel-config map->Figwheel]]
-[main :refer [get-system-map]]]))
+  (:require [clojure.tools.namespace.repl :as repl]
+            [com.stuartsierra.component :as component]
+            [system
+             [figwheel :refer [figwheel-config map->Figwheel]]
+             [main :refer [get-system-map]]])
+  (:use [figwheel-sidecar.repl-api :as ra]))
 
 (set! *warn-on-reflection* true)
 
@@ -30,6 +31,9 @@
   (stop)
   (repl/refresh :after 'user/go))
 
+(defn cljs [] (ra/cljs-repl "dev"))
+
 (comment
   (reset)
+  (cljs)
 )

@@ -11,7 +11,7 @@
      :source-paths ["src/cljs" "src/cljc" "env/dev/src/cljs"]
      :figwheel {:websocket-host "localhost"
                 :on-jsload "pylos.core/fig-reload"
-                ;:devcards true
+                :devcards true
                 }
      :compiler {:main "pylos.core"
                 :asset-path "js/out"

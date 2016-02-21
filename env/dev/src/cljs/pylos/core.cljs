@@ -1,11 +1,15 @@
 (ns ^:figwheel-no-load pylos.core
-  (:require [pylos.game.app :as app]))
+  (:require [ui.pylos.cell :as cell]
+            [ui.pylos.board :as board]))
 
 (enable-console-print!)
 
-(defn fig-reload []
-  (app/start)
-  (app/main))
+(def fig-reload [])
 
-(app/init)
-(app/main)
+;(defn fig-reload []
+;   (app/start)
+;   (app/main))
+
+;(app/init)
+;(app/main)
+

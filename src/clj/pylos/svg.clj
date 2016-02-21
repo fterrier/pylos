@@ -7,7 +7,7 @@
    [pylos
     [pprint :refer [bold-positions-from-move]]
     [board :refer [cell]]
-    [init :refer [create-board visit-board]]]))
+    [init :refer [visit-board]]]))
 
 (defn print-board
   [board last-move highlight-status selected-positions]
@@ -18,7 +18,7 @@
          [:svg {:version 1.1 :xmlns "http://www.w3.org/2000/svg" :xmlns:xlink "http://www.w3.org/1999/xlink" :x "0px" :y "0px" :width "400px" :height "400px"}]
          (cons 
           [:rect {:x 0 :y 0 :width 400 :height 400 :fill "lightgrey"}]
-          (->> (visit-board 
+          (->> (visit-board
                 board 
                 (fn [[layer row col] position]
                   (let [cell  (cell board position)
@@ -45,19 +45,24 @@
                                        :white "white"
                                        :no-acc "none"
                                        :open "none")
+                        fill-opacity (case cell
+                                       :black 1.0
+                                       :white 1.0
+                                       :no-acc 0.0
+                                       :open 0.0)
                         position-info (merge 
-                                       (get highlight-status (conj selected-positions position))
-                                       (get highlight-status (conj selected-positions :all)))]
-                    [[:circle {:r 47 
+                                       (get highlight-status 
+                                            (conj selected-positions position))
+                                       (get highlight-status 
+                                            (conj selected-positions :all)))
+                        text           (when (get position-info position) 
+                                         (inc position))]
+                    [[:circle {:r 47
                                :cx x
                                :cy y
                                :stroke border-color
                                :stroke-width "2px"
-                               :fill-opacity (case cell
-                                               :black 1.0
-                                               :white 1.0
-                                               :no-acc 0.0
-                                               :open 0.0) 
+                               :fill-opacity fill-opacity 
                                :fill fill-color}]
                      [:text {:x x
                              :y y
@@ -68,8 +73,7 @@
                              :dy ".3em"
                              :font-family "Helvetica"
                              :font-size "32px"} 
-                      (if (get position-info position)
-                        (inc position) "")]])))
+                      (if text text "")]])))
                (apply concat)
                (apply concat)
                (apply concat))))))
