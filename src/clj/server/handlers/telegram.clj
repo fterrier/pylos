@@ -75,6 +75,7 @@
 (defmethod send-to-telegram :message [bot-id {:keys [chat-id text message-id parse-mode reply-markup]}]
   (send-telegram bot-id "sendMessage" {:query-params {:chat_id chat-id :text text :reply_to_message_id message-id :parse_mode parse-mode :reply_markup (generate-string reply-markup)}}))
 
+;; TODO remove highlight-status from here and abstract away image creation + rendering from telegram client
 (defmethod send-to-telegram :photo [bot-id {:keys [chat-id game-position highlight-status last-move message-id parse-mode caption]}]
   (let [{:keys [board 
                 intermediate-board 

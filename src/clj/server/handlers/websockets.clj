@@ -2,8 +2,8 @@
   (:require [clojure.core.async :refer [>! close! go]]
             [clojure.tools.logging :as log]
             [compojure.core :refer [GET POST routes]]
-            [game.board :refer [serialize-board]]
             [pylos.game :refer [new-pylos-game]]
+            [game.serializer :refer [serialize-game-position]]
             [ring.middleware
              [keyword-params :refer [wrap-keyword-params]]
              [params :refer [wrap-params]]]
@@ -22,6 +22,9 @@
              :refer
              [sente-web-server-adapter]]))
 
+;; TODO put this centraly somewhere
+(def pylos-game (new-pylos-game 4))
+
 (defn send-infos [{:keys [handler]} uid infos]
   (log/debug "Websockets - Sending" uid infos)
   ((:chsk-send! handler) uid infos))
@@ -35,8 +38,7 @@
 ;;     :negamax (negamax score-middle-blocked (:depth options))))
 
 (defn- parse-new-game-data [{:keys [first-player white black]}]
-  (let [game (new-pylos-game 4)]
-    [game first-player]))
+  [pylos-game first-player])
 
 ; TODO maybe define a protocol to 
 ; 1. parse 2. validate 3. transform
@@ -67,8 +69,7 @@
 
 (defn- serialize-game-infos [game-infos]
   (-> game-infos 
-      (assoc :board (serialize-board (:board (:game-position game-infos))))
-      (dissoc :game-position)))
+      (assoc :game-position (serialize-game-position pylos-game (:game-position game-infos)))))
 
 (defn- format-message-for-client [{:keys [type] :as message}]
   (let [data (dissoc message :type :client)]

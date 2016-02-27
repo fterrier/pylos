@@ -1,10 +1,4 @@
-(ns chess.board
-  (:require [game.board :refer [Board]]))
-
-
-
-
-
+(ns chess.board)
 
 (defn init-board [board]
   "Inits a chess board given in a 2-D vector of positions.

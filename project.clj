@@ -45,5 +45,5 @@
              :dev {:source-paths ["env/dev/src/clj"]
                    :dependencies [[com.cemerick/piggieback "0.2.1"]
                                   [figwheel-sidecar "0.5.0-2"]
-                                  [org.clojure/tools.namespace "0.2.11"]]
+                                  [org.clojure/tools.namespace "0.3.0-alpha3"]]
                    :plugins [[lein-figwheel "0.5.0"]]}})

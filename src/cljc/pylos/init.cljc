@@ -1,20 +1,9 @@
 (ns pylos.init
   #?(:cljs (:require
-            [game.board :refer [Board deserialize-board serialize-board]]
             [pylos.board :refer [board-size cell has-ball position-on-top positions-around]]))
   #?(:clj (:require
-           [game.board :refer [Board deserialize-board serialize-board]]
            [clojure.math.numeric-tower :as math]
            [pylos.board :refer :all])))
-
-(declare initialize-board-meta)
-
-(extend-protocol Board
-  #?(:clj clojure.lang.IPersistentVector :cljs cljs.core.PersistentVector)
-  (deserialize-board [_ map]
-                     (initialize-board-meta (:board map) (:size map)))
-  (serialize-board [board]
-                   {:board board :size (board-size board)}))
 
 (defrecord HelperMetaBoard [number-of-positions size
                            positions-right-down-map
@@ -28,7 +17,6 @@
                            positions-map all-positions])
 
 (defrecord MetaBoard [helper-meta-board empty-positions balls-on-board removable-positions])
-
 
 ; Starting board creation functions
 (defn- calculate-all-positions [size]
@@ -155,7 +143,7 @@
 (defn- retrieve-removable-positions [board all-positions]
   (into #{} (filter #(can-remove-ball-no-meta board %) all-positions)))
 
-(defn- initialize-board-meta [board size]
+(defn initialize-board-meta [board size]
   "Create all meta data for a board and attach to it"
   (let [helper-meta-board (helper-meta-board size)
         all-positions     (range 0 (count board))
@@ -188,7 +176,3 @@
                                            (into [] (for [col (range 0 (- size layer))] 
                                                       (visit-fn [layer row col] (get positions-map [(inc layer) (inc row) (inc col)]))))))))]
     frontend-board))
-
-;; TODO clean this up, not sure this is good here
-(defn create-board [map]
-  (deserialize-board [] map))

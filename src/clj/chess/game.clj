@@ -1,12 +1,6 @@
 (ns chess.game
   (:require [game.game :refer [GamePosition]]))
 
-
-
-
-
-
-
 (defrecord ChessGamePosition [board player outcome]
   GamePosition
   ; TODO move this somewhere else

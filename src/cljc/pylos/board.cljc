@@ -1,6 +1,4 @@
-(ns pylos.board
-  (:require [game.board :refer [Board]]))
-
+(ns pylos.board)
 
 (defn board-size [board]
   (:size (:helper-meta-board (meta board))))

@@ -22,7 +22,7 @@
               select-current-position]]
             [pylos.game.history :refer [history-comp]]
             [pylos.game.state :refer [game] :as state]
-            [pylos.game.util :refer [circle]]
+;            [pylos.game.util :refer [circle]]
             [pylos.board :refer [board-size]]
             [pylos.init :refer [visit-board]])
   (:require-macros [cljs.core.async.macros :refer [go-loop]]))
@@ -63,7 +63,8 @@
                       (fn [e] (put! (:notif-ch (om/get-shared owner)) 
                                     {:topic :game :action :select-cell :position position}) 
                         (. e preventDefault))}
-                     (circle)))))
+;                     (circle)
+                     ))))
 
 (defcomponent hurmpf-row-comp [[[game-infos layer row] positions] owner]
   (render [_]
@@ -86,7 +87,8 @@
                    (for [i (range 0 remaining-balls)]
                      (dom/div {:class (str "circle circle-" (name color))}
                               (dom/div {:class "circle-content"} (inc i))
-                              (circle))))))
+;                              (circle)
+)))))
 
 (defcomponent additional-infos-iteration-comp [iteration owner]
   (render [_]

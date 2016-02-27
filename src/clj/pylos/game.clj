@@ -1,8 +1,8 @@
 (ns pylos.game
   (:require [game.game :refer [Game GamePosition other-color]]
             [pylos
-             [init :refer [starting-board]]
-             [board :refer [balls-remaining]]
+             [init :refer [starting-board initialize-board-meta]]
+             [board :refer [balls-remaining board-size]]
              [move :refer [game-over? generate-all-moves is-move-allowed make-move-on-board order-moves winner]]]))
 
 (declare next-game-position)
@@ -29,7 +29,7 @@
 
 (defrecord Pylos [size]
   Game
-  (initial-game-position [this first-player]
+  (initial-game-position [_ first-player]
     (map->PylosGamePosition {:board   (starting-board size)
                              :player  first-player
                              :outcome nil})))

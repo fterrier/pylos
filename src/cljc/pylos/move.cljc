@@ -133,7 +133,8 @@
         (= type2 :square) 1
         (= type1 :rise) -1
         (= type2 :rise) 1
-        :else (throw (Exception. "Not possible"))))))
+        ;; impossible state
+        :else 0))))
 
 (defn order-moves [board moves]
   (sort (compare-moves board) moves))

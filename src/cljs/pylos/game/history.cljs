@@ -4,8 +4,7 @@
             [om-tools.core :refer-macros [defcomponent]]
             [om-tools.dom :as dom :include-macros true]
             [pylos.game.state :refer [game]]
-            [pylos.game.game-state :refer [game-infos]]
-            [pylos.game.util :refer [circle]]))
+            [pylos.game.game-state :refer [game-infos]]))
 
 
 (defcomponent history-comp [_ owner]
@@ -22,7 +21,8 @@
                                          (put! (:notif-ch (om/get-shared owner))
                                                     {:topic :game :action :select-current-index :current-index i}))}
                             (dom/div {:class "circle-content"} i)
-                            (circle 10)))))
+                            ;(circle 10)
+                            ))))
               (dom/a {:href "#"
                       :on-click (fn [e]
                                   (.preventDefault e)

@@ -42,7 +42,7 @@
       (>!! input-ch 1)
       ;; this time we should get something
       (is (not= :timeout (alt!! result-ch ([value _] value)
-                             (timeout 100) :timeout)))
+                                (timeout 100) :timeout)))
       (close! result-ch)))
   
   (testing "Can play rise"

@@ -1,8 +1,6 @@
 (ns pylos.game.game-state
-  (:require [game.board :refer [serialize-board]]
-            [om.core :as om]
-            [pylos.init :refer [starting-board]]
-            [pylos.ui :refer [game-infos-with-meta]]))
+  (:require [om.core :as om]
+            [pylos.ui :refer [move-status highlight-status game-infos-with-meta]]))
 
 ; TODO redo this
 (def initial-state-game {:game-infos []

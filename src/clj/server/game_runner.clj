@@ -98,6 +98,8 @@
 
 ;; game runner API
 ;; precondition of this is that all user-ids have left
+;; TODO rewrite this so all those functions are without side-effects
+;; and all the side effects are in the "handle" functions
 (defn- stop-game [games game-id]
   (let [game (get-in @games [:games game-id])]
     (when-not (nil? game)

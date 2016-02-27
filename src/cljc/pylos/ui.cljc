@@ -1,16 +1,20 @@
 (ns pylos.ui
   #?@(:clj
-      [(:require
-        [pylos.board :refer [balls-remaining square-corners board-size]]
-        [pylos.init :refer [visit-board create-board]]
-        [pylos.move :refer [generate-all-moves]]
-        [pylos.board :refer [add-ball remove-ball has-ball]])]
-      :cljs
-      [(:require
-        [pylos.board :refer [square-corners balls-remaining board-size]]
-        [pylos.init :refer [create-board visit-board]]
-        [pylos.move :refer [generate-all-moves]]
-        [pylos.board :refer [add-ball remove-ball has-ball]])]))
+       [(:require
+         [game.serializer :refer [deserialize-game-position]]
+         [pylos.serializer :refer [new-pylos-serializer]]
+         [pylos.board
+          :refer
+          [add-ball balls-remaining has-ball remove-ball square-corners]]
+         [pylos.move :refer [generate-all-moves]])]
+       :cljs
+       [(:require
+         [game.serializer :refer [deserialize-game-position]]
+         [pylos.serializer :refer [new-pylos-serializer]]
+         [pylos.board
+          :refer
+          [add-ball balls-remaining has-ball remove-ball square-corners]]
+         [pylos.move :refer [generate-all-moves]])]))
 
 (defn- all-permutations [positions]
   "Returns a vector of [permutation complete]"
@@ -91,6 +95,7 @@
               (remove-ball board color selection)
               (add-ball board color selection))) current-board selections))
 
+;; TODO get rid of color
 (defn move-status [board color moves]
   "we generate all possible path to moves"
   (into {} (map (fn [[selections move-info]] 
@@ -98,14 +103,14 @@
                                      (intermediate-board board color selections))]) 
                 (reduce #(merge-with merge-move-infos %1 (move-infos board %2 %2 %2 [])) {} moves))))
 
-; TODO move this to CLJS ?
-(defn game-infos-with-meta [game-infos]
-  (let [board-with-meta  (create-board (:board game-infos))
-        next-player      (:player game-infos)
-        possible-moves   (generate-all-moves {:board board-with-meta :player next-player})
-        highlight-status (highlight-status board-with-meta possible-moves)
-        move-status      (move-status board-with-meta next-player possible-moves)
-        balls-remaining  {:white (balls-remaining board-with-meta :white)
-                          :black (balls-remaining board-with-meta :black)}
-        game-infos       (assoc game-infos :board board-with-meta :highlight-status highlight-status :move-status move-status :balls-remaining balls-remaining)]
+;; TODO move this to CLJS ?
+(defn game-infos-with-meta [{:keys [game-position] :as game-infos}]
+  ;; TODO move new-pylos-serializer somewhere else
+  (let [board            (:board game-position)
+        possible-moves   (generate-all-moves game-position)
+        highlight-status (highlight-status board possible-moves)
+        move-status      (move-status (:board game-position) (:player game-position) possible-moves)
+        balls-remaining  {:white (balls-remaining board :white)
+                          :black (balls-remaining board :black)}
+        game-infos       (assoc game-infos :game-position game-position :highlight-status highlight-status :move-status move-status :balls-remaining balls-remaining)]
     game-infos))
