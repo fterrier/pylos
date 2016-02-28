@@ -24,7 +24,8 @@
             [pylos.game.state :refer [game] :as state]
 ;            [pylos.game.util :refer [circle]]
             [pylos.board :refer [board-size]]
-            [pylos.init :refer [visit-board]])
+;            [pylos.init :refer [visit-board]]
+            )
   (:require-macros [cljs.core.async.macros :refer [go-loop]]))
 
 (defn indexed-vector [m attrs]
@@ -139,7 +140,9 @@
                 next-player     (:player game-infos)
                 balls-remaining (:balls-remaining game-infos)
                 board           (:board game-infos)
-                layered-board   (visit-board board (fn [_ position] position))]
+                layered-board   nil
+                ;(visit-board board (fn [_ position] position))
+                ]
             (println "Rendering board" layered-board)
             (if-not (empty? game-infos)
               (dom/div {:class "main"}
