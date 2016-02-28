@@ -6,15 +6,15 @@
            [pylos.board :refer :all])))
 
 (defrecord HelperMetaBoard [number-of-positions size
-                           positions-right-down-map
-                           positions-left-up-map
-                           position-on-top-map
-                           square-positions-below-map
-                           square-positions-at-position-map
-                           number-of-positions-around
-                           positions-above-first-layer
-                           positions-under-position-map
-                           positions-map all-positions])
+                            positions-right-down-map
+                            positions-left-up-map
+                            position-on-top-map
+                            square-positions-below-map
+                            square-positions-at-position-map
+                            number-of-positions-around
+                            positions-above-first-layer
+                            positions-under-position-map
+                            positions-map all-positions])
 
 (defrecord MetaBoard [helper-meta-board empty-positions balls-on-board removable-positions])
 
@@ -148,15 +148,15 @@
   (let [helper-meta-board (helper-meta-board size)
         all-positions     (range 0 (count board))
         board             (with-meta board {:helper-meta-board helper-meta-board})
-        board             
+        board
         (with-meta board
           (map->MetaBoard
            {:helper-meta-board   helper-meta-board
             ;; TODO maybe send those 3 datastructures also from the server
             :empty-positions     (retrieve-empty-positions board all-positions)
-            :balls-on-board      {:black (retrieve-balls-on-board 
+            :balls-on-board      {:black (retrieve-balls-on-board
                                           board :black all-positions)
-                                  :white (retrieve-balls-on-board 
+                                  :white (retrieve-balls-on-board
                                           board :white all-positions)}
             :removable-positions (retrieve-removable-positions board all-positions)}))]
     board))
@@ -164,7 +164,7 @@
 (defn starting-board [size]
   {:pre [(even? (count (calculate-all-positions size)))]}
   (let [all-positions (calculate-all-positions size)
-        board  (into [] (map (fn [ind] (if (< ind (* size size)) :open :no-acc)) 
+        board  (into [] (map (fn [ind] (if (< ind (* size size)) :open :no-acc))
                              (range (count all-positions))))]
     (initialize-board-meta board size)))
 
@@ -172,7 +172,7 @@
   (let [size           (board-size board)
         positions-map  (:positions-map (:helper-meta-board (meta board)))
         frontend-board (into [] (for [layer (range 0 size)]
-                                (into [] (for [row (range 0 (- size layer))]
-                                           (into [] (for [col (range 0 (- size layer))] 
-                                                      (visit-fn [layer row col] (get positions-map [(inc layer) (inc row) (inc col)]))))))))]
+                                 (into [] (for [row (range 0 (- size layer))]
+                                            (into [] (for [col (range 0 (- size layer))]
+                                                       (visit-fn [layer row col] (get positions-map [(inc layer) (inc row) (inc col)]))))))))]
     frontend-board))

@@ -73,14 +73,14 @@
   (will-unmount [_]
                 (close! (om/get-state owner :control-ch)))
   (render-state [_ _]
-          (dom/div 
-           (dom/button {:on-click 
-                        (fn [e] (put! (:comm-ch (om/get-shared owner)) 
-                                      {:action :server/new-game 
+          (dom/div
+           (dom/button {:on-click
+                        (fn [e] (put! (:comm-ch (om/get-shared owner))
+                                      {:action :server/new-game
                                        :message {:first-player :white
                                                  :white {:strategy :channel}
                                                  :black  {:strategy :negamax
-                                                          :options {:depth 4}}}}) 
+                                                          :options {:depth 4}}}})
                           (. e preventDefault))} "new game")
            (om/build game-comp nil))))
 
@@ -94,9 +94,9 @@
                        :notif-ch (:notif-ch @app-channels)
                        :comm-ch (:comm-ch @app-channels)}
               :tx-listen (fn [{:keys [path old-value new-value old-state new-state tag]} root]
-                           ;(println "state changed")
-                           ;(swap! app-state #(update % :history conj (:game-infos new-state)))
-                           )}))
+                           #_(println "state changed")
+                           #_(swap! app-state #(update % :history conj (:game-infos new-state))))}))
+
 
 (defn start [])
 
