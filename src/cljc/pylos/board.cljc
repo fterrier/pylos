@@ -156,13 +156,12 @@
                                           (disj position))
         position-below                (square-position-below board position)
         removable-positions-to-remove (if-not (nil? position-below) (square-corners board-with-ball position-below) [])]
-    (with-meta
-      (reduce #(change-cell %1 %2 :open :no-acc) board-with-ball new-open-positions)
-      (assoc meta-infos
-        :empty-positions new-empty-positions
-        :removable-positions (-> (apply disj (:removable-positions meta-infos) removable-positions-to-remove)
-                                 (conj position))
-        :balls-on-board (update (:balls-on-board meta-infos) color #(conj % position))))))
+    (assoc (reduce #(change-cell %1 %2 :open :no-acc) board-with-ball new-open-positions)
+           :meta-board (assoc meta-infos
+                              :empty-positions new-empty-positions
+                              :removable-positions (-> (apply disj (:removable-positions meta-infos) removable-positions-to-remove)
+                                                       (conj position))
+                              :balls-on-board (update (:balls-on-board meta-infos) color #(conj % position))))))
 
 (defn removable-positions-below [board position]
   "Gives the positions immediately below the given positions that can be removed
@@ -190,13 +189,12 @@
         new-empty-positions        (-> (apply disj (:empty-positions meta-infos) open-positions-to-remove)
                                        (conj position))
         new-removable-positions    (removable-positions-below board-without-ball position)]
-    (with-meta
-      (reduce #(change-cell %1 %2 :no-acc :open) board-without-ball open-positions-to-remove)
-      (assoc meta-infos
-        :empty-positions new-empty-positions
-        :removable-positions (-> (apply conj (:removable-positions meta-infos) new-removable-positions)
-                                 (disj position))
-        :balls-on-board (update (:balls-on-board meta-infos) color #(disj % position))))))
+    (assoc (reduce #(change-cell %1 %2 :no-acc :open) board-without-ball open-positions-to-remove)
+           :meta-board (assoc meta-infos
+                              :empty-positions new-empty-positions
+                              :removable-positions (-> (apply conj (:removable-positions meta-infos) new-removable-positions)
+                                                        (disj position))
+                              :balls-on-board (update (:balls-on-board meta-infos) color #(disj % position))))))
 
 (defn can-remove-position? [board color position]
   (and (can-remove-ball board position)

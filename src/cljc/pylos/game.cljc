@@ -1,8 +1,7 @@
 (ns pylos.game
   (:require [game.game :refer [Game GamePosition other-color]]
-            [pylos
-             [board :refer [new-pylos-board]]
-             [move :refer [game-over? generate-all-moves is-move-allowed make-move-on-board order-moves winner]]]))
+            [pylos.board :refer [new-pylos-board]]
+            [pylos.move :refer [game-over? generate-all-moves is-move-allowed make-move-on-board order-moves winner]]))
 
 (declare next-game-position)
 

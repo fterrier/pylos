@@ -89,7 +89,7 @@
   {:addable :risable :in-square)} and position is [<current-selections> <highlighted-position>]"
   (reduce #(apply merge-with merge %1 (highlight-infos board %2)) {} moves))
 
-(defn- intermediate-board [current-board color selections]  
+(defn intermediate-board [current-board color selections]  
   (reduce (fn [board selection]
             (if (has-ball board selection)
               (remove-ball board color selection)

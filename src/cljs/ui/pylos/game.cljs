@@ -12,17 +12,16 @@
          [:games id])
   static om/IQueryParams
   (params [this]
-          {:index 0})
+          {:index 1})
   static om/IQuery
   (query [this]
          (let [subquery (om/get-query GamePosition)]
-           `[:id ({:past-game-infos ~subquery} {:index ?index})]))
+           `[:id ({:past-game-infos ~subquery} {:index ~'?index})]))
   Object
   (render [this]
           (let [{:keys [past-game-infos]} (om/props this)
-                {:keys [index]}           (om/get-params this)
-                game-infos                (get past-game-infos index)]
-            (dom/div (game-position (assoc game-infos :current-selections []))))))
+                {:keys [index]}           (om/get-params this)]
+            (dom/div (game-position (assoc (get past-game-infos 0) :current-selections []))))))
 
 (def game (om/factory Game))
 
@@ -38,9 +37,17 @@
 
 (defmulti read om/dispatch)
 
-(defmethod read :current-game [{:keys [state] :as env} key params]
+(defmethod read :past-game-infos [{:keys [state query game] :as env} key params]
+  {:value (if (nil? (:index params))
+            [(last (get game key))]
+            [(get (get game key) (:index params))])})
+
+(defmethod read :id [{:keys [state game] :as env} key params]
+  {:value (get game key)})
+
+(defmethod read :current-game [{:keys [state parser query] :as env} key _]
   (let [st @state]
-    {:value  (get-in st (get st key))}))
+    {:value (parser (assoc env :game (get-in st (get st key))) query)}))
 
 (def parser (om.next/parser {:read read}))
 
