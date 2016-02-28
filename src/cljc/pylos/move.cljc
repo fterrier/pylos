@@ -36,6 +36,10 @@
 
 (declare make-move-on-board)
 
+(defn- all-tails [col]
+  (map reverse (remove empty? (reductions conj [] col))))
+
+
 (defn is-move-allowed [board {:keys [color type position low-position positions original-move] :as move}]
   (case type
     :add (can-add-position? board color position)
@@ -75,10 +79,7 @@
    :position high-position
    :color color})
 
-(defn all-tails [col]
-  (map reverse (remove empty? (reductions conj [] col))))
-
-(defn remove-balls-when-square [{:keys [position type] :as move} board color new-square-position]
+(defn- remove-balls-when-square [{:keys [position type] :as move} board color new-square-position]
   "Generates all possible ball removal possibilities given taht there is a square
   of the same color as player at the given position
   Assumes the given move has not been generated on the given board."
@@ -103,17 +104,15 @@
                                       [] (conj moves-with-ball-risen move-with-ball-added))]
     (into [] next-moves)))
 
-; (defn best-order [board]
-;   (let [empty-positions            (empty-positions board)
-;         number-of-positions-around (number-of-positions-around board)]
-;     (sort-by #(-(number-of-positions-around %)) empty-positions)))
+(defn generate-all-moves [game-position]
+  (mapcat #(calculate-next-moves game-position %) (empty-positions (:board game-position))))
 
-(defn compare-positions [board position1 position2]
+(defn- compare-positions [board position1 position2]
   (let [number-of-positions-around (number-of-positions-around board)]
     (- (number-of-positions-around position2)
        (number-of-positions-around position1))))
 
-(defn compare-moves [board]
+(defn- compare-moves [board]
   (fn [{type1 :type :as move1} {type2 :type :as move2}]
     (if (= type1 type2)
       ; we order by position
@@ -138,9 +137,6 @@
 
 (defn order-moves [board moves]
   (sort (compare-moves board) moves))
-
-(defn generate-all-moves [game-position]
-  (mapcat #(calculate-next-moves game-position %) (empty-positions (:board game-position))))
 
 (defn game-over? [board]
   (or (not (has-balls-to-play board :white))
