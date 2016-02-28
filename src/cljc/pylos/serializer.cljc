@@ -1,12 +1,11 @@
 (ns pylos.serializer
   (:require [game.serializer :refer [GameSerializer]]
-            [pylos.init :refer [initialize-board-meta]]
-            [pylos.board :refer [board-size]]))
+            [pylos.board :refer [board-size new-pylos-board]]))
 
 (defrecord PylosSerializer []
   GameSerializer
   (deserialize-game-position [_ {:keys [size board player outcome]}]
-    {:board (initialize-board-meta board size)
+    {:board (new-pylos-board board size)
      :player player
      :outcome outcome})
   (serialize-game-position [_ {:keys [board player outcome]}]

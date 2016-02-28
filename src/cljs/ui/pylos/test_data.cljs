@@ -26,7 +26,8 @@
 (def game-infos-2-black (game-infos-with-meta {:game-position (game-position-1 :black)}))
 (def game-infos-2-white (game-infos-with-meta {:game-position (game-position-1 :white)}))
 
-(def state-1 {:games [:id "test" :past-game-infos [game-infos-1]]})
+(def state-1 {:games {"aNJQakPq" {:id "aNJQakPq" :past-game-infos [game-infos-1]}}
+              :current-game [:games "aNJQakPq"]})
 
 
 

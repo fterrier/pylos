@@ -1,15 +1,15 @@
 (ns server.handlers.telegram
   (:require [cheshire.core :refer [generate-string]]
-            [clojure.core.async :refer [>! close! go thread]]
             [clojure.string :as str]
             [clojure.tools.logging :as log]
             [compojure.core :refer [routes GET POST]]
-            [game.game :refer [generate-moves score]]
+            [game.game :refer [generate-moves]]
             [org.httpkit.client :as http]
             [pylos
              [game :refer [new-pylos-game]]
              [svg :refer [print-board]]]
-            [pylos.ui :refer [highlight-status]]
+            [pylos.ui :refer [highlight-status move-status score]]
+            [pylos.board :refer [visit-board]]
             [ring.middleware.json :refer [wrap-json-body wrap-json-response]]
             [server.game-runner
              :refer
@@ -23,12 +23,7 @@
               ->StopGameCommand]]
             [server.handlers.handler :refer [Handler start-event-handler]]
             [server.site :refer [convert-to-json]]
-            [pylos.init :refer [visit-board]]
-            [clojure.core.async :refer [>!!]]
-            [clojure.core.async :refer [chan]]
-            [clojure.core.async :refer [go-loop]]
-            [clojure.core.async :refer [<!]]
-            [pylos.ui :refer [move-status]]))
+            [clojure.core.async :refer [>!! chan go-loop <! >! close! go thread]]))
 
 (defn create-image [board last-move highlight-status selected-positions]
   (let [png-trans (org.apache.batik.transcoder.image.PNGTranscoder.)

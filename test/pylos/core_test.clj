@@ -1,11 +1,10 @@
 (ns pylos.core-test
   (:require [clojure.test :refer :all]
             [pylos.board :refer :all]
-            [pylos.init :refer :all]
             [pylos.game :refer :all]))
 
-(def four (starting-board 4))
-(def three (starting-board 3))
+(def four (new-pylos-board 4))
+(def three (new-pylos-board 3))
 ;(def game-four (initial-game 4 :white))
 
 (def four-square-test (-> four

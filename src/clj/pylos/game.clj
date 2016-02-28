@@ -1,17 +1,13 @@
 (ns pylos.game
   (:require [game.game :refer [Game GamePosition other-color]]
             [pylos
-             [init :refer [starting-board initialize-board-meta]]
-             [board :refer [balls-remaining board-size]]
+             [board :refer [new-pylos-board]]
              [move :refer [game-over? generate-all-moves is-move-allowed make-move-on-board order-moves winner]]]))
 
 (declare next-game-position)
 
 (defrecord PylosGamePosition [board player outcome]
   GamePosition
-  ; TODO move this somewhere else
-  (score [game-position]
-    {:white (balls-remaining board :white) :black (balls-remaining board :black)})
   (move-allowed? [game-position move]
     (is-move-allowed board move))
   (generate-moves [game-position]
@@ -30,7 +26,7 @@
 (defrecord Pylos [size]
   Game
   (initial-game-position [_ first-player]
-    (map->PylosGamePosition {:board   (starting-board size)
+    (map->PylosGamePosition {:board   (new-pylos-board size)
                              :player  first-player
                              :outcome nil})))
 

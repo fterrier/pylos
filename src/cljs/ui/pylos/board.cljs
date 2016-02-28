@@ -8,16 +8,16 @@
             [pylos.init :refer [starting-board visit-board]]
             [pylos.ui :refer [game-infos-with-meta]]))
 
-(defn position-info [highlight-status current-selections position]
+(defn- position-info [highlight-status current-selections position]
   (merge
    ;; all positions and the highlighted ones
    (get highlight-status (conj current-selections :all))
    (get highlight-status (conj current-selections position))))
 
-(defn is-selected [current-selections position]
+(defn- is-selected [current-selections position]
   (contains? (into #{} current-selections) position))
 
-(defn cell-comp [[board on-select on-mouse-over on-mouse-out 
+(defn- cell-comp [[board on-select on-mouse-over on-mouse-out 
                   highlight-status highlighted-position current-selections] position]
   (let [position-info (get (position-info highlight-status current-selections highlighted-position) position)
         {:keys [risable addable removable in-square]} position-info
@@ -34,18 +34,18 @@
            :hover hover 
            :highlight highlight})))
 
-(defn row-comp [board-state positions]
+(defn- row-comp [board-state positions]
   (dom/div {:class (str "pylos-row")}
            (map #(cell-comp board-state %) positions)))
 
-(defn layer-comp [board-state layers level]
+(defn- layer-comp [board-state layers level]
   (when-not (empty? layers)
     (let [layer (first layers)]
       (dom/div {:class (str "pylos-layer layer-" level)}
                (map #(row-comp board-state %) layer)
                (layer-comp board-state (rest layers) (+ level 1))))))
 
-(defn board-comp [[board :as board-state]]
+(defn- board-comp [[board :as board-state]]
   (dom/div {:class "pylos-board"}
            (let [layered-board (visit-board board (fn [_ position] position))]
              (layer-comp board-state layered-board 0))))
@@ -63,6 +63,7 @@
                             (om/transact! this `[(select-cell ~{:position position})]))
                 on-mouse-over (fn [position] (om/set-state! this {:highlighted-position position}))
                 on-mouse-out (fn [position] (om/set-state! this {:highlighted-position nil}))]
+            (println (meta board) highlighted-position highlight-status current-selections)
             (board-comp [board on-select on-mouse-over on-mouse-out 
                          highlight-status highlighted-position current-selections]))))
 

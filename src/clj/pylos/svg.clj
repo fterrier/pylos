@@ -6,8 +6,7 @@
     [page :refer [xml-declaration]]]
    [pylos
     [pprint :refer [bold-positions-from-move]]
-    [board :refer [cell]]
-    [init :refer [visit-board]]]))
+    [board :refer [cell visit-board]]]))
 
 (defn print-board
   [board last-move highlight-status selected-positions]

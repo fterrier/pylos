@@ -6,7 +6,6 @@
 (defprotocol GamePosition
   (board [this])
   (player [this])
-  (score [this]) ;; TODO move to board ?
   (outcome [this])
   (generate-moves [this])
   (move-allowed? [this move])

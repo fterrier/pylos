@@ -82,7 +82,7 @@
   {:moves (concat move-1 move-2)
    :playable-move (if play-1 play-1 play-2)})
 
-(defn highlight-status [board moves]
+(defn highlight-status [{:keys [board] :as game-position} moves]
   "we highlight different stuff if we are in the middle of a rise or square
   also the actual highlight position does not need to be saved, just the
   state of each balls in a map {position <state>} where <state> is
@@ -95,22 +95,20 @@
               (remove-ball board color selection)
               (add-ball board color selection))) current-board selections))
 
-;; TODO get rid of color
-(defn move-status [board color moves]
+(defn move-status [{:keys [board player]} moves]
   "we generate all possible path to moves"
   (into {} (map (fn [[selections move-info]]
                   [selections (assoc move-info :intermediate-board
-                                     (intermediate-board board color selections))])
+                                     (intermediate-board board player selections))])
                 (reduce #(merge-with merge-move-infos %1 (move-infos board %2 %2 %2 [])) {} moves))))
 
-;; TODO move this to CLJS ?
+;; TODO move these 2 to CLJS ?
 (defn game-infos-with-meta [{:keys [game-position] :as game-infos}]
-  ;; TODO move new-pylos-serializer somewhere else
-  (let [board            (:board game-position)
-        possible-moves   (generate-all-moves game-position)
-        highlight-status (highlight-status board possible-moves)
-        move-status      (move-status (:board game-position) (:player game-position) possible-moves)
-        balls-remaining  {:white (balls-remaining board :white)
-                          :black (balls-remaining board :black)}
-        game-infos       (assoc game-infos :game-position game-position :highlight-status highlight-status :move-status move-status :balls-remaining balls-remaining)]
+  (let [possible-moves   (generate-all-moves game-position)
+        highlight-status (highlight-status game-position possible-moves)
+        move-status      (move-status game-position possible-moves)
+        game-infos       (assoc game-infos :game-position game-position :highlight-status highlight-status :move-status move-status)]
     game-infos))
+
+(defn score [{:keys [board]}]
+  {:white (balls-remaining board :white) :black (balls-remaining board :black)})
