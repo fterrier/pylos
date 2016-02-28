@@ -63,7 +63,7 @@
                       (fn [e] (put! (:notif-ch (om/get-shared owner)) 
                                     {:topic :game :action :select-cell :position position}) 
                         (. e preventDefault))}
-;                     (circle)
+                     #_(circle)
                      ))))
 
 (defcomponent hurmpf-row-comp [[[game-infos layer row] positions] owner]
