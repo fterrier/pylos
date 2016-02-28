@@ -7,19 +7,19 @@
 
 (defn circle
   ([radius] (dom/svg {:width (* 2 radius) :height (* 2 radius)}
-           (dom/circle {:cx radius :cy radius :r (* radius (/ 47 50))})))
+             (dom/circle {:cx radius :cy radius :r (* radius (/ 47 50))})))
   ([] (circle 50)))
 
 (defui  Cell
   Object
   (render [this]
           (let [{:keys [color hover highlight on-select on-mouse-over on-mouse-out position]} (om/props this)]
-            (dom/div {:class 
+            (dom/div {:class
                       (str "circle circle-" (name color) " "
-                           (when hover 
+                           (when hover
                              (str "circle-hover-" (name hover)))
                            " "
-                           (when highlight 
+                           (when highlight
                              (str "circle-highlight-" (name highlight))))
                       :on-click (fn [e] (on-select position))
                       :on-mouse-over (fn [e] (on-mouse-over position))
@@ -33,7 +33,7 @@
   {:color :white} {:inspect-data true})
 
 (defcard cell-black-card
-  (dc/om-next-root Cell) 
+  (dc/om-next-root Cell)
   {:color :black} {:inspect-data true :classname "gray"})
 
 (defcard cell-open-card
