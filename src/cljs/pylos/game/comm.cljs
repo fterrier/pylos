@@ -9,7 +9,7 @@
 (defn event-msg-handler* [pub-ch]
   (fn [{:as ev-msg :keys [id ?data event]}]
     (println "Event:" id ?data)
-    (go 
+    (go
       (case id
         :chsk/state (>! pub-ch {:topic :server :action :chsk/state :message ?data})
         :chsk/recv (>! pub-ch {:topic :server :action (get ?data 0) :message (get ?data 1)})
@@ -20,9 +20,9 @@
   (println "Initializing server connection")
   (let [{:keys [chsk ch-recv send-fn state]}
         (sente/make-channel-socket! (str "/chsk") ; Note the same path as before
-                                    {:type :auto ; e/o #{:auto :ajax :ws}
+                                    {:type :auto})] ; e/o #{:auto :ajax :ws}
                                      ;:host "localhost:8080"
-                                     })]
+
     (swap! app-channels assoc :chsk chsk)
     ; (swap! app-channels assoc :ch-chsk ch-recv)
     (swap! app-channels assoc :chsk-send! send-fn)

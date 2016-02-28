@@ -19,12 +19,12 @@
                              :on-click (fn [e]
                                          (.preventDefault e)
                                          (put! (:notif-ch (om/get-shared owner))
-                                                    {:topic :game :action :select-current-index :current-index i}))}
+                                               {:topic :game :action :select-current-index :current-index i}))}
                             (dom/div {:class "circle-content"} i)
-                            ;(circle 10)
-                            ))))
+                            #_(circle 10)))))
+
               (dom/a {:href "#"
                       :on-click (fn [e]
                                   (.preventDefault e)
                                   (put! (:notif-ch (om/get-shared owner))
-                                            {:topic :game :action :select-current-index :current-index nil}))} "follow game")))))
+                                        {:topic :game :action :select-current-index :current-index nil}))} "follow game")))))

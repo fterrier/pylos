@@ -108,7 +108,7 @@
         position-on-top-map          (create-position-map-one #(calculate-position-on-top %) all-positions positions-map)
         positions-around             (create-position-map #(calculate-all-positions-around % positions-left-up-no-ind positions-right-down-no-ind)
                                                           all-positions positions-map)]
-    (map->PylosStaticBoardHelpers 
+    (map->PylosStaticBoardHelpers
      {:size size
       :number-of-positions number-of-positions
       :positions-right-down-map positions-right-down-map

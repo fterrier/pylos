@@ -52,20 +52,20 @@
                                   (when move-square-position "circle-selected") " "
                                   (when move-removable "circle-removable") " ")
                       :data-position (str layer " " row " " col)
-                      :on-mouse-over 
-                      (fn [e] (put! (:notif-ch (om/get-shared owner)) 
-                                    {:topic :game :action :hover-cell :position position}) 
+                      :on-mouse-over
+                      (fn [e] (put! (:notif-ch (om/get-shared owner))
+                                    {:topic :game :action :hover-cell :position position})
                         (. e preventDefault))
-                      :on-mouse-out 
-                      (fn [e] (put! (:notif-ch (om/get-shared owner)) 
-                                    {:topic :game :action :hover-cell :position nil}) 
+                      :on-mouse-out
+                      (fn [e] (put! (:notif-ch (om/get-shared owner))
+                                    {:topic :game :action :hover-cell :position nil})
                         (. e preventDefault))
-                      :on-click 
-                      (fn [e] (put! (:notif-ch (om/get-shared owner)) 
-                                    {:topic :game :action :select-cell :position position}) 
+                      :on-click
+                      (fn [e] (put! (:notif-ch (om/get-shared owner))
+                                    {:topic :game :action :select-cell :position position})
                         (. e preventDefault))}
-;                     (circle)
-                     ))))
+                     #_(circle)))))
+
 
 (defcomponent hurmpf-row-comp [[[game-infos layer row] positions] owner]
   (render [_]
@@ -83,13 +83,13 @@
 (defcomponent balls-remaining-comp [[color remaining-balls next-player] owner]
   (render [_]
           (dom/div {:class (str "pylos-remaining-balls-color pylos-remaining-balls-" (name color))}
-                   (dom/span {:class (str "pylos-remaining-balls-label " (name next-player))} 
+                   (dom/span {:class (str "pylos-remaining-balls-label " (name next-player))}
                              (if (= next-player color)  "PLAY" "WAIT"))
                    (for [i (range 0 remaining-balls)]
                      (dom/div {:class (str "circle circle-" (name color))}
                               (dom/div {:class "circle-content"} (inc i))
-;                              (circle)
-)))))
+                              #_(circle))))))
+
 
 (defcomponent additional-infos-iteration-comp [iteration owner]
   (render [_]
@@ -100,17 +100,17 @@
                       (dom/td {:class "infos-move-stats-left"}
                               (dom/div "Depth " (:depth iteration))
                               (dom/table {:class "infos-move-stats"}
-                                         (dom/tr (dom/td " - lookup: ") 
+                                         (dom/tr (dom/td " - lookup: ")
                                                  (dom/td (:lookup-moves (:stats iteration))))
-                                         (dom/tr (dom/td " - calculated: ") 
+                                         (dom/tr (dom/td " - calculated: ")
                                                  (dom/td (:calculated-moves (:stats iteration))))
-                                         (dom/tr (dom/td " - total: ") 
+                                         (dom/tr (dom/td " - total: ")
                                                  (dom/td (:total-moves (:stats iteration))))))
                       (dom/td
                        (dom/div "Time at depth: " (gstring/format "%.2fms" (:time iteration)))
                        (dom/div "Moves per ms: " (gstring/format "%.1f" (:moves-per-ms iteration)))
                        (dom/div "Best score: " (gstring/format "%.4f" (:best-possible-score (:negamax-values iteration))))
-                       (when (:outcome (:negamax-values iteration)) 
+                       (when (:outcome (:negamax-values iteration))
                          (dom/div "Winner: " (name (:outcome (:negamax-values iteration))))))))))))
 
 (defcomponent additional-infos-comp [current-game-infos owner]
@@ -129,7 +129,7 @@
             (println "Rendering highlighted move" position-info moves-info)
             (dom/div
              (when can-play-move
-               (dom/button {:on-click (fn [e] (put! (:notif-ch (om/get-shared owner)) 
+               (dom/button {:on-click (fn [e] (put! (:notif-ch (om/get-shared owner))
                                                     {:topic :game :action :play-current-move}) (. e preventDefault))} "Play this move!"))))))
 
 (defcomponent board-comp [_ owner]
@@ -150,14 +150,14 @@
                                 (dom/div {:class "pylos-board"}
                                          (om/build hurmpf-layer-comp [game-infos layered-board 0]))
                                 (dom/div {:class "pylos-remaining-balls clearfix"}
-                                         (om/build balls-remaining-comp 
+                                         (om/build balls-remaining-comp
                                                    [:white (:white balls-remaining) next-player])
-                                         (om/build balls-remaining-comp 
+                                         (om/build balls-remaining-comp
                                                    [:black (:black balls-remaining) next-player]))
                                 (dom/div {:class "pylos-move-info"}
                                          (om/build move-info-comp game-infos)))
                        (dom/pre {:class "infos clearfix"}
-                                (when (:move game-infos) 
+                                (when (:move game-infos)
                                   (dom/div "Last move: " (name (pr-str (:move game-infos)))))
                                 (dom/div (str "Time: " (gstring/format "%.2fs" (/ (:time game-infos) 1000000))))
                                 (om/build additional-infos-comp  game-infos)))))))
@@ -221,6 +221,6 @@
   (will-unmount [_]
                 (close! (om/get-state owner :control-ch)))
   (render-state [_ state]
-                (dom/div 
+                (dom/div
                  (om/build history-comp nil)
                  (om/build board-comp nil))))

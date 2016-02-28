@@ -18,9 +18,9 @@
 
 (defn- all-permutations [positions]
   "Returns a vector of [permutation complete]"
-  (if (vector? positions) 
-    (if (= 2 (count positions)) 
-      [[[(get positions 0)] false] [positions true]] 
+  (if (vector? positions)
+    (if (= 2 (count positions))
+      [[[(get positions 0)] false] [positions true]]
       [[positions true]])
     (let [position-vec (into [] positions)]
       (if (= 2 (count position-vec))
@@ -42,8 +42,8 @@
     :rise   [{[low-position] {position {:addable true} low-position {:risable true}}}
              {[low-position :all] {position {:addable true}}}
              ;; TODO do we display low positions when selecting high ?
-             ;; {[position] {:highlights {position {:addable true} low-position {:risable true}}}}
-             ]
+             #_{[position] {:highlights {position {:addable true} low-position {:risable true}}}}]
+
     :square (concat
               (highlight-infos board original-move)
               ;; highlight in square positions
@@ -60,10 +60,10 @@
 (defn- move-infos [board {:keys [type position low-position original-move positions color] :as move} move-to-save playable-move current-selection]
   "Generates a map of {[current-selections] :moves ... :playable-move ...}"
   (case type
-    :add    {(into [] (cons position current-selection))                  
+    :add    {(into [] (cons position current-selection))
              {:moves [move-to-save] :playable-move playable-move}}
-    :rise   (let [full-move-info 
-                  {(into [] (concat [low-position position] current-selection)) 
+    :rise   (let [full-move-info
+                  {(into [] (concat [low-position position] current-selection))
                    {:moves [move-to-save] :playable-move playable-move}}]
               (if (empty? current-selection)
                 (assoc full-move-info
@@ -74,7 +74,7 @@
              (move-infos board original-move move nil [])
              (apply merge
                     (map (fn [[removed-balls complete]]
-                           (move-infos board original-move move 
+                           (move-infos board original-move move
                                        (if complete move nil) removed-balls))
                          (all-permutations positions))))))
 
@@ -89,7 +89,7 @@
   {:addable :risable :in-square)} and position is [<current-selections> <highlighted-position>]"
   (reduce #(apply merge-with merge %1 (highlight-infos board %2)) {} moves))
 
-(defn- intermediate-board [current-board color selections]  
+(defn- intermediate-board [current-board color selections]
   (reduce (fn [board selection]
             (if (has-ball board selection)
               (remove-ball board color selection)
@@ -97,9 +97,9 @@
 
 (defn move-status [{:keys [board player]} moves]
   "we generate all possible path to moves"
-  (into {} (map (fn [[selections move-info]] 
-                  [selections (assoc move-info :intermediate-board 
-                                     (intermediate-board board player selections))]) 
+  (into {} (map (fn [[selections move-info]]
+                  [selections (assoc move-info :intermediate-board
+                                     (intermediate-board board player selections))])
                 (reduce #(merge-with merge-move-infos %1 (move-infos board %2 %2 %2 [])) {} moves))))
 
 ;; TODO move these 2 to CLJS ?
