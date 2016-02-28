@@ -5,7 +5,6 @@
             [ui.pylos.cell :refer [cell]]
             [ui.pylos.test-data :as td]
             [pylos.board :as board]
-            [pylos.init :refer [starting-board visit-board]]
             [pylos.ui :refer [game-infos-with-meta]]))
 
 (defn- position-info [highlight-status current-selections position]
@@ -30,7 +29,7 @@
            :position position 
            :on-select on-select
            :on-mouse-over on-mouse-over
-           :on-mous-out on-mouse-out
+           :on-mouse-out on-mouse-out
            :hover hover 
            :highlight highlight})))
 
@@ -47,7 +46,7 @@
 
 (defn- board-comp [[board :as board-state]]
   (dom/div {:class "pylos-board"}
-           (let [layered-board (visit-board board (fn [_ position] position))]
+           (let [layered-board (board/visit-board board (fn [_ position] position))]
              (layer-comp board-state layered-board 0))))
 
 (defui GamePosition
@@ -63,7 +62,6 @@
                             (om/transact! this `[(select-cell ~{:position position})]))
                 on-mouse-over (fn [position] (om/set-state! this {:highlighted-position position}))
                 on-mouse-out (fn [position] (om/set-state! this {:highlighted-position nil}))]
-            (println (meta board) highlighted-position highlight-status current-selections)
             (board-comp [board on-select on-mouse-over on-mouse-out 
                          highlight-status highlighted-position current-selections]))))
 

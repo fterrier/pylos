@@ -10,15 +10,18 @@
   static om/Ident
   (ident [this {:keys [id]}]
          [:games id])
+  static om/IQueryParams
+  (params [this]
+          {:index 0})
   static om/IQuery
   (query [this]
-         ;; TODO subquery and parameter for which position to display
-         '[:id :past-game-infos])
+         (let [subquery (om/get-query GamePosition)]
+           `[:id ({:past-game-infos ~subquery} {:index ?index})]))
   Object
   (render [this]
           (let [{:keys [past-game-infos]} (om/props this)
-                game-infos                (last past-game-infos)]
-            (println (last past-game-infos))
+                {:keys [index]}           (om/get-params this)
+                game-infos                (get past-game-infos index)]
             (dom/div (game-position (assoc game-infos :current-selections []))))))
 
 (def game (om/factory Game))
