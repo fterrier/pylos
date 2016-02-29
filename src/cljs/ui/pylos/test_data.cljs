@@ -26,19 +26,20 @@
     :player player
     :outcome nil}))
 
-(defn game-infos [game-position]
-  (game-infos-with-meta {:game-position game-position}))
+(defn game-infos [game-position index]
+  (assoc (game-infos-with-meta {:game-position game-position})
+         :index index))
 
 (def game-position-init (init-game-position))
 (def game-position-init-2 (make-move game-position-init (move-add :white 4)))
 
 (def game-infos-1 (game-infos game-position-init))
-(def game-infos-2-black (game-infos (game-position-1 :black)))
-(def game-infos-2-white (game-infos (game-position-1 :white)))
+(def game-infos-2-black (game-infos (game-position-1 :black) 0))
+(def game-infos-2-white (game-infos (game-position-1 :white) 0))
 
 (def state-1 {:games {"LYlHISli" {:id "LYlHISli" 
-                                  :past-game-infos [(game-infos game-position-init)
-                                                    (game-infos game-position-init-2)]}}
+                                  :past-game-infos [(game-infos game-position-init   0)
+                                                    (game-infos game-position-init-2 1)]}}
               :current-game [:games "LYlHISli"]})
 
 

@@ -2,7 +2,9 @@
   (:require [devcards.core :as dc :refer-macros [defcard defcard-om-next]]
             [om-tools.dom :as dom :include-macros true]
             [om.next :as om :refer-macros [defui]]
+            [ui.pylos.history :refer [game-history GameHistory]]
             [ui.pylos.board :refer [game-position GamePosition]]
+            [ui.pylos.utils :as utils]
             [ui.pylos.test-data :as td]))
 
 (defui Game

@@ -2,13 +2,8 @@
   (:require
    [om.next :as om :refer-macros [defui ui]]
    [om-tools.dom :as dom :include-macros true]
+   [ui.pylos.utils :as utils]
    [devcards.core :as dc :refer-macros [defcard defcard-doc defcard-om-next]]))
-
-
-(defn circle
-  ([radius] (dom/svg {:width (* 2 radius) :height (* 2 radius)}
-             (dom/circle {:cx radius :cy radius :r (* radius (/ 47 50))})))
-  ([] (circle 50)))
 
 (defui  Cell
   Object
@@ -24,7 +19,7 @@
                       :on-click (fn [e] (on-select position))
                       :on-mouse-over (fn [e] (on-mouse-over position))
                       :on-mouse-out (fn [e] (on-mouse-out position))}
-                     (circle)))))
+                     (utils/circle)))))
 
 (def cell (om/factory Cell))
 
