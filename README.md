@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/fterrier/pylos.svg?branch=master)](https://travis-ci.org/fterrier/pylos)
+
 # Pylos
 
 This is an attempt at providing an AI for the board game [Pylos](https://boardgamegeek.com/boardgame/1419/pylos) in Clojure.
