@@ -98,8 +98,10 @@
 (defn move-status [{:keys [board player]} moves]
   "we generate all possible path to moves"
   (into {} (map (fn [[selections move-info]]
-                  [selections (assoc move-info :intermediate-board
-                                     (intermediate-board board player selections))])
+                  ;; TODO do not pre-create the intermediate-board
+                  [selections (assoc move-info :intermediate-board nil
+                                     ;(intermediate-board board player selections)
+                                     )])
                 (reduce #(merge-with merge-move-infos %1 (move-infos board %2 %2 %2 [])) {} moves))))
 
 ;; TODO move these 2 to CLJS ?

@@ -52,6 +52,7 @@
 (defui GamePosition
   static om/IQuery
   (query [this]
+         ;; TODO compute highlight-status 
          '[:game-position :highlight-status :current-selections])
   Object
   (render [this]

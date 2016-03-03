@@ -217,6 +217,7 @@
   ;; TODO game is already started
   (if (get-in games [:games game-id :started])
     [games messages]
+    ;; TODO what if a player has joined from the web ?
     (if (has-infos-for-both-players games game-id)
       [(-> games 
            (mark-game-as-started game-id))

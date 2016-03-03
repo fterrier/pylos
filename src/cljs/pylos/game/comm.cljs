@@ -15,7 +15,6 @@
         :chsk/recv (>! pub-ch {:topic :server :action (get ?data 0) :message (get ?data 1)})
         (println "Unhandled event" id)))))
 
-
 (defn init-server-connection [app-channels pub-ch]
   (println "Initializing server connection")
   (let [{:keys [chsk ch-recv send-fn state]}

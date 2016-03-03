@@ -277,11 +277,12 @@
 
 ;; validation
 (defn- validate-game-id [errors games client game-id]
-  (let [game-id (get-in @games [:games game-id])]
-    (if (nil? game-id) (conj errors [:game-id nil :not-found]) errors)))
+  (let [game (get-in @games [:games game-id])]
+    (if (nil? game) (conj errors [:game-id nil :not-found]) errors)))
 
 ;; TODO maybe add "answer here"
 ;; maybe reorganise this in game-runner/runner+commands
+;; create creation functions
 (defprotocol CommandHandler
   (client [this] "Returns a way to communicate back to the client.")
   (validate-command [this game-runner] "Returns false/nil or empty array if valid or an array of [<field> <value> <error>]")
