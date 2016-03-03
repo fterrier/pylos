@@ -5,6 +5,7 @@
              [play :refer [play play-game]]
              [strategy :refer [get-input-channel]]]
             [pylos
+             [board :refer [cell]]
              [game :refer [->PylosGamePosition new-pylos-game]]
              [score :refer [score-middle-blocked]]]
             [pylos.strategy.encoded :refer [encoded]]
@@ -22,9 +23,9 @@
       ;; we pass a simple move to the game
       (>!! input-ch 1)
       ;; this time we should get something
-      (is (= :black (get (:board (:game-position 
+      (is (= :black (cell (:board (:game-position 
                                   (alt!! result-ch ([value _] value)
-                                         (timeout 100) :timeout))) 1)))
+                                         (timeout 1000) :timeout))) 1)))
       (close! result-ch)))
 
   (testing "Does not crash with BS"
@@ -38,11 +39,11 @@
       ;; we pass a simple move to the game
       (>!! input-ch "lskd")
       (is (= :timeout (alt!! result-ch ([value _] value)
-                             (timeout 100) :timeout)))
+                             (timeout 1000) :timeout)))
       (>!! input-ch 1)
       ;; this time we should get something
       (is (not= :timeout (alt!! result-ch ([value _] value)
-                                (timeout 100) :timeout)))
+                                (timeout 1000) :timeout)))
       (close! result-ch)))
   
   (testing "Can play rise"
@@ -58,9 +59,9 @@
       (is (= [6] (:selected-positions (:game-position (<!! result-ch)))))
       (>!! input-ch 16)
       ;; this time we should get something
-      (is (= :white (get (:board (:game-position 
+      (is (= :white (cell (:board (:game-position 
                                   (alt!! result-ch ([value _] value)
-                                         (timeout 100) :timeout))) 16)))
+                                         (timeout 1000) :timeout))) 16)))
       (close! result-ch)))
 
   (testing "Can play rise in one move"
@@ -74,9 +75,9 @@
       ;; we pass a rise to the game
       (>!! input-ch [6 16])
       ;; this time we should get something
-      (is (= :white (get (:board (:game-position 
+      (is (= :white (cell (:board (:game-position 
                                   (alt!! result-ch ([value _] value)
-                                         (timeout 100) :timeout))) 16)))
+                                         (timeout 1000) :timeout))) 16)))
       (close! result-ch)))
   
   (testing "Can play square"
@@ -93,9 +94,9 @@
       (is (= [18 18] (:selected-positions (:game-position (<!! result-ch)))))
       (>!! input-ch 3)
       ;; this time we should get the square
-      (is (= :white (get (:board (:game-position 
+      (is (= :white (cell (:board (:game-position 
                                   (alt!! result-ch ([value _] value)
-                                         (timeout 100) :timeout))) 16)))     
+                                         (timeout 1000) :timeout))) 16)))     
       (close! result-ch)))
   
   (testing "Can play square test"
@@ -113,10 +114,22 @@
       (is (= [28 28] (:selected-positions (:game-position (<!! result-ch)))))
       (>!! input-ch 25)
       ;; this time we should get the square
-      (is (= :open (get (:board (:game-position (alt!! result-ch    ([value _] value)
-                                                       (timeout 100) :timeout))) 28)))     
+      (is (= :open (cell (:board (:game-position (alt!! result-ch    ([value _] value)
+                                                       (timeout 1000) :timeout))) 28)))     
       (close! result-ch)))
   
+  (testing "Intermediate board"
+    (let [game      {:game-position (->PylosGamePosition pylos.core-test/full-board-square-top :white nil)}
+          negamax   (negamax score-middle-blocked 2)
+          encoded   (encoded)
+          input-ch  (get-input-channel encoded)
+          result-ch (play-game game {:white encoded :black negamax})]
+      (<!! result-ch)
+      ;; we pass a square
+      (>!! input-ch 28)
+      (is (= :white (cell (:intermediate-board (:game-position (<!! result-ch))) 28)))
+      (close! result-ch)))
+
   (testing "Can play square and stop in middle"
     (let [game      {:game-position (->PylosGamePosition pylos.core-test/full-board-square-top :white nil)}
           negamax   (negamax score-middle-blocked 2)
@@ -131,8 +144,8 @@
       (is (= [28 28] (:selected-positions (:game-position (<!! result-ch)))))      
       (>!! input-ch :done)
       ;; this time we should get the square
-      (is (= :open (get (:board (:game-position (alt!! result-ch    ([value _] value)
-                                                       (timeout 100) :timeout))) 28)))
+      (is (= :open (cell (:board (:game-position (alt!! result-ch    ([value _] value)
+                                                       (timeout 1000) :timeout))) 28)))
       (close! result-ch)))
   
   (testing "Can play square and stop in middle in one move"
@@ -148,7 +161,7 @@
       (>!! input-ch [28 :done])
       ;; this time we should get the square
       (let [game-position (:game-position (alt!! result-ch    ([value _] value)
-                                                 (timeout 100) :timeout))]
-        (is (= :white (get (:board game-position) 27)))
-        (is (= :open (get (:board game-position) 28))))
+                                                 (timeout 1000) :timeout))]
+        (is (= :white (cell (:board game-position) 27)))
+        (is (= :open (cell (:board game-position) 28))))
       (close! result-ch))))

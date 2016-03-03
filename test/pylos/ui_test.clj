@@ -7,12 +7,12 @@
 
 (deftest move-status-test
   (testing "Move status on squares when ordering matters"
-    (let [move-status (move-status pylos.core-test/square-level2-test :white
-                                   (generate-moves 
-                                    (map->PylosGamePosition 
+    (let [game-position (map->PylosGamePosition 
                                      {:board pylos.core-test/square-level2-test
                                       :player :white
-                                      :outcome nil})))]
+                                      :outcome nil})
+          move-status (move-status game-position
+                                   (generate-moves game-position))]
       (println move-status)
       (is (= 2 (count (-> move-status
                           (get [18 18])

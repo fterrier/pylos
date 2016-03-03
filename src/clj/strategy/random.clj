@@ -10,7 +10,8 @@
   (choose-next-move [this game-position]
     (log/debug "Choosing next move from" game-position)
     (go {:next-move (rand-nth (generate-moves game-position))}))
-  (get-input-channel [this]))
+  (get-input-channel [this])
+  (notify-end-game [this]))
 
 (defn random []
   (->RandomStrategy))

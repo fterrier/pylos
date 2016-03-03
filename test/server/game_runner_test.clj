@@ -4,6 +4,7 @@
             [pylos
              [game :refer [new-pylos-game]]
              [move :refer [move-add]]
+             [board :refer [cell]]
              [score :refer [score-middle-blocked]]]
             [server.game-runner
              :refer
@@ -253,7 +254,7 @@
       (is (<!! output-ch))
       (join-game gamerunner-ch client user game-id :white :encoded)
       (play-move gamerunner-ch client user game-id :white 3)
-      (is (= :white (get-in (<!! output-ch) [:game-infos :board 3])))
+      (is (= :white (cell (get-in (<!! output-ch) [:game-infos :game-position :board]) 3)))
       (<!! (timeout 10))
       (is (= 2 (count (get-in @(:games game-runner) [:games game-id :past-game-infos]))))))
   

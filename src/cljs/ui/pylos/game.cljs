@@ -77,7 +77,7 @@
                      {:action :server/join-game :message {:game-id game-id :color color}}))
              (swap! state assoc :current-game (new-current-game game-id)))})
 
-(defmethod mutate 'server/server-message 
+(defmethod mutate 'server/server-message
   [{:keys [state] :as env} _ {:keys [action message]}]
   (println action message)
   (cond 

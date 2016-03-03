@@ -11,8 +11,7 @@
             [game-ch game-position]]
     (let [selected-positions (or selected-positions [])
           user-input         (<! game-ch)
-          move-status        (move-status board player
-                                          (generate-all-moves game-position))
+          move-status        (move-status game-position (generate-all-moves game-position))
           current-move       (get move-status selected-positions)]
       (log/debug "Got user input" user-input)
       (let [user-input (if (sequential? user-input) user-input [user-input])
@@ -33,7 +32,7 @@
               {:next-game-position 
                (assoc game-position 
                       :selected-positions new-selected-positions
-                      :intermediate-board (:intermediate-board new-move))})))))))
+                      :intermediate-board ((:intermediate-board new-move)))})))))))
 
 (defrecord EncodedStrategy [game-ch]
   Strategy
