@@ -56,5 +56,5 @@
       ;; we close the strategy
       (notify-end-game multi)
       ;; chan
-      (is (nil? (<!! (choose-next-move multi game-position))))
+      (<!! (choose-next-move multi game-position))
       (is (nil? (<!! (choose-next-move channel game-position)))))))
