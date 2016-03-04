@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :jvm-opts ["-Xmx4G"]
-  :min-lein-version "2.0.0"
+  :min-lein-version "2.4.3"
   :dependencies [[ch.qos.logback/logback-classic "1.1.5"]
                  [com.stuartsierra/component "0.3.1"]
                  [com.taoensso/sente "1.8.0"]
@@ -20,7 +20,7 @@
                  [org.clojure/clojurescript "1.7.228"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [org.clojure/tools.logging "0.3.1"]
-                 [org.omcljs/om "1.0.0-alpha30"]
+                 [Org.omcljs/om "1.0.0-alpha30"]
                  [org.slf4j/log4j-over-slf4j "1.7.18"]
                  [prismatic/om-tools "0.4.0"]
                  [ring/ring-defaults "0.1.5"]
@@ -29,6 +29,7 @@
                  [valichek/component-compojure "0.2-SNAPSHOT"]]
   :repl-options {:init-ns user
                  :nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
+  :main ^:skip-aot system.main
 
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
   :uberjar-name "pylos.jar"
@@ -46,4 +47,5 @@
                    :dependencies [[com.cemerick/piggieback "0.2.1"]
                                   [figwheel-sidecar "0.5.0-6"]
                                   [org.clojure/tools.namespace "0.3.0-alpha3"]]
-                   :plugins [[lein-figwheel "0.5.0"]]}})
+                   :plugins [[lein-figwheel "0.5.0"]
+                             [com.palletops/uberimage "0.4.1"]]}})

@@ -13,7 +13,6 @@
                                       :outcome nil})
           move-status (move-status game-position
                                    (generate-moves game-position))]
-      (println move-status)
       (is (= 2 (count (-> move-status
                           (get [18 18])
                           :moves))))
