@@ -20,7 +20,7 @@
                  [org.clojure/clojurescript "1.7.228"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [org.clojure/tools.logging "0.3.1"]
-                 [Org.omcljs/om "1.0.0-alpha30"]
+                 [org.omcljs/om "1.0.0-alpha30"]
                  [org.slf4j/log4j-over-slf4j "1.7.18"]
                  [prismatic/om-tools "0.4.0"]
                  [ring/ring-defaults "0.1.5"]

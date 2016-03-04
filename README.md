@@ -1,40 +1,78 @@
 [![Build Status](https://travis-ci.org/fterrier/pylos.svg?branch=master)](https://travis-ci.org/fterrier/pylos)
 
-# Pylos
+# Board Game Engine for Pylos 
 
-This is an attempt at providing an AI for the board game [Pylos](https://boardgamegeek.com/boardgame/1419/pylos) in Clojure.
+This is a board game engine and AI implementation in Clojure for 2-player games. At the moment, the board game [Pylos](https://boardgamegeek.com/boardgame/1419/pylos) in Clojure.
 
-For now, a UI is provided for the terminal.
+TODO screenshot
 
-Several strategies are implemented :
+# Getting started
 
-| Name | File | Description |
-|---|---|---|
-| NegamaxStrategy | [negamax.clj](src/strategy/negamax.clj) | The negamax algorithm with alpha-beta pruning and transposition tables |
-| HumanStrategy   | [human.clj](src/pylos/human.clj) | Lets a human play |
-| RandomStrategy  | [random.clj](src/strategy/random.clj) | Plays randomly (TBD) |
-
-More will be added in the future so we can let them play against each other.
-
-## Installation
-
-Clone and run
+## Running the project in the REPL
 
 ```bash
+git clone git@github.com:fterrier/pylos.git
+cd pylos
 lein repl
 ```
 
-## Usage
+The project uses Stuart Sierra's components library. In the REPL, then use this to start (and restart) the system:
+
+```bash
+(user/go)   # start system
+(user/stop) # stop system
+```
+
+Open `http://localhost:8888`. To enter a CLJS REPL connection to the browser, run:
+
+```bash
+(user/cljs)
+```
+
+You can then play around with the app running in the browser. Try for instance:
+
+```
+# TODO output reconciler app-state
+```
+
+## Running the project standalone
+
+### With an uberjar
+
+```
+lein uberjar
+java -jar target/pylos.jar
+```
+
+Open `http://localhost:8080`
+
+### With docker
+
+```
+lein uberimage
+docker run -p 4000:8080 <generated-docker-image-id>
+```
+
+Open `http://<docker-machine-ip>:4000`
+
+# Basic concepts
+
+The engine can be extended to support multiple strategies. For now, those strategies are implemented :
+
+| Name | Description |
+|---|---|
+| NegamaxStrategy | The negamax algorithm with alpha-beta pruning and transposition tables |
+| RandomStrategy  | Plays randomly |
+| ChannelStrategy | Accepts move input from a channel |
+
+More will be added in the future so we can let them play against each other.
 
 TODO explain strategies, game and output functions.
 
-```bash
-(output (play (new-pylos-game 4) {:white (negamax score-middle-blocked 6) :black (random)} :white))
 
-(output-to-websockets (play (new-pylos-game 4) {:white (negamax score-middle-blocked 6) :black (random)} :white) (:websockets system))
-```
+# Useful REPL commands
 
-### Shortcut for negamax and human player
+TODO
 
 In the REPL, you can call the following shortcut commands:
 
@@ -68,29 +106,21 @@ Balls remaining :
 Calculated moves per ms:  18.35626432938798
 ```
 
-## TODO
+# TODO (incomplete)
 
-[] Make modules : game, negamax, game engine, ... and document
+- [] Use test.check to test the game algorithm, game and game server
+- [] Handle timeouts, errors, etc...
+- [] Persist game - CRDTs?
+- [] Implement chess and create nicer abstractions for UI
+- [] Scalability - what happens when game runner runs on more servers?
 
-[] Use test.check to test the game algorithm, game and game server
-
-[] Write more tests
-
-[] Handle end of game, timeouts, errors, etc...
-
-[] Persist game, join en route
-
-[] Cleanup app.cljs make modules
-
-[x] Handle client reconnect
-
-## Bugs
+# Bugs
 
 Open Github issue and don't hesitate to PR.
 
-## License
+# License
 
-Copyright © 2015 FIXME
+Copyright © 2015 François Terrier
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
