@@ -7,7 +7,9 @@
             [ui.pylos.history :refer [game-history GameHistory]]
             [ui.pylos.board :refer [game-position GamePosition]]
             [ui.pylos.utils :as utils]
-            [ui.pylos.test-data :as td])
+            [ui.pylos.test-data :as td]
+            [game.serializer :refer [deserialize-game-position]]
+            [pylos.serializer :refer [new-pylos-serializer]])
   (:require-macros [cljs.core.async.macros :refer [go-loop]]))
 
 (defui Game
@@ -27,6 +29,8 @@
 
 ;; =======
 ;; Reconciler
+
+(def pylos-game-serializer (new-pylos-serializer))
 
 (defn get-current-game-info [past-game-infos index]
   (case index
@@ -61,6 +65,9 @@
    :current-selections []
    :selected-index nil})
 
+(defn deserialize-game-infos [{:keys [game-position] :as game-infos}]
+  (assoc game-infos :game-position (deserialize-game-position pylos-game-serializer game-position)))
+
 (defmulti mutate om/dispatch)
 
 (defmethod mutate 'game/select-history
@@ -84,7 +91,9 @@
     (= action :msg/past-game-infos)
     (let [{:keys [game-id past-game-infos]} message]
       {:action (fn []
-                 (swap! state assoc-in [:games game-id :past-game-infos] past-game-infos))})
+                 (swap! state assoc-in [:games game-id :past-game-infos] 
+                        (into [] (map-indexed (fn [index game-infos] (-> (deserialize-game-infos game-infos)
+                                                                         (assoc :index index))) past-game-infos))))})
     :else nil))
 
 (defmethod mutate 'comm/init-connection

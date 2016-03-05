@@ -14,7 +14,8 @@
   (let [start-time  (System/nanoTime)]
     (go-loop []
       (log/debug "Looping for valid move on position" game-position)
-      (let [; TODO add a timeout here
+      (let [;; TODO add a timeout here
+            ;; TODO if choose-next-move throws an exception we are screwed
             game-result (alt! 
                           result-ch :closed
                           (choose-next-move strategy game-position)

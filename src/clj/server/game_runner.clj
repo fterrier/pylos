@@ -336,6 +336,7 @@
   CommandHandler
   (validate-command [this game-runner]
     (-> []
+        ;; TODO validate strategy options
         (validate-game-id (:games game-runner) client game-id)))
   (handle-command [this game-runner]
     (handle-npc game-runner client game-id color strategy-options)))

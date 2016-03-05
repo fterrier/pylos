@@ -77,11 +77,12 @@ TODO
 In the REPL, you can call the following shortcut commands:
 
 ```bash
-# Negamax plays against negamax, :white starts, negamax fixed depth is 8
-(output (play-negamax (new-pylos-game 4) :white 8))
+(-> (new-game) 
+    (add-negamax 8 :white) 
+    (add-negamax 8 :black) 
+    (output-game pylos.pprint/print-pylos-game) 
+    (start-game))
 
-# Negamax plays against human, human is :white, :black starts, negamax fixed depth is 8
-(output (play-human (new-pylos-game 4) :white :black 8))
 ```
 
 You should see stuff like this:

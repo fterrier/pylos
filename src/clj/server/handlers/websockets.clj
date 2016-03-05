@@ -4,6 +4,7 @@
             [compojure.core :refer [GET POST routes]]
             [pylos.game :refer [new-pylos-game]]
             [game.serializer :refer [serialize-game-position]]
+            [pylos.serializer :refer [new-pylos-serializer]]
             [ring.middleware
              [keyword-params :refer [wrap-keyword-params]]
              [params :refer [wrap-params]]]
@@ -24,6 +25,7 @@
 
 ;; TODO put this centraly somewhere
 (def pylos-game (new-pylos-game 4))
+(def pylos-game-serializer (new-pylos-serializer))
 
 (defn send-infos [{:keys [handler]} uid infos]
   (log/debug "Websockets - Sending" uid infos)
@@ -67,9 +69,11 @@
 
 (defmethod parse-message :default [_ _ _ _])
 
+
+
 (defn- serialize-game-infos [game-infos]
   (-> game-infos 
-      (assoc :game-position (serialize-game-position pylos-game (:game-position game-infos)))))
+      (assoc :game-position (serialize-game-position pylos-game-serializer (:game-position game-infos)))))
 
 (defn- format-message-for-client [{:keys [type] :as message}]
   (let [data (dissoc message :type :client)]

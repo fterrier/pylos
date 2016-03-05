@@ -7,7 +7,7 @@
   :min-lein-version "2.4.3"
   :dependencies [[ch.qos.logback/logback-classic "1.1.5"]
                  [com.stuartsierra/component "0.3.1"]
-                 [com.taoensso/sente "1.8.0"]
+                 [com.taoensso/sente "1.8.1"]
                  [com.taoensso/timbre "4.3.1"]
                  [compojure "1.4.0"]
                  [devcards "0.2.1-6"]
@@ -47,5 +47,5 @@
                    :dependencies [[com.cemerick/piggieback "0.2.1"]
                                   [figwheel-sidecar "0.5.0-6"]
                                   [org.clojure/tools.namespace "0.3.0-alpha3"]]
-                   :plugins [[lein-figwheel "0.5.0"]
+                   :plugins [[lein-figwheel "0.5.0-6"]
                              [com.palletops/uberimage "0.4.1"]]}})

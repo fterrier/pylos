@@ -9,7 +9,7 @@
      :player player
      :outcome outcome})
   (serialize-game-position [_ {:keys [board player outcome]}]
-    {:board board :size (board-size board) :player player :outcome outcome}))
+    {:board (:board board) :size (board-size board) :player player :outcome outcome}))
 
 (defn new-pylos-serializer []
   (->PylosSerializer))

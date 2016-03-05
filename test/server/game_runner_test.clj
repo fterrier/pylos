@@ -22,6 +22,7 @@
              [channel :refer [channel]]
              [negamax :refer [negamax]]]))
 
+;; TODO move these to command.cljc ? split command from game runner ?
 (defn new-game-command [client game first-player]
   (->NewGameCommand client game first-player))
 
