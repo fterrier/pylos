@@ -51,10 +51,10 @@
           channel       (channel)
           input-ch      (get-input-channel channel)]
       (add-strategies multi {:channel channel})
-      ;; we put a move on the channel
-      (go (>! input-ch (move-add :white 9)))
       ;; we close the strategy
       (notify-end-game multi)
+      ;; we put a move on the channel
+      (go (>! input-ch (move-add :white 9)))
       ;; chan
-      (<!! (choose-next-move multi game-position))
+      (is (nil? (<!! (choose-next-move multi game-position))))
       (is (nil? (<!! (choose-next-move channel game-position)))))))
