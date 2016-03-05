@@ -9,7 +9,8 @@
             [ui.pylos.utils :as utils]
             [ui.pylos.test-data :as td]
             [game.serializer :refer [deserialize-game-position]]
-            [pylos.serializer :refer [new-pylos-serializer]])
+            [pylos.serializer :refer [new-pylos-serializer]]
+            [pylos.ui :refer [game-infos-with-meta]])
   (:require-macros [cljs.core.async.macros :refer [go-loop]]))
 
 (defui Game
@@ -22,8 +23,8 @@
   (render [this]
           (let [{:keys [current-game]} (om/props this)]
             (dom/div
-             (dom/div (game-history current-game))
-             (dom/div (game-position (:current-game-infos current-game)))))))
+             (dom/div (game-position (:current-game-infos current-game)))
+             (dom/div (game-history current-game))))))
 
 (defmulti read om/dispatch)
 
@@ -32,19 +33,36 @@
 
 (def pylos-game-serializer (new-pylos-serializer))
 
-(defn get-current-game-info [past-game-infos index]
-  (case index
-    nil (last past-game-infos)
-    (get past-game-infos index)))
+(defn get-merged-past-game-infos [past-game-infos]
+  "Gets the game infos that have to be displayed. Merges game-infos with intermediate boards."
+  (->> (reduce (fn [result {:keys [game-position] :as game-infos}]
+                 (if (:intermediate-board game-position)
+                   (conj (into [] (butlast result)) (assoc-in (last result) 
+                                                              [:game-position :intermediate-board] 
+                                                       (:intermediate-board game-position)))
+                   (conj result game-infos))) [] past-game-infos)
+       (map-indexed (fn [index item] (assoc item :index index)))
+       (into [])))
+
+(defn get-current-game-infos [past-game-infos index]
+  "Gets the current game info, sets the right display-board depending on which index we are looking at."
+  (let [{:keys [game-position] :as current-game-infos}
+        (if (nil? index)
+          (last past-game-infos)
+          (get past-game-infos index))]
+    (assoc-in current-game-infos [:game-position :display-board]
+              (if (and (nil? index) (:intermediate-board game-position))
+                (:intermediate-board game-position)
+                (:board game-position)))))
 
 (defn get-game [state current-game]
-  (let [game              (get-in state (:game current-game))
-        current-game-info (get-current-game-info 
-                                    (:past-game-infos game) 
-                                    (:selected-index current-game))
-        current-game-info (assoc current-game-info :current-selections (:current-selections current-game))]
+  (let [game                   (get-in state (:game current-game))
+        merged-past-game-infos (get-merged-past-game-infos (:past-game-infos game))
+        current-game-infos     (get-current-game-infos merged-past-game-infos (:selected-index current-game))]
     (-> game
-        (assoc :current-game-infos current-game-info))))
+        (assoc 
+         :display-past-game-infos merged-past-game-infos
+         :current-game-infos current-game-infos))))
 
 (defmethod read :current-game [{:keys [state parser query] :as env} key _]
   (let [st @state]
@@ -62,13 +80,21 @@
 
 (defn new-current-game [game-id]
   {:game [:games game-id]
-   :current-selections []
    :selected-index nil})
 
 (defn deserialize-game-infos [{:keys [game-position] :as game-infos}]
-  (assoc game-infos :game-position (deserialize-game-position pylos-game-serializer game-position)))
+  (game-infos-with-meta 
+   (assoc game-infos :game-position (deserialize-game-position pylos-game-serializer game-position))))
 
 (defmulti mutate om/dispatch)
+
+(defmethod mutate 'game/select-cell
+  [{:keys [state]} _ {:keys [position]}]
+  {:action (fn []
+             (let [send-ch (get-send-ch @state)
+                   game-id (get-in @state [:current-game :game 1])]
+               ;; TODO do this in the remote ?
+               (put! send-ch {:action :server/player-move :message {:game-id game-id :color :black :input position}})))})
 
 (defmethod mutate 'game/select-history
   [{:keys [state]} _ {:keys [index]}]
@@ -92,8 +118,12 @@
     (let [{:keys [game-id past-game-infos]} message]
       {:action (fn []
                  (swap! state assoc-in [:games game-id :past-game-infos] 
-                        (into [] (map-indexed (fn [index game-infos] (-> (deserialize-game-infos game-infos)
-                                                                         (assoc :index index))) past-game-infos))))})
+                        (into [] (map deserialize-game-infos past-game-infos))))})
+    (= action :msg/game-infos)
+    (let [{:keys [game-id game-infos]} message]
+      {:action (fn []
+                 (swap! state update-in [:games game-id :past-game-infos]
+                        conj (deserialize-game-infos game-infos)))})
     :else nil))
 
 (defmethod mutate 'comm/init-connection

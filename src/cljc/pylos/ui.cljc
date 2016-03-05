@@ -107,8 +107,7 @@
 (defn game-infos-with-meta [{:keys [game-position] :as game-infos}]
   (let [possible-moves   (generate-all-moves game-position)
         highlight-status (highlight-status game-position possible-moves)
-        move-status      (move-status game-position possible-moves)
-        game-infos       (assoc game-infos :game-position game-position :highlight-status highlight-status :move-status move-status)]
+        game-infos       (assoc game-infos :game-position game-position :highlight-status highlight-status)]
     game-infos))
 
 (defn score [{:keys [board]}]

@@ -23,7 +23,7 @@
              :refer
              [sente-web-server-adapter]]))
 
-;; TODO put this centraly somewhere
+;; TODO put this centrally somewhere
 (def pylos-game (new-pylos-game 4))
 (def pylos-game-serializer (new-pylos-serializer))
 
@@ -47,8 +47,8 @@
 ; those messages
 (defmulti parse-message (fn [id _ _ _] id))
 
-(defmethod parse-message :server/player-move [_ client user {:keys [game-id input]}]
-  [(->PlayerMoveCommand client user game-id input)])
+(defmethod parse-message :server/player-move [_ client user {:keys [game-id color input]}]
+  [(->PlayerMoveCommand client user game-id color input)])
 
 (defmethod parse-message :server/new-game [_ client user data]
   (let [[game first-player] (parse-new-game-data data)]
@@ -58,7 +58,7 @@
   ;; TODO here we should leave all other games of that player
   ;; or the client should check for the right game id and unsubscribe
   [(->SubscribeCommand client game-id)
-   (->JoinGameCommand client user game-id color :channel)])
+   (->JoinGameCommand client user game-id color :encoded)])
 
 (defmethod parse-message :server/start-game [_ client user {:keys [game-id]}]
   [(->StartGameCommand client game-id)])
@@ -68,8 +68,6 @@
    (->UnsubscribeCommand client nil)])
 
 (defmethod parse-message :default [_ _ _ _])
-
-
 
 (defn- serialize-game-infos [game-infos]
   (-> game-infos 
@@ -86,7 +84,9 @@
 
 (defn- event-msg-handler* [gamerunner-ch user-ch]
   (fn [{:as ev-msg :keys [id uid ?data event send-fn]}]
+    (log/info "Websocket got message" ev-msg)
     (let [messages (parse-message id (get-client uid send-fn user-ch) {:id uid} ?data)]
+      (log/info "Forwarding messages to game runner" messages)
       (doseq [message messages]
         (go (>! gamerunner-ch message))))))
 
@@ -97,7 +97,7 @@
   (-> (routes
        (GET  "/chsk" request
              (try (ring-ajax-get-or-ws-handshake request)
-                                        ; do nothing in exception case
+                  ;; do nothing in exception case
                   (catch Exception e (log/debug e))))
        (POST "/chsk" request (ring-ajax-post request)))
       wrap-keyword-params
@@ -109,10 +109,9 @@
     (let [user-ch           (start-event-handler gamerunner-msg-handle)
           event-msg-handler (event-msg-handler* gamerunner-ch user-ch)
           {:keys [ch-recv send-fn ajax-post-fn ajax-get-or-ws-handshake-fn connected-uids]}
-                            (make-channel-socket! 
-                             sente-web-server-adapter
-                             (assoc options :user-id-fn
-                                    (fn [ring-req] (:client-id ring-req))))]
+          (make-channel-socket! sente-web-server-adapter
+                                (assoc options :user-id-fn
+                                       (fn [ring-req] (:client-id ring-req))))]
       (assoc handler
              :ch-chsk ch-recv
              :chsk-send! send-fn
