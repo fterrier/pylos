@@ -110,7 +110,7 @@
       (is (false? (:started game)))
       (start-game gamerunner-ch client game-id)
       ;; we leave some time for the game runner to process that
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (is (:started (get-game game-runner game-id)))))
   (testing "New game times out after a while"
                                         ; TODO
@@ -134,7 +134,7 @@
       (join-game gamerunner-ch client user game-id :white :encoded)
       (stop-game gamerunner-ch client game-id)
       ;; we leave some time for the game runner to process that
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (is (nil? (get-in @(:games game-runner) [:users 123]))))))
 
 (deftest start-game-test
@@ -144,10 +144,10 @@
           {:keys [game-id]}  (new-game gamerunner-ch client)]
       (is (false? (:started (get-game game-runner game-id))))
       (start-game gamerunner-ch client game-id)
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (is (:started (get-in @(:games game-runner) [:games game-id])))
       (start-game gamerunner-ch client game-id)
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (is (:started (get-in @(:games game-runner) [:games game-id]))))))
 
 (deftest join-game-test
@@ -157,7 +157,7 @@
           user               (new-user 123)
           {:keys [game-id]}  (new-game gamerunner-ch client)]
       (join-game gamerunner-ch client user game-id :white :channel)
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (is (= {:white {123 :channel}} (:joined-user-ids (get-game game-runner game-id))))
       (is (= {:games #{game-id}} (get-in @(:games game-runner) [:users 123])))))
   
@@ -167,9 +167,9 @@
           user               (new-user 123)
           {:keys [game-id]}  (new-game gamerunner-ch client)]
       (join-game gamerunner-ch client user game-id :white :channel)
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (leave-game gamerunner-ch client user game-id)
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (is (= {:white {} :black nil} (:joined-user-ids (get-game game-runner game-id))))
       (is (nil? (get-in @(:games game-runner) [:users 123]))))))
 
@@ -180,7 +180,7 @@
           user               (new-user 123)
           {:keys [game-id]}  (new-game gamerunner-ch client)]
       (subscribe-to-game gamerunner-ch client game-id)
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (is (not (nil? (get-in @(:games game-runner) [:clients 1 game-id]))))))
 
   (testing "Subscribing to game sends past game infos"
@@ -202,20 +202,20 @@
           {:keys [game-id]}  (new-game gamerunner-ch client1)]
       (subscribe-to-game gamerunner-ch client1 game-id)
       (subscribe-to-game gamerunner-ch client2 game-id)
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (is (<!! output-ch-1))
       (is (<!! output-ch-2))
       (let [game-output-ch-1        (get-in @(:games game-runner) [:clients 1 game-id])
             game-output-ch-2        (get-in @(:games game-runner) [:clients 2 game-id])]
         (start-game gamerunner-ch client1 game-id)
-        (<!! (timeout 10))
+        (<!! (timeout 100))
         (is (<!! output-ch-1))
         (is (<!! output-ch-2))
         (is (= :timeout (alt!!
                           (timeout 100) :timeout
                           output-ch-2 :move)))
         (unsubscribe-from-game gamerunner-ch client1 game-id)
-        (<!! (timeout 10))
+        (<!! (timeout 100))
         (is (nil? (<!! game-output-ch-1)))
         (is (= :timeout (alt!!
                           (timeout 100) :timeout
@@ -227,9 +227,9 @@
           user               (new-user 123)
           {:keys [game-id]}  (new-game gamerunner-ch client)]
       (subscribe-to-game gamerunner-ch client game-id)
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (unsubscribe-from-game gamerunner-ch client game-id)
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (is (nil? (get-in @(:games game-runner) [:clients 1 game-id])))))
   
   (testing "Subscribing to gasme twice does not block"
@@ -238,9 +238,9 @@
           user               (new-user 123)
           {:keys [game-id]}  (new-game gamerunner-ch client)]
       (subscribe-to-game gamerunner-ch client game-id)
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (subscribe-to-game gamerunner-ch client game-id)
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (is (<!! output-ch)))))
 
 (deftest play-move-test
@@ -256,7 +256,7 @@
       (join-game gamerunner-ch client user game-id :white :encoded)
       (play-move gamerunner-ch client user game-id :white 3)
       (is (= :white (cell (get-in (<!! output-ch) [:game-infos :game-position :board]) 3)))
-      (<!! (timeout 10))
+      (<!! (timeout 100))
       (is (= 2 (count (get-in @(:games game-runner) [:games game-id :past-game-infos]))))))
   
   (testing "Playing move on inexistant game"
