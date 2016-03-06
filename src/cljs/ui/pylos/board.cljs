@@ -53,7 +53,7 @@
   static om/IQuery
   (query [this]
          ;; TODO compute highlight-status 
-         '[{:game-position [:selected-positions :display-board]} :highlight-status])
+         '[{:game-position [:selected-positions :display-board]} :highlight-status :last-move])
   Object
   (render [this]
           (let [{:keys [game-position highlight-status]} (om/props this)

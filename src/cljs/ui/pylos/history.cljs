@@ -7,10 +7,10 @@
 (defui GameHistory
   static om/IQuery
   (query [this]
-         '[{:display-past-game-infos [:index {:game-position [:player]}]}])
+         '[{:past-game-infos [:index {:game-position [:player]}]}])
   Object
   (render [this]
-          (let [{:keys [display-past-game-infos]} (om/props this)]
+          (let [{:keys [past-game-infos]} (om/props this)]
             (dom/div {:class "history-list"}
                      (map #(dom/div 
                             {:class (str "circle circle-" (name (:player (:game-position %))))}
@@ -18,7 +18,7 @@
                                       :on-click (fn [e]
                                                   (om/transact! this `[(game/select-history ~{:index (:index %)}) :current-game]))} 
                                      (:index %))
-                            (utils/circle 10)) display-past-game-infos)
+                            (utils/circle 10)) past-game-infos)
                      (dom/a {:href "#"
                              :on-click (fn [e]
                                          (.preventDefault e)

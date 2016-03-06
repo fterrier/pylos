@@ -18,16 +18,27 @@
   (query [this]
          (let [subquery-game-position (om/get-query GamePosition)
                subquery-history (om/get-query GameHistory)]
-           `[{:current-game ~(apply conj [:id {:current-game-infos subquery-game-position}] subquery-history)}]))
+           `[{:current-game 
+              [{:current-game-infos ~subquery-game-position}
+               {:game-history ~subquery-history}]}]))
   Object
   (render [this]
           (let [{:keys [current-game]} (om/props this)]
             (dom/div
              (dom/div (game-position (:current-game-infos current-game)))
-             (dom/div (game-history current-game))))))
+             (dom/div (game-history (:game-history current-game)))))))
 
 (defmulti read om/dispatch)
 
+
+(defui RootTest
+  static om/IQuery
+  (query [this]
+         (let [subquery (om/get-query Game)]
+           subquery)))
+
+;; TODO create a component with an input field for the game id to join
+;; TODO put this in a different file
 ;; =======
 ;; Reconciler
 
@@ -45,7 +56,7 @@
        (into [])))
 
 (defn get-current-game-infos [past-game-infos index]
-  "Gets the current game info, sets the right display-board depending on which index we are looking at."
+  "Gets the current game info, sets the right :display-board depending on which index we are looking at."
   (let [{:keys [game-position] :as current-game-infos}
         (if (nil? index)
           (last past-game-infos)
@@ -60,8 +71,9 @@
         merged-past-game-infos (get-merged-past-game-infos (:past-game-infos game))
         current-game-infos     (get-current-game-infos merged-past-game-infos (:selected-index current-game))]
     (-> game
-        (assoc 
-         :display-past-game-infos merged-past-game-infos
+        (assoc-in
+         [:game-history :past-game-infos] merged-past-game-infos)
+        (assoc
          :current-game-infos current-game-infos))))
 
 (defmethod read :current-game [{:keys [state parser query] :as env} key _]
