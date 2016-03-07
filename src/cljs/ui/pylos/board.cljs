@@ -71,11 +71,16 @@
 
 (def game-position (om/factory GamePosition))
 
+(defn prep-game-infos [game-infos selected-positions]
+  (-> game-infos 
+      (assoc-in [:game-position :selected-positions] selected-positions)
+      (assoc-in [:game-position :display-board] (get-in game-infos [:game-position :board]))))
+
 (defcard test-card-1
-  (game-position td/game-infos-1))
+  (game-position (prep-game-infos td/game-infos-1 nil)))
 
 (defcard test-card-2
-  (game-position (assoc td/game-infos-2-black :selected-positions [14])))
+  (game-position (prep-game-infos td/game-infos-2-black [14])))
 
 (defcard test-card-3
-  (game-position (assoc td/game-infos-2-white :selected-positions [])))
+  (game-position (prep-game-infos td/game-infos-2-white [])))
