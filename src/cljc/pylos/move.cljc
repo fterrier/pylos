@@ -1,38 +1,21 @@
 (ns pylos.move
   "game is {:player _ :board _ :past-moves _}
   move is {:board _ :move _}"
-  #?@(:clj
-       [(:require
-         [pylos.board
-          :refer
-          [add-ball
-           can-add-position?
-           can-remove-position?
-           empty-positions
-           has-balls-to-play
-           new-full-square-position
-           number-of-positions-around
-           positions-under-position
-           removable-candidates
-           removable-candidates-under-position
-           removable-positions-of-color-below
-           remove-ball]])]
-       :cljs
-       [(:require
-         [pylos.board
-          :refer
-          [add-ball
-           can-add-position?
-           can-remove-position?
-           positions-under-position
-           empty-positions
-           has-balls-to-play
-           new-full-square-position
-           number-of-positions-around
-           removable-candidates
-           removable-candidates-under-position
-           removable-positions-of-color-below
-           remove-ball]])]))
+  (:require
+   [pylos.board
+    :refer
+    [add-ball
+     can-add-position?
+     can-remove-position?
+     empty-positions
+     has-balls-to-play
+     new-full-square-position
+     number-of-positions-around
+     positions-under-position
+     removable-candidates
+     removable-candidates-under-position
+     removable-positions-of-color-below
+     remove-ball]]))
 
 (declare make-move-on-board)
 

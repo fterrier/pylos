@@ -31,11 +31,13 @@
   (let [{:keys [game-position] :as current-game-infos}
         (if (nil? index)
           (last past-game-infos)
-          (get past-game-infos index))]
-    (assoc-in current-game-infos [:game-position :display-board]
-              (if (and (nil? index) (:intermediate-board game-position))
-                (:intermediate-board game-position)
-                (:board game-position)))))
+          (get past-game-infos index))
+        current-game-infos (-> current-game-infos
+                               (assoc-in [:game-position :display-board]
+                                         (if (and (nil? index) (:intermediate-board game-position))
+                                           (:intermediate-board game-position)
+                                           (:board game-position))))]
+    (if (nil? index) (game-infos-with-meta current-game-infos) current-game-infos)))
 
 (defn get-game [state current-game]
   (let [game                   (get-in state (:game current-game))
@@ -71,8 +73,7 @@
    :selected-index nil})
 
 (defn deserialize-game-infos [{:keys [game-position] :as game-infos}]
-  (game-infos-with-meta 
-   (assoc game-infos :game-position (deserialize-game-position pylos-game-serializer game-position))))
+  (assoc game-infos :game-position (deserialize-game-position pylos-game-serializer game-position)))
 
 (defmulti mutate om/dispatch)
 

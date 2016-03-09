@@ -3,8 +3,7 @@
    [game.game :refer [make-move]]
    [pylos.game :refer [map->PylosGamePosition]]
    [pylos.board :refer [new-pylos-board]]
-   [pylos.move :refer [move-add]]
-   [pylos.ui :refer [game-infos-with-meta]]))
+   [pylos.move :refer [move-add]]))
 
 (defn init-game-position []
   (map->PylosGamePosition {:board   (new-pylos-board 4)
@@ -27,8 +26,7 @@
     :outcome nil}))
 
 (defn game-infos [game-position index]
-  (assoc (game-infos-with-meta {:game-position game-position})
-         :index index))
+  (assoc {:game-position game-position} :index index))
 
 (def game-position-init (init-game-position))
 (def game-position-init-2 (make-move game-position-init (move-add :white 4)))

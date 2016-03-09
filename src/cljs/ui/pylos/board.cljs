@@ -5,26 +5,51 @@
             [om.next :as om :refer-macros [defui]]
             [ui.pylos.cell :refer [cell]]
             [ui.pylos.test-data :as td]
+            [pylos.ui :refer [game-infos-with-meta]]
+            [pylos.move :as move]
             [pylos.board :as board]))
 
-(defn- position-info [highlight-status selected-positions position]
+(defn- position-info [highlight-status selected-positions highlighted-position]
   (merge
    ;; all positions and the highlighted ones
    (get highlight-status (conj selected-positions :all))
-   (get highlight-status (conj selected-positions position))))
+   (get highlight-status (conj selected-positions highlighted-position))))
 
 (defn- is-selected [selected-positions position]
   (contains? (into #{} selected-positions) position))
 
-(defn- cell-comp [[board on-select on-mouse-over on-mouse-out 
-                  highlight-status highlighted-position selected-positions] position]
+(defn- state-from-highlight-status [position-info highlight-status selected-positions 
+                                    highlighted-position position]
   (let [position-info (get (position-info highlight-status selected-positions highlighted-position) position)
         {:keys [risable addable removable in-square]} position-info
-        ;; TODO put in the right states here
         hover         (if (or risable addable removable) :red :none)
         highlight     (cond (or in-square) :red
                             (is-selected selected-positions position) :green
                             :else :none)]
+    [hover highlight]))
+
+(defn- state-from-last-move [board {:keys [type position positions low-position square-position]} 
+                             current-position]
+  (cond
+    (= position current-position) 
+    [:none :red]
+    (= current-position low-position) 
+    [:none :green]
+    (and (= :square type) (contains? (into #{} positions) current-position)) 
+    [:none :green]
+    (and (= :square type) (contains? (into #{} (board/square-corners board square-position)) current-position))
+    [:none :red]
+    :else [:none :none]))
+
+(defn- cell-comp [[board on-select on-mouse-over on-mouse-out last-move
+                  highlight-status highlighted-position selected-positions] position]
+  (let [[hover highlight] (if highlight-status 
+                            (state-from-highlight-status position-info 
+                                                         highlight-status 
+                                                         selected-positions 
+                                                         highlighted-position 
+                                                         position) 
+                            (state-from-last-move board last-move position))]
     (cell {:color (board/cell board position)
            :position position 
            :on-select on-select
@@ -52,11 +77,10 @@
 (defui GamePosition
   static om/IQuery
   (query [this]
-         ;; TODO compute highlight-status 
          '[{:game-position [:selected-positions :display-board]} :highlight-status :last-move])
   Object
   (render [this]
-          (let [{:keys [game-position highlight-status]} (om/props this)
+          (let [{:keys [game-position highlight-status last-move]} (om/props this)
                 {:keys [display-board player outcome]} game-position
                 {:keys [highlighted-position]}         (om/get-state this)
                 on-select (fn [position] 
@@ -64,7 +88,7 @@
                 on-mouse-over (fn [position] (om/set-state! this {:highlighted-position position}))
                 on-mouse-out (fn [position] (om/set-state! this {:highlighted-position nil}))]
             (dom/div
-             (board-comp [display-board on-select on-mouse-over on-mouse-out 
+             (board-comp [display-board on-select on-mouse-over on-mouse-out last-move
                           highlight-status highlighted-position (:selected-positions game-position)])
              ;(html-edn game-position)
              ))))
@@ -77,10 +101,16 @@
       (assoc-in [:game-position :display-board] (get-in game-infos [:game-position :board]))))
 
 (defcard test-card-1
-  (game-position (prep-game-infos td/game-infos-1 nil)))
+  (game-position (game-infos-with-meta (prep-game-infos td/game-infos-1 nil))))
 
 (defcard test-card-2
-  (game-position (prep-game-infos td/game-infos-2-black [14])))
+  (game-position (game-infos-with-meta (prep-game-infos td/game-infos-2-black [14]))))
 
 (defcard test-card-3
-  (game-position (prep-game-infos td/game-infos-2-white [])))
+  (game-position (game-infos-with-meta (prep-game-infos td/game-infos-2-white []))))
+
+(defcard test-card-3-last-move
+  (game-position (assoc (prep-game-infos td/game-infos-2-white []) :last-move (move/move-square
+                                                                               (move/move-add :white 10)
+                                                                               #{10 13}
+                                                                               5))))

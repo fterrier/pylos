@@ -14,16 +14,22 @@
          (let [subquery-game-position (om/get-query GamePosition)
                subquery-history (om/get-query GameHistory)]
            `[{:current-game 
-              [{:current-game-infos ~subquery-game-position}
+              [:loading
+               {:current-game-infos ~subquery-game-position}
                {:game-history ~subquery-history}]}]))
   Object
   (render [this]
           (let [{:keys [current-game]} (om/props this)]
-            (dom/div
-             (dom/div (game-position (:current-game-infos current-game)))
-             (dom/div (game-history (:game-history current-game)))))))
+            (if (:loading current-game)
+              (dom/div "loading")
+              (dom/div
+               (dom/div (game-position (:current-game-infos current-game)))
+               (dom/div (game-history (:game-history current-game))))))))
 
 (def game (om/factory Game))
+
+(defcard game-loading
+  (game {:current-game {:loading true}}))
 
 (defui RootTest
   static om/IQuery

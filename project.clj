@@ -33,7 +33,7 @@
 
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
   :uberjar-name "pylos.jar"
-
+  
   :profiles {:uberjar {:source-paths ["env/prod/src/clj"]
                        :omit-source true
                        :plugins [[lein-cljsbuild "1.1.2"]]
