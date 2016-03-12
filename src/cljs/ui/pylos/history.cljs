@@ -7,27 +7,41 @@
 (defui GameHistory
   static om/IQuery
   (query [this]
-         '[{:past-game-infos [:index {:game-position [:player]}]}])
+         '[:app/selected-index 
+           :app/merged-game-infos])
   Object
   (render [this]
-          (let [{:keys [past-game-infos]} (om/props this)]
+          (let [{:keys [app/merged-game-infos app/selected-index]} (om/props this)
+                max-index (count merged-game-infos)
+                current-index (if (nil? selected-index) max-index selected-index)]
             (dom/div {:class "history-list"}
                      (map #(dom/div 
-                            {:class (str "circle circle-" (name (:player (:game-position %))))}
+                            {:class (str "circle circle-" (name (:player %)) " "
+                                         (when (= (:index %) selected-index) "history-selected"))}
                             (dom/div {:class "circle-content"
                                       :on-click (fn [e]
-                                                  (om/transact! this `[(game/select-history ~{:index (:index %)}) :current-game]))} 
+                                                  (om/transact! this `[(game/select-history ~{:index (:index %)}) :app/current-game]))}
                                      (:index %))
-                            (utils/circle 10)) past-game-infos)
-                     (dom/a {:href "#"
-                             :on-click (fn [e]
-                                         (.preventDefault e)
-                                         (om/transact! this `[(game/select-history ~{:index nil})]))}
-                            "follow game")))))
+                            (utils/circle 10)) merged-game-infos)
+                     (dom/button {:disabled (= 0 current-index)
+                                  :on-click (fn [e]
+                                              (.preventDefault e)
+                                              (om/transact! this `[(game/select-history ~{:index (dec current-index)}) :app/current-game]))}
+                                 "previous")
+                     (dom/button {:disabled (>= current-index (dec max-index))
+                                  :on-click (fn [e]
+                                              (.preventDefault e)
+                                              (om/transact! this `[(game/select-history ~{:index (inc current-index)}) :app/current-game]))}
+                                 "next")
+                     (dom/button {:disabled (nil? selected-index)
+                                  :on-click (fn [e]
+                                              (.preventDefault e)
+                                              (om/transact! this `[(game/select-history ~{:index nil}) :app/current-game]))}
+                                 "continue game")))))
 
 (def game-history (om/factory GameHistory))
 
 (defcard test-game-history
-  (game-history {:past-game-infos [{:index 0 :game-position {:player :white}} 
-                                   {:index 1 :game-position {:player :black}} 
-                                   {:index 2 :game-position {:player :white}}]}))
+  (game-history {:app/merged-game-infos [{:index 0 :player :white} 
+                                         {:index 1 :player :black} 
+                                         {:index 2 :player :white}]}))

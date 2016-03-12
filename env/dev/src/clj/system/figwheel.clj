@@ -19,6 +19,7 @@
                 :output-dir "resources/public/js/out"
                 :optimizations :none
                 :pretty-print true
+                :source-map-timestamp true
                 :source-map true}}]})
 
 (defrecord Figwheel []

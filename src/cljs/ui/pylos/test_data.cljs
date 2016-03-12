@@ -35,15 +35,13 @@
 (def game-infos-2-black (game-infos (game-position-1 :black) 0))
 (def game-infos-2-white (game-infos (game-position-1 :white) 0))
 
-(def state-1 {:root {:current-game nil}})
+(def state-1 {:current-game nil})
 
-(def normalized-state-1 {:games {"LYlHISli" {:id "LYlHISli" 
-                                             :past-game-infos [(game-infos game-position-init   0)
-                                                               (game-infos game-position-init-2 1)]
-                                             :current-game-infos (game-infos game-position-init 0)}}
-                         :root {:current-game {:game [:games "LYlHISli"]
-                                               :current-selections []
-                                               :selected-index nil}}})
+(def normalized-state-1 {:games/by-id {"LYlHISli" {:game/id "LYlHISli" 
+                                                   :game/past-game-infos [(game-infos game-position-init   0)
+                                                                          (game-infos game-position-init-2 1)]}}
+                          :app/current-game {:app/game [:games/by-id "LYlHISli"]
+                                             :app/selected-index nil}})
 
 
 

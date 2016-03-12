@@ -2,43 +2,48 @@
   (:require [devcards.core :as dc :refer-macros [defcard defcard-om-next]]
             [om-tools.dom :as dom :include-macros true]
             [om.next :as om :refer-macros [defui]]
-            [ui.pylos.history :refer [game-history GameHistory]]
+            [ui.pylos.history :as history]
             [ui.pylos.board :refer [game-position GamePosition]]
             [ui.pylos.utils :as utils]
             [ui.pylos.test-data :as td]
-            [ui.pylos.parser :as parser]))
+            [ui.pylos.parser :as parser]
+            [goog.log :as glog])
+  (:import goog.debug.Console))
 
 (defui Game
   static om/IQuery
   (query [this]
          (let [subquery-game-position (om/get-query GamePosition)
-               subquery-history (om/get-query GameHistory)]
-           `[{:current-game 
-              [:loading
-               {:current-game-infos ~subquery-game-position}
-               {:game-history ~subquery-history}]}]))
+               subquery-history (om/get-query history/GameHistory)]
+           `[:game/id
+             :app/loading
+             {:app/display-game-infos ~subquery-game-position}
+             {:app/game-history ~subquery-history}]))
+  static om/Ident
+  (ident [this props]
+         [:games/by-id (:game/id props)])
   Object
   (render [this]
-          (let [{:keys [current-game]} (om/props this)]
-            (if (:loading current-game)
+          (let [{:keys [app/loading app/display-game-infos app/game-history]} (om/props this)]
+            (if loading
               (dom/div "loading")
               (dom/div
-               (dom/div (game-position (:current-game-infos current-game)))
-               (dom/div (game-history (:game-history current-game))))))))
+               (dom/div (game-position display-game-infos))
+               (dom/div (history/game-history game-history)))))))
 
 (def game (om/factory Game))
 
 (defcard game-loading
-  (game {:current-game {:loading true}}))
+  (game {:app/loading true}))
 
 (defui RootTest
   static om/IQuery
   (query [this]
          (let [subquery (om/get-query Game)]
-           `[{:root ~subquery}]))
+           `[{:app/current-game ~subquery}]))
   Object
   (render [this]
-          (let [{:keys [root]} (om/props this)]
+          (let [{:keys [app/current-game]} (om/props this)]
             (dom/div 
              (dom/div
               (dom/input {:value (om/get-state this :value)
@@ -48,7 +53,7 @@
                                        (om/transact! this `[(game/join-game 
                                                              {:game-id ~(om/get-state this :value)
                                                               :color :black})]))} "Join game"))
-             (game root)))))
+             (game current-game)))))
 
 (defonce normalized-state-1-atom (atom td/normalized-state-1))
 (def reconciler-1 (om/reconciler {:state normalized-state-1-atom
@@ -62,7 +67,9 @@
 (defonce full-state-1-atom (atom td/state-1))
 (def reconciler-2 (om/reconciler {:state full-state-1-atom
                                   :normalize false
+                                  :remotes []
                                   :parser parser/parser}))
 
 (defcard-om-next test-root-card
   RootTest reconciler-2)
+

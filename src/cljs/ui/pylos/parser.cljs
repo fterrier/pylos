@@ -5,13 +5,15 @@
             [game.serializer :refer [deserialize-game-position]]
             [pylos.serializer :refer [new-pylos-serializer]]
             [pylos.ui :refer [game-infos-with-meta]])
-  (:require-macros [cljs.core.async.macros :refer [go-loop]]))
+  (:require-macros [cljs.core.async.macros :refer [go-loop]]
+                   [utils.macros :refer [t]]))
 
 ;; =======
 ;; Reconciler
 
 (def pylos-game-serializer (new-pylos-serializer))
 
+;; TODO do this when getting the infos
 (defn get-merged-past-game-infos [past-game-infos]
   "Gets the game infos that have to be displayed. Merges game-infos with intermediate boards."
   (->> (reduce (fn [result {:keys [game-position] :as game-infos}]
@@ -39,24 +41,30 @@
                                            (:board game-position))))]
     (if (nil? index) (game-infos-with-meta current-game-infos) current-game-infos)))
 
-(defn get-game [state current-game]
-  (let [game                   (get-in state (:game current-game))
-        merged-past-game-infos (get-merged-past-game-infos (:past-game-infos game))
-        current-game-infos     (get-current-game-infos merged-past-game-infos (:selected-index current-game))]
+(defn get-current-game [state current-game]
+  (let [game                   (get-in state (:app/game current-game))
+        merged-past-game-infos (get-merged-past-game-infos (:game/past-game-infos game))
+        current-game-infos     (get-current-game-infos merged-past-game-infos (:app/selected-index current-game))]
     (-> game
-        (assoc-in
-         [:game-history :past-game-infos] merged-past-game-infos)
         (assoc
-         :current-game-infos current-game-infos))))
+         :app/game-history {:app/merged-game-infos (into []
+                                                         (map (fn [{:keys [index game-position]}] 
+                                                                {:index index :player (:player game-position)}) 
+                                                              merged-past-game-infos))
+                            :app/selected-index (:app/selected-index current-game)})
+        (assoc :app/display-game-infos current-game-infos))))
 
 (defmulti read om/dispatch)
 
-(defmethod read :root [{:keys [state parser query] :as env} key _]
-  {:value (parser env query)})
+;; (defmethod read :root [{:keys [state parser query target] :as env} key _]
+;;   (println "Reading state for target" target " and query " query)
+;;   {:value (parser env query)})
 
-(defmethod read :current-game [{:keys [state parser query] :as env} key _]
-  (let [st @state]
-    {:value (get-game st (get-in st [:root :current-game]))}))
+(defmethod read :app/current-game [{:keys [state parser query target] :as env} key _]
+  (println "Reading current game for target" target " and query " query key)
+  (let [st @state
+        current-game (get-current-game st (get-in st [:app/current-game]))]
+    {:value (om/db->tree query current-game st)}))
 
 (defn get-send-ch [state]
   (:send-ch (:comm state)))
@@ -69,11 +77,12 @@
       (recur))))
 
 (defn new-current-game [game-id]
-  {:game [:games game-id]
-   :selected-index nil})
+  {:app/game [:games/by-id game-id]
+   :app/selected-index nil})
 
 (defn deserialize-game-infos [{:keys [game-position] :as game-infos}]
-  (assoc game-infos :game-position (deserialize-game-position pylos-game-serializer game-position)))
+  (assoc game-infos 
+         :game-position (deserialize-game-position pylos-game-serializer game-position)))
 
 (defmulti mutate om/dispatch)
 
@@ -81,13 +90,13 @@
   [{:keys [state]} _ {:keys [position]}]
   {:action (fn []
              (let [send-ch (get-send-ch @state)
-                   game-id (get-in @state [:root :current-game :game 1])]
+                   game-id (get-in @state [:app/current-game :app/game 1])]
                ;; TODO do this in the remote ?
                (put! send-ch {:action :server/player-move :message {:game-id game-id :color :black :input position}})))})
 
 (defmethod mutate 'game/select-history
   [{:keys [state]} _ {:keys [index]}]
-  {:action (fn [] (swap! state assoc-in [:root :current-game :selected-index] index))})
+  {:action (fn [] (swap! state assoc-in [:app/current-game :app/selected-index] index))})
 
 (defmethod mutate 'game/join-game
   [{:keys [state]} _ {:keys [game-id color]}]
@@ -97,21 +106,20 @@
                ;; TODO do this in the remote ?
                (put! send-ch 
                      {:action :server/join-game :message {:game-id game-id :color color}}))
-             (swap! state assoc-in [:root :current-game] (new-current-game game-id)))})
+             (swap! state assoc-in [:app/current-game] (new-current-game game-id)))})
 
 (defmethod mutate 'server/server-message
   [{:keys [state] :as env} _ {:keys [action message]}]
-  (println action message)
   (cond 
     (= action :msg/past-game-infos)
     (let [{:keys [game-id past-game-infos]} message]
       {:action (fn []
-                 (swap! state assoc-in [:games game-id :past-game-infos] 
+                 (swap! state assoc-in [:games/by-id game-id :game/past-game-infos] 
                         (into [] (map deserialize-game-infos past-game-infos))))})
     (= action :msg/game-infos)
     (let [{:keys [game-id game-infos]} message]
       {:action (fn []
-                 (swap! state update-in [:games game-id :past-game-infos]
+                 (swap! state update-in [:games/by-id game-id :game/past-game-infos]
                         conj (deserialize-game-infos game-infos)))})
     :else nil))
 
