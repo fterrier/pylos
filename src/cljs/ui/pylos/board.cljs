@@ -1,13 +1,12 @@
 (ns ui.pylos.board
-  (:require [devcards.core :as dc :refer-macros [defcard defcard-om-next]]
-            [devcards.util.edn-renderer :refer [html-edn]]
+  (:require [devcards.core :as dc :refer-macros [defcard]]
             [om-tools.dom :as dom :include-macros true]
             [om.next :as om :refer-macros [defui]]
-            [ui.pylos.cell :refer [cell]]
-            [ui.pylos.test-data :as td]
-            [pylos.ui :refer [game-infos-with-meta]]
+            [pylos.board :as board]
             [pylos.move :as move]
-            [pylos.board :as board]))
+            [pylos.ui :refer [game-infos-with-meta]]
+            [ui.pylos.circle :refer [circle]]
+            [ui.pylos.test-data :as td]))
 
 (defn- position-info [highlight-status selected-positions highlighted-position]
   (merge
@@ -50,13 +49,13 @@
                                                          highlighted-position 
                                                          position) 
                             (state-from-last-move board last-move position))]
-    (cell {:color (board/cell board position)
-           :position position 
-           :on-select on-select
-           :on-mouse-over on-mouse-over
-           :on-mouse-out on-mouse-out
-           :hover hover 
-           :highlight highlight})))
+    (circle {:color (board/cell board position)
+             :position position 
+             :on-select on-select
+             :on-mouse-over on-mouse-over
+             :on-mouse-out on-mouse-out
+             :hover hover 
+             :highlight highlight})))
 
 (defn- row-comp [board-state positions]
   (dom/div {:class (str "pylos-row")}

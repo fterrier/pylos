@@ -4,7 +4,6 @@
             [om.next :as om :refer-macros [defui]]
             [ui.pylos.history :as history]
             [ui.pylos.board :refer [game-position GamePosition]]
-            [ui.pylos.utils :as utils]
             [ui.pylos.test-data :as td]
             [ui.pylos.parser :as parser]
             [goog.log :as glog])
