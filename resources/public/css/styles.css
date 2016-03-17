@@ -18,13 +18,16 @@ body {
     margin-right: 50px;
 }
 
-.pylos-board {
+.pylos-game {
+    display: inline-block;
     padding: 10px;
     background: linear-gradient(to bottom right, lightgrey, #dddddd);
-    box-shadow: lightgrey 10px 10px 3px;
-    display: inline-block;
+    box-shadow: lightgrey 6px 6px 3px;
+}
+
+.pylos-board {    
     pointer-events: none;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
 }
 
 .pylos-layer {
@@ -39,28 +42,6 @@ body {
 
 .pylos-row {
     display: flex;
-}
-
-.pylos-remaining-balls-color {
-    display: flex;
-    clear: both;
-    line-height: 100px;
-}
-
-.pylos-remaining-balls-label {
-    width: 100px;
-}
-
-.pylos-remaining-balls-color .circle {
-    margin-right: -80px;
-}
-
-.pylos-remaining-balls-white .black {
-    opacity: 0.2;
-}
-
-.pylos-remaining-balls-black .white {
-    opacity: 0.2;
 }
 
 .circle-container {
@@ -107,7 +88,6 @@ body {
 .layer-3 .circle-white {
     box-shadow: none;
 }
-
 
 .circle-black:before {
     content: "";
@@ -157,7 +137,6 @@ body {
 .layer-3 .circle-black {
     box-shadow: none;
 }
-
 
 .circle-white:before {
     content: "";
@@ -212,59 +191,102 @@ body {
     border: solid green 2px;
 }
 
+.history {
+    background-color: white;
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+}
+
+.history-controls {
+    display: flex;
+}
+
+.history-controls i {
+    font-size: 24px;
+    cursor: pointer;
+    margin: 8px;
+}
+
+.history-controls i.is-disabled {
+    cursor: inherit;
+    color: grey;
+}
+
 .history-list {
+    display: flex;
+    flex-wrap: wrap;
+    user-select: none;
     font-size: 10px;
     list-style: none;
-    margin: 0;
+    margin: 0 5px 0 22px;
     padding: 0;
 }
 
-.history-item:first-child, .history-list:hover .history-item:first-child {
-    margin-left: 0px;
+/* avoid flickering */
+.history-item:first-child {
+
 }
 
-.history-item, .history-list:hover .history-item {
+/* avoid flickering */
+.history-item.is-highlighted:last-child {
+    padding-right: 15px;
+}
+
+.history-item, .history-list.is-highlighted .history-item {
     display: inline-block;
-    margin-left: -15px;
+    margin-left: -21px;
     margin-right: 0px;
+    padding-bottom: 20px;
+    padding-top: 20px;
+    padding-left: -3px;
 }
 
-.history-item.history-selected, .history-list:hover .history-item:hover {
-    margin-left: 1px;
+.history-item.history-selected, .history-list.is-highlighted .history-item.is-highlighted {
     margin-right: 16px;
 }
 
+/* avoid flickering */
+.history-list.is-highlighted .history-item:first-child, .history-list .history-item.history-selected:first-child {
+
+}
+
 .history-item {
-    width: 20px;
-    height: 20px;
-    line-height: 18px;
+    width: 28px;
+    height: 28px;
+    line-height: 26px;
     /* fix this shiet */
     cursor: pointer;
     text-align: center;
 }
 
 .infos {
-	display: float;
-	/*margin-right: 10px;*/
+    display: float;
+    /*margin-right: 10px;*/
 }
 
 .infos-move-stats {
-	border-spacing: 0;
-	margin-left: 10px;
+    border-spacing: 0;
+    margin-left: 10px;
 }
 
 .infos-move-stats td:last-child {
-	text-align: right;
+    text-align: right;
 }
 
 .infos td {
-	vertical-align: top;
+    vertical-align: top;
 }
 
 .infos-move-stats-iteration {
-	padding-bottom: 4px;
+    padding-bottom: 4px;
 }
 
 .infos-move-stats-left {
-	width: 220px;
+    width: 220px;
+}
+
+
+.devcard-short {
+    width: 300px;
 }

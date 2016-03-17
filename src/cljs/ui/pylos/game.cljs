@@ -26,7 +26,7 @@
           (let [{:keys [app/loading app/display-game-infos app/game-history]} (om/props this)]
             (if loading
               (dom/div "loading")
-              (dom/div
+              (dom/div {:class "pylos-game"}
                (dom/div (game-position display-game-infos))
                (dom/div (history/game-history game-history)))))))
 

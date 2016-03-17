@@ -28,6 +28,8 @@
             [:meta {:name "og:title" :content title}]
             ;[:meta {:name "og:url" :content "http://www.timeforcoffee.ch/"}]
 
+            [:link {:rel "stylesheet" 
+                    :href "https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"}]
             [:link {:rel "icon" :type "image/png" :href "/favicon.png"}]
 
             (include-css "/css/styles.css")]
