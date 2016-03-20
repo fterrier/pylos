@@ -31,27 +31,37 @@
 (defn get-current-game-infos [past-game-infos index]
   "Gets the current game info, sets the right :display-board depending on which index we are looking at."
   (let [{:keys [game-position] :as current-game-infos}
-        (if (nil? index)
+        (if (= :current index)
           (last past-game-infos)
           (get past-game-infos index))
         current-game-infos (-> current-game-infos
                                (assoc-in [:game-position :display-board]
-                                         (if (and (nil? index) (:intermediate-board game-position))
+                                         (if (and (= :current index) (:intermediate-board game-position))
                                            (:intermediate-board game-position)
                                            (:board game-position))))]
-    (if (nil? index) (game-infos-with-meta current-game-infos) current-game-infos)))
+    (if (= :current index) (game-infos-with-meta current-game-infos) current-game-infos)))
+
+(defn get-game-history [merged-past-game-infos index]
+  ;; TODO add first empty thingy and last :current when can play
+  ;; TODO now !
+  {:app/merged-game-infos (conj (into []
+                                      (map (fn [{:keys [index game-position]}] 
+                                             {:index index 
+                                              ;; TODO change to the last player not the current one
+                                              :last-player (:player game-position) 
+                                              :outcome (:outcome game-position)}) 
+                                           merged-past-game-infos))
+                                ;; TODO fix
+                                {:index :current :player :white})
+   :app/selected-index index})
 
 (defn get-current-game [state current-game]
   (let [game                   (get-in state (:app/game current-game))
         merged-past-game-infos (get-merged-past-game-infos (:game/past-game-infos game))
-        current-game-infos     (get-current-game-infos merged-past-game-infos (:app/selected-index current-game))]
+        current-game-infos     (get-current-game-infos merged-past-game-infos (:app/selected-index current-game))
+        game-history           (get-game-history merged-past-game-infos (:app/selected-index current-game))]
     (-> game
-        (assoc
-         :app/game-history {:app/merged-game-infos (into []
-                                                         (map (fn [{:keys [index game-position]}] 
-                                                                {:index index :player (:player game-position)}) 
-                                                              merged-past-game-infos))
-                            :app/selected-index (:app/selected-index current-game)})
+        (assoc :app/game-history game-history)
         (assoc :app/display-game-infos current-game-infos))))
 
 (defmulti read om/dispatch)
@@ -78,7 +88,7 @@
 
 (defn new-current-game [game-id]
   {:app/game [:games/by-id game-id]
-   :app/selected-index nil})
+   :app/selected-index :current})
 
 (defn deserialize-game-infos [{:keys [game-position] :as game-infos}]
   (assoc game-infos 
@@ -92,6 +102,7 @@
              (let [send-ch (get-send-ch @state)
                    game-id (get-in @state [:app/current-game :app/game 1])]
                ;; TODO do this in the remote ?
+               ;; TODO only play if the 
                (put! send-ch {:action :server/player-move :message {:game-id game-id :color :black :input position}})))})
 
 (defmethod mutate 'game/select-history
