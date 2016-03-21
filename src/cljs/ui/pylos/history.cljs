@@ -173,7 +173,7 @@
                                          {:index 33 :last-player :black}
                                          {:index 34 :last-player :white}
                                          {:index 35 :last-player :black}
-                                         {:index 36 :outcome :white}
+                                         {:index :current :outcome :white}
                                         ]})
   nil
   {:classname "devcard-short"})

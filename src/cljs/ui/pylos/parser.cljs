@@ -42,17 +42,19 @@
     (if (= :current index) (game-infos-with-meta current-game-infos) current-game-infos)))
 
 (defn get-game-history [merged-past-game-infos index]
-  ;; TODO add first empty thingy and last :current when can play
-  ;; TODO now !
-  {:app/merged-game-infos (conj (into []
-                                      (map (fn [{:keys [index game-position]}] 
-                                             {:index index 
-                                              ;; TODO change to the last player not the current one
-                                              :last-player (:player game-position) 
-                                              :outcome (:outcome game-position)}) 
-                                           merged-past-game-infos))
-                                ;; TODO fix
-                                {:index :current :player :white})
+  "Returns the history in the form {:index :last-player :outcome}, where
+   - :index represents the index to the merged-past-game-infos vector
+   - :last-player the player who last played before the game position represented by the index (not the same as :player, since :player is the player whose turn it is)
+   - :outcome the winner if there is one"
+  {:app/merged-game-infos
+   (->> merged-past-game-infos
+        (map (fn [{:keys [index game-position]}] 
+               {:index (if (= index (dec (count merged-past-game-infos)))
+                         :current
+                         (inc index))
+                :last-player (:player game-position) 
+                :outcome (:outcome game-position)}))
+       (cons {:index 0})) 
    :app/selected-index index})
 
 (defn get-current-game [state current-game]
