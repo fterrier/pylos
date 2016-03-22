@@ -6,9 +6,7 @@
             [ui.pylos.board :refer [game-position GamePosition]]
             [ui.pylos.tracker :refer [game-tracker GameTracker]]
             [ui.pylos.test-data :as td]
-            [ui.pylos.parser :as parser]
-            [goog.log :as glog])
-  (:import goog.debug.Console))
+            [ui.pylos.parser :as parser]))
 
 (defui Game
   static om/IQuery
