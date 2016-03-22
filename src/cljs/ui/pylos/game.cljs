@@ -4,6 +4,7 @@
             [om.next :as om :refer-macros [defui]]
             [ui.pylos.history :as history]
             [ui.pylos.board :refer [game-position GamePosition]]
+            [ui.pylos.tracker :refer [game-tracker GameTracker]]
             [ui.pylos.test-data :as td]
             [ui.pylos.parser :as parser]
             [goog.log :as glog])
@@ -13,27 +14,32 @@
   static om/IQuery
   (query [this]
          (let [subquery-game-position (om/get-query GamePosition)
+               subquery-tracker-infos (om/get-query GameTracker)
                subquery-history (om/get-query history/GameHistory)]
            `[:game/id
-             :app/loading
-             {:app/display-game-infos ~subquery-game-position}
-             {:app/game-history ~subquery-history}]))
+             :game/loading
+             {:game/display-game-infos ~subquery-game-position}
+             {:game/tracker-infos ~subquery-tracker-infos}
+             {:game/game-history ~subquery-history}]))
   static om/Ident
   (ident [this props]
          [:games/by-id (:game/id props)])
   Object
   (render [this]
-          (let [{:keys [app/loading app/display-game-infos app/game-history]} (om/props this)]
+          (let [{:keys [game/loading game/display-game-infos 
+                        game/game-history game/tracker-infos]} (om/props this)]
+            (println tracker-infos)
             (if loading
               (dom/div "loading")
               (dom/div {:class "pylos-game"}
-               (dom/div (game-position display-game-infos))
-               (dom/div (history/game-history game-history)))))))
+                       (dom/div (game-position display-game-infos))
+                       (dom/div (game-tracker tracker-infos))
+                       (dom/div (history/game-history game-history)))))))
 
 (def game (om/factory Game))
 
 (defcard game-loading
-  (game {:app/loading true}))
+  (game {:game/loading true}))
 
 (defui RootTest
   static om/IQuery

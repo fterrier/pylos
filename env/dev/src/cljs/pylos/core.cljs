@@ -1,7 +1,5 @@
 (ns ^:figwheel-no-load pylos.core
-  (:require [ui.pylos.circle :as circle]
-            [ui.pylos.board :as board]
-            [ui.pylos.counter :as counter]
+  (:require [ui.pylos.tracker :as tracker]
             [ui.pylos.game :as game]))
 
 (enable-console-print!)

@@ -4,7 +4,8 @@
             [ui.comm :as comm]
             [game.serializer :refer [deserialize-game-position]]
             [pylos.serializer :refer [new-pylos-serializer]]
-            [pylos.ui :refer [game-infos-with-meta]])
+            [pylos.ui :refer [game-infos-with-meta]]
+            [pylos.board :as board])
   (:require-macros [cljs.core.async.macros :refer [go-loop]]
                    [utils.macros :refer [t]]))
 
@@ -46,7 +47,7 @@
    - :index represents the index to the merged-past-game-infos vector
    - :last-player the player who last played before the game position represented by the index (not the same as :player, since :player is the player whose turn it is)
    - :outcome the winner if there is one"
-  {:app/merged-game-infos
+  {:history/merged-game-infos
    (->> merged-past-game-infos
         (map (fn [{:keys [index game-position]}] 
                {:index (if (= index (dec (count merged-past-game-infos)))
@@ -55,16 +56,25 @@
                 :last-player (:player game-position) 
                 :outcome (:outcome game-position)}))
        (cons {:index 0})) 
-   :app/selected-index index})
+   :history/selected-index index})
+
+(defn get-tracker-infos [{:keys [game-position]} index]
+  (let [{:keys [board player outcome]} game-position]
+    {:tracker/balls-remaining {:black (board/balls-remaining board :black)
+                               :white (board/balls-remaining board :white)}
+     :tracker/player (when (= :current index) player)
+     :tracker/outcome outcome}))
 
 (defn get-current-game [state current-game]
   (let [game                   (get-in state (:app/game current-game))
         merged-past-game-infos (get-merged-past-game-infos (:game/past-game-infos game))
         current-game-infos     (get-current-game-infos merged-past-game-infos (:app/selected-index current-game))
-        game-history           (get-game-history merged-past-game-infos (:app/selected-index current-game))]
+        game-history           (get-game-history merged-past-game-infos (:app/selected-index current-game))
+        tracker-infos          (get-tracker-infos current-game-infos (:app/selected-index current-game))]
     (-> game
-        (assoc :app/game-history game-history)
-        (assoc :app/display-game-infos current-game-infos))))
+        (assoc :game/game-history game-history)
+        (assoc :game/display-game-infos current-game-infos)
+        (assoc :game/tracker-infos tracker-infos))))
 
 (defmulti read om/dispatch)
 

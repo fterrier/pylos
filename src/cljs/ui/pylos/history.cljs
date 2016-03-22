@@ -40,6 +40,7 @@
              (dom/i {:class (str "fa fa-play " (when-not play-enabled "is-disabled"))
                      :on-click on-play}))))
 
+;; TODO this could be one component
 (defn history-list [comp merged-game-infos selected-index]
   (let [highlighted-idx (om/get-state comp :highlight) ;; this is the idx in the merged-game-infos vector
         highlight-fn (fn [idx]
@@ -96,11 +97,11 @@
 (defui GameHistory
   static om/IQuery
   (query [this]
-         '[:app/selected-index
-           :app/merged-game-infos])
+         '[:history/selected-index
+           :history/merged-game-infos])
   Object
   (render [this]
-          (let [{:keys [app/merged-game-infos app/selected-index]} (om/props this)]
+          (let [{:keys [history/merged-game-infos history/selected-index]} (om/props this)]
             (dom/div {:class "history"}
                      (history-controls this merged-game-infos selected-index)
                      (history-list this merged-game-infos selected-index)))))
@@ -108,8 +109,8 @@
 (def game-history (om/factory GameHistory))
 
 (defcard test-game-history
-  (game-history {:app/selected-index 10
-                 :app/merged-game-infos [{:index 0}
+  (game-history {:history/selected-index 10
+                 :history/merged-game-infos [{:index 0}
                                          {:index 1 :last-player :black} 
                                          {:index 2 :last-player :white}
                                          {:index 3 :last-player :black} 
@@ -136,8 +137,8 @@
                                         ]}))
 
 (defcard test-game-history-long
-  (game-history {:app/selected-index 10
-                 :app/merged-game-infos [{:index 0}
+  (game-history {:history/selected-index 10
+                 :history/merged-game-infos [{:index 0}
                                          {:index 1 :last-player :black} 
                                          {:index 2 :last-player :white}
                                          {:index 3 :last-player :black} 
@@ -179,22 +180,22 @@
   {:classname "devcard-short"})
 
 (defcard test-game-history-no-backward
-  (game-history {:app/selected-index 0
-                 :app/merged-game-infos [{:index 0}
+  (game-history {:history/selected-index 0
+                 :history/merged-game-infos [{:index 0}
                                          {:index 1 :last-player :white} 
                                          {:index 2 :last-player :black}
                                          {:index :current :last-player :white}]}))
 
 (defcard test-game-history-no-forward
-  (game-history {:app/selected-index :current
-                 :app/merged-game-infos [{:index 0}
+  (game-history {:history/selected-index :current
+                 :history/merged-game-infos [{:index 0}
                                          {:index 1 :last-player :white}
                                          {:index 2 :last-player :black}
                                          {:index :current :last-player :white}]}))
 
 (defcard test-game-history
-  (game-history {:app/selected-index 1
-                 :app/merged-game-infos [{:index 0}
+  (game-history {:history/selected-index 1
+                 :history/merged-game-infos [{:index 0}
                                          {:index 1 :last-player :white} 
                                          {:index 2 :last-player :black}
                                          {:index :current :last-player :white}]}))

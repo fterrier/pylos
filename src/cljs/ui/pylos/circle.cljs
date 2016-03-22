@@ -4,7 +4,6 @@
    [om-tools.dom :as dom :include-macros true]
    [devcards.core :as dc :refer-macros [defcard defcard-doc defcard-om-next]]))
 
-;; TODO make just a function
 (defn circle [props]
   (let [{:keys [color hover highlight on-select on-mouse-over on-mouse-out position]} props]
     (dom/div {:class "circle-container"}
