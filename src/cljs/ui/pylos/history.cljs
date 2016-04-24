@@ -92,7 +92,11 @@
                                   :on-click (fn [e] 
                                               (println "click" (:index game-infos))
                                               (select-fn (:index game-infos)))}
-                                 (when (> (:index game-infos) 0) (:index game-infos))))) merged-game-infos))))
+                                 (cond 
+                                   (:outcome game-infos) (dom/i {:class "fa fa-trophy"})
+                                   (> (:index game-infos) 0) (:index game-infos)
+                                       :else ""
+                                       )))) merged-game-infos))))
 
 (defui GameHistory
   static om/IQuery

@@ -55,7 +55,7 @@
                          (inc index))
                 :last-player (:player game-position) 
                 :outcome (:outcome game-position)}))
-       (cons {:index 0})) 
+        (cons {:index 0}))
    :history/selected-index index})
 
 (defn get-tracker-infos [{:keys [game-position]} index]

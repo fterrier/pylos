@@ -22,7 +22,6 @@
 (defn- all-tails [col]
   (map reverse (remove empty? (reductions conj [] col))))
 
-
 (defn is-move-allowed [board {:keys [color type position low-position positions original-move] :as move}]
   (case type
     :add (can-add-position? board color position)

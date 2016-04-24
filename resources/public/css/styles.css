@@ -1,5 +1,5 @@
-body {
-    font-family: "Helvetica Neue" "arial";
+.pylos-game {
+    font-family: "HelveticaNeue-Light","Arial";
 }
 
 .clearfix:after {
@@ -9,13 +9,6 @@ body {
     content: " ";
     clear: both;
     height: 0;
-}
-
-.pylos {
-    font-size: 24px;
-    padding: 10px;
-    float: left;
-    margin-right: 50px;
 }
 
 .pylos-game {
@@ -174,25 +167,28 @@ body {
 }
 
 .circle-hover-red:hover {
-    border: solid red 2px;
+    border: solid yellow 3px;
     cursor: pointer;
+    -webkit-filter: blur(0.6px);
 }
 
 .circle-hover-green:hover {
-    border: solid green 2px;
+    border: solid green 3px;
     cursor: pointer;
+    -webkit-filter: blur(0.6px);
 }
 
 .circle-highlight-red {
-    border: solid red 2px;
+    border: solid yellow 3px;
+    -webkit-filter: blur(0.6px);
 }
 
 .circle-highlight-green {
-    border: solid green 2px;
+    border: solid green 3px;
+    -webkit-filter: blur(0.6px);
 }
 
 .history {
-    background-color: white;
     display: flex;
     flex-flow: row;
     align-items: center;
