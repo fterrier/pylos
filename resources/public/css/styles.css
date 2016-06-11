@@ -268,7 +268,7 @@
     padding: 5px;
 }
 
-.tracker-color-black {
+.tracker-color {
     text-align: right;
 }
 
@@ -289,12 +289,8 @@
     text-align: center;
 }
 
-.tracker-circle-black {
+.tracker-circle {
     margin-right: -45px;
-}
-
-.tracker-circle-white {
-    margin-left: -45px;
 }
 
 .infos {
