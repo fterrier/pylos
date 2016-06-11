@@ -1,22 +1,26 @@
 (ns ui.pylos.tracker
-  (:require
-   [om.next :as om :refer-macros [defui ui]]
-   [om-tools.dom :as dom :include-macros true]
-   [devcards.core :as dc :refer-macros [defcard defcard-doc defcard-om-next]]))
+  (:require [devcards.core :as dc :refer-macros [defcard]]
+            [om-tools.dom :as dom :include-macros true]
+            [om.next :as om :refer-macros [defui]]
+            [ui.pylos.circle :refer [circle]]))
 
 (defn tracker [balls-remaining color state]
-  (let [circle (dom/ul {:class "tracker-circle-list"}
-                       (repeat balls-remaining
-                               (dom/li {:class (str "tracker-circle tracker-circle-" (name color))}
-                                       (dom/figure {:class (str "circle circle-" (name color))}
-                                                   balls-remaining))))
-        text   (dom/div {:class "tracker-text"}
-                        (cond
-                          (= state :tracker/winner) "Winner!"
-                          (= state :tracker/your-turn) "Your turn"
-                          :else ""))]
-    (dom/div {:class (str "tracker-color tracker-color-" (name color))}
-             [circle text])))
+  (let [ball (circle {:color color})
+        remaining-balls
+             (dom/ul {:class "tracker-circle-list"}
+                     (repeat balls-remaining
+                             (dom/li {:class (str "tracker-circle tracker-circle-" (name color))}
+                                     circle)))
+        text (dom/div {:class "tracker-text"}
+                      (cond
+                        (= state :tracker/winner) "Winner!"
+                        (= state :tracker/own-turn) "Your turn"
+                        (= state :tracker/game-over) "You lose :("
+                        :else ""))]
+    (dom/div
+     ball
+     (dom/div {:class (str "tracker-color tracker-color-" (name color))}
+              [text remaining-balls]))))
 
 (defui PlayerInfos
   static om/IQuery
@@ -41,7 +45,7 @@
 (defcard all-balls
   (player-infos
    {:tracker/color :white
-    :tracker/state :tracker/my-turn ;; my-turn / your-turn / winner / game-over
+    :tracker/state :tracker/own-turn ;; own-turn / other-turn / winner / game-over
     :tracker/balls-remaining 15}) {:inspect-data true})
 
 (defcard no-balls
