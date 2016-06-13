@@ -1,5 +1,4 @@
-(ns cljs.user
-  (:require [pylos.game.state :refer [reset]]))
+(ns cljs.user)
 
 
 ; for shit in the console

@@ -40,7 +40,7 @@
     [:none :red]
     :else [:none :none]))
 
-(defn- cell-comp [[board on-select on-mouse-over on-mouse-out last-move
+(defn- cell-comp [[board on-click on-mouse-over on-mouse-out last-move
                   highlight-status highlighted-position selected-positions] position]
   (let [[hover highlight] (if highlight-status 
                             (state-from-highlight-status position-info 
@@ -50,10 +50,9 @@
                                                          position) 
                             (state-from-last-move board last-move position))]
     (circle {:color (board/cell board position)
-             :position position 
-             :on-select on-select
-             :on-mouse-over on-mouse-over
-             :on-mouse-out on-mouse-out
+             :on-click (fn [e] (on-click position))
+             :on-mouse-over (fn [e] (on-mouse-over position))
+             :on-mouse-out (fn [e] (on-mouse-out position))
              :hover hover 
              :highlight highlight})))
 

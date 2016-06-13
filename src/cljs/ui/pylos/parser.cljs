@@ -60,6 +60,8 @@
 
 (defn get-tracker-infos [{:keys [game-position]} index]
   (let [{:keys [board player outcome]} game-position]
+    {:tracker/player-infos
+     []}
     {:tracker/balls-remaining {:black (board/balls-remaining board :black)
                                :white (board/balls-remaining board :white)}
      :tracker/player (when (= :current index) player)
@@ -106,15 +108,17 @@
   (assoc game-infos 
          :game-position (deserialize-game-position pylos-game-serializer game-position)))
 
+(defn get-game-id [app-state]
+  (get-in app-state [:app/current-game :app/game 1]))
+
 (defmulti mutate om/dispatch)
 
 (defmethod mutate 'game/select-cell
   [{:keys [state]} _ {:keys [position]}]
   {:action (fn []
              (let [send-ch (get-send-ch @state)
-                   game-id (get-in @state [:app/current-game :app/game 1])]
+                   game-id (get-game-id @state)]
                ;; TODO do this in the remote ?
-               ;; TODO only play if the 
                (put! send-ch {:action :server/player-move :message {:game-id game-id :color :black :input position}})))})
 
 (defmethod mutate 'game/select-history
@@ -125,7 +129,8 @@
   [{:keys [state]} _ {:keys [game-id color]}]
   ;; TODO check that connection exists
   {:action (fn []
-             (let [send-ch (get-send-ch @state)]
+             (let [send-ch (get-send-ch @state)
+                   game-id (or game-id (get-game-id @state))]
                ;; TODO do this in the remote ?
                (put! send-ch 
                      {:action :server/join-game :message {:game-id game-id :color color}}))

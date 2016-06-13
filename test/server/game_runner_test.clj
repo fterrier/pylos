@@ -157,7 +157,8 @@
           user               (new-user 123)
           {:keys [game-id]}  (new-game gamerunner-ch client)]
       (join-game gamerunner-ch client user game-id :white :channel)
-      (<!! (timeout 100))
+      (is (= (<!! output-ch)
+             {}))
       (is (= {:white {123 :channel}} (:joined-user-ids (get-game game-runner game-id))))
       (is (= {:games #{game-id}} (get-in @(:games game-runner) [:users 123])))))
   
@@ -167,9 +168,11 @@
           user               (new-user 123)
           {:keys [game-id]}  (new-game gamerunner-ch client)]
       (join-game gamerunner-ch client user game-id :white :channel)
-      (<!! (timeout 100))
+      (is (= (<!! output-ch)
+             {}))
       (leave-game gamerunner-ch client user game-id)
-      (<!! (timeout 100))
+      (is (= (<!! output-ch)
+             {}))
       (is (= {:white {} :black nil} (:joined-user-ids (get-game game-runner game-id))))
       (is (nil? (get-in @(:games game-runner) [:users 123]))))))
 

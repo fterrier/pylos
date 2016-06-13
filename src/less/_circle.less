@@ -1,0 +1,133 @@
+/* CIRCLE */
+
+.circle-container {
+    display: inline-block;
+    width: 2.5em;
+    height: 2.5em;
+    line-height: 2.5;
+    min-height: 2.5em;
+    text-align: center;
+    white-space: pre-wrap;
+}
+
+.circle {
+    display: inline-block;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    position: relative;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.circle-open {
+    pointer-events: all;
+    cursor: pointer;
+    border: 1px solid gray;
+}
+
+.circle-no-acc {
+    visibility: hidden;
+}
+
+.circle-black {
+    color: white;
+    background: radial-gradient(circle at 75% -1%, #323232, #0a0a0a 80%, #000000 100%);
+}
+
+.circle-white {
+    background: radial-gradient(circle at 75% -1%, #fcfcfc, #efeff1 10%, #9b5050 100%);
+}
+
+.circle-black, .circle-white {
+    pointer-events: all;
+    -webkit-filter: blur(0.3px);
+
+    &:before {
+        content: "";
+        position: absolute;
+        background: radial-gradient(circle at 50% 120%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%);
+        border-radius: 50%;
+        bottom: 2.5%;
+        left: 5%;
+        opacity: 0.6;
+        height: 100%;
+        width: 90%;
+        -webkit-filter: blur(2px);
+        z-index: 2;
+    }
+
+    &:after {
+        width: 100%;
+        height: 100%;
+        content: "";
+        position: absolute;
+        top: -20%;
+        left: -15%;
+        border-radius: 50%;
+        background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.5) 14%, rgba(255, 255, 255, 0) 24%);
+        transform: skewX(-20deg);
+        -webkit-filter: blur(4px);
+    }
+}
+
+// TODO move those to .circle as modifiers
+.circle-hover-red:hover {
+    border: solid yellow 3px;
+    cursor: pointer;
+    -webkit-filter: blur(0.6px);
+}
+
+.circle-hover-green:hover {
+    border: solid green 3px;
+    cursor: pointer;
+    -webkit-filter: blur(0.6px);
+}
+
+.circle-highlight-red {
+    border: solid yellow 3px;
+    -webkit-filter: blur(0.6px);
+}
+
+.circle-highlight-green {
+    border: solid green 3px;
+    -webkit-filter: blur(0.6px);
+}
+
+
+/* CIRCLE LIST */
+
+.circle-list {
+    display: inline-flex;
+    flex-wrap: wrap;
+    user-select: none;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    
+    &.collapsed > li {
+        margin-right: -1.8em;
+    }
+
+    > li {
+        margin-right: 0px;
+
+        &:first-child {
+            margin-left: 0;
+        }
+
+        &.is-highlighted {
+            margin-right: 0;
+        }
+
+        &:last-child {
+            margin-right: 0;
+        }
+
+        // avoid flickering
+        &.is-highlighted:last-child {
+            padding-right: 2em;
+            margin-right: -2em;
+        }
+    }
+}

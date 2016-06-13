@@ -28,8 +28,12 @@
 (defn- make-game-infos-msg [client game-id game-infos]
   {:type :msg/game-infos :client client :game-id game-id :game-infos game-infos})
 
+;; TODO remove this message and just send a bunch of game-infos ?
 (defn- make-past-game-infos-msg [client game-id past-game-infos]
   {:type :msg/past-game-infos :client client :game-id game-id :past-game-infos past-game-infos})
+
+(defn- make-notify-players-msg [game-id players]
+  {:type :msg/update-game :game-id game-id :players players})
 
 (defn- make-notify-new-game-msg [client game-id]
   {:type :msg/new-game :client client :game-id game-id})
@@ -245,7 +249,10 @@
   "Allows the user to play moves on that game."
   ;; we add the channel to the multi strategy if not already there
   (add-strategy games game-id color channel-key nil)
-  (join-game games client (:id user) game-id color channel-key))
+  (join-game games client (:id user) game-id color channel-key)
+  (go (>! (get-in @games [:games game-id :result-ch])
+          ;; TODO
+          (make-notify-players-msg game-id {}))))
 
 (defn- handle-npc [{:keys [games]} client game-id color strategy-options]
   "Adds a NPC on this game."

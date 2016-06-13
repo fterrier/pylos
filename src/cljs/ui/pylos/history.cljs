@@ -5,8 +5,9 @@
             [om.next :as om :refer-macros [defui]]))
 
 (defn element-before-and-after [merged-game-infos selected-index]
-  (let [[list-before _ list-after] (into [] (partition-by #(= (:index %) selected-index)) 
-                                         (cons nil merged-game-infos))]
+  (let [[list-before _ list-after] 
+        (into [] (partition-by #(= (:index %) selected-index)) 
+              (cons nil merged-game-infos))]
     [(last list-before) (first list-after)]))
 
 (defn history-controls [comp merged-game-infos selected-index]
@@ -57,10 +58,7 @@
                            (when-not (js/isNaN index) index)))))
         select-fn (fn [index] (om/transact! comp `[(game/select-history ~{:index index})
                                                    :app/current-game]))]
-    (dom/ul {:class (str "history-list " 
-                         ;; we mark as is highlighted if an item is selected and it is not the last one
-                         (when (and highlighted-idx
-                                    (not= highlighted-idx (dec (count merged-game-infos)))) "is-highlighted"))
+    (dom/ul {:class (str "circle-list collapsed")
              :on-touch-start (fn [e] 
                                (when-let [index (find-index e)]
                                  (highlight-fn index)))
@@ -76,27 +74,29 @@
             (map-indexed 
              (fn [idx game-infos] (dom/li
                      {:data-index (:index game-infos)
-                      :class (str "history-item " 
-                                  (when (= (:index game-infos) selected-index) "history-selected ")
-                                  (when (= idx highlighted-idx) "is-highlighted"))
+                      :class (when (or
+                                    (and (nil? highlighted-idx)
+                                         (= (:index game-infos) selected-index))
+                                    (= idx highlighted-idx)) "is-highlighted")
                       :on-mouse-over (fn [e] 
                                        (.preventDefault e)
                                        (highlight-fn idx))
                       :on-mouse-out (fn [e]
                                       (.preventDefault e)
                                       (highlight-out-fn))}
-                     (dom/figure {:data-index (:index game-infos)
-                                  :class (str "circle " (if (:last-player game-infos) 
-                                                          (str "circle-" (name (:last-player game-infos)))
-                                                          "circle-open"))
-                                  :on-click (fn [e] 
-                                              (println "click" (:index game-infos))
-                                              (select-fn (:index game-infos)))}
-                                 (cond 
-                                   (:outcome game-infos) (dom/i {:class "fa fa-trophy"})
-                                   (> (:index game-infos) 0) (:index game-infos)
-                                       :else ""
-                                       )))) merged-game-infos))))
+                     (circle {:text
+                              (cond 
+                                (:outcome game-infos) (dom/i {:class "fa fa-trophy"})
+                                (> (:index game-infos) 0) (:index game-infos)
+                                :else "")
+                              :color (if (:last-player game-infos) 
+                                       (:last-player game-infos)
+                                       :open)
+                              :on-click (fn [e]
+                                          (. e preventDefault)
+                                          (println "click" (:index game-infos))
+                                          (select-fn (:index game-infos)))}))) 
+             merged-game-infos))))
 
 (defui GameHistory
   static om/IQuery

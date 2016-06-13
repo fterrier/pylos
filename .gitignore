@@ -12,3 +12,5 @@ pom.xml.asc
 resources/public/out
 resources/public/js
 figwheel_server.log
+resources/public/css
+node_modules

@@ -37,11 +37,14 @@
 
 (def state-1 {:current-game nil})
 
-(def normalized-state-1 {:games/by-id {"LYlHISli" {:game/id "LYlHISli" 
-                                                   :game/past-game-infos [(game-infos game-position-init   0)
-                                                                          (game-infos game-position-init-2 1)]}}
-                          :app/current-game {:app/game [:games/by-id "LYlHISli"]
-                                             :app/selected-index :current}})
+(def normalized-state-1 
+  {:games/by-id 
+   {"LYlHISli" 
+    {:game/id "LYlHISli"
+     :game/past-game-infos [(game-infos game-position-init   0)
+                            (game-infos game-position-init-2 1)]}}
+   :app/current-game {:app/game [:games/by-id "LYlHISli"]
+                      :app/selected-index :current}})
 
 
 

@@ -5,23 +5,66 @@
    [devcards.core :as dc :refer-macros [defcard defcard-doc defcard-om-next]]))
 
 (defn circle [props]
-  (let [{:keys [color hover highlight on-select on-mouse-over on-mouse-out position]} props]
-    (dom/div {:class "circle-container"}
-             (dom/figure {:class
-                          (str "circle circle-" (name color) " "
-                               (when hover
-                                 (str "circle-hover-" (name hover)))
-                               " "
-                               (when highlight
-                                 (str "circle-highlight-" (name highlight))))
-                          :on-click (fn [e] (on-select position))
-                          :on-mouse-over (fn [e] (on-mouse-over position))
-                          :on-mouse-out (fn [e] (on-mouse-out position))}))))
+  (let [{:keys [text color hover highlight on-click on-mouse-over on-mouse-out]} props]
+    (dom/span {:class "circle-container"}
+              (dom/figure {:class
+                           (str "circle circle-" (name color) " "
+                                (when hover
+                                  (str "circle-hover-" (name hover)))
+                                " "
+                                (when highlight
+                                  (str "circle-highlight-" (name highlight))))
+                           :on-click on-click
+                           :on-mouse-over on-mouse-over
+                           :on-mouse-out on-mouse-out}
+                          (if text text " ")))))
 
 (defui ^private Circle
   Object
   (render [this]
           (circle (om/props this))))
+
+(defcard cell-with-text
+  (dom/div 
+   "Text "
+   (circle
+    {:color :white :text "10"}) " circle"))
+
+(defcard cell-without-text
+  (dom/div 
+   "Text "
+   (circle
+    {:color :white}) " circle"))
+
+(defcard cell-list
+  (dom/div 
+   "Text "
+   (dom/ul {:class "circle-list collapsed"}
+           (map #(dom/li (circle %)) [{:color :white :text "1"}
+                                      {:color :black :text "2"}
+                                      {:color :white :text "3"}]))
+   " circle"))
+
+(defcard cell-list-with-highlight
+  (dom/div 
+   "Text "
+   (dom/ul {:class "circle-list collapsed"} 
+           (dom/li (circle {:color :white :text "1"}))
+           (dom/li {:class "is-highlighted"} 
+                   (circle {:color :black :text "2"}))
+           (dom/li (circle {:color :white :text "3"})))
+   " circle"))
+
+(defcard cell-list-with-highlight-last
+  (dom/div 
+   "Text "
+   (dom/ul {:class "circle-list collapsed"} 
+           (dom/li (circle {:color :white :text "1"}))
+           (dom/li (circle {:color :black :text "2"}))
+           (dom/li {:class "is-highlighted"} 
+                   (circle {:color :white :text "3"}))
+)
+   " circle"))
 
 (defcard cell-white-card
   (dc/om-next-root Circle)

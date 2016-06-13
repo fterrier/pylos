@@ -1,0 +1,80 @@
+.pylos-game {
+    font-family: "HelveticaNeue-Light","Arial";
+}
+
+.clearfix:after {
+    visibility: hidden;
+    display: block;
+    font-size: 0;
+    content: " ";
+    clear: both;
+    height: 0;
+}
+
+.pylos-game {
+    display: inline-block;
+    padding: 10px;
+    background: linear-gradient(to bottom right, lightgrey, #dddddd);
+    box-shadow: lightgrey 6px 6px 3px;
+}
+
+.history {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+}
+
+.history-controls {
+    display: flex;
+}
+
+.history-controls i {
+    font-size: 24px;
+    cursor: pointer;
+    margin: 8px;
+}
+
+.history-controls i.is-disabled {
+    cursor: inherit;
+    color: grey;
+}
+
+.tracker {
+    display: flex;
+}
+
+.tracker-infos {
+    flex-grow: 2;
+}
+
+
+.infos {
+    display: float;
+    /*margin-right: 10px;*/
+}
+
+.infos-move-stats {
+    border-spacing: 0;
+    margin-left: 10px;
+}
+
+.infos-move-stats td:last-child {
+    text-align: right;
+}
+
+.infos td {
+    vertical-align: top;
+}
+
+.infos-move-stats-iteration {
+    padding-bottom: 4px;
+}
+
+.infos-move-stats-left {
+    width: 220px;
+}
+
+
+.devcard-short {
+    width: 300px;
+}
