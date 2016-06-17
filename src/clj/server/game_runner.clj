@@ -3,21 +3,20 @@
              :as
              async
              :refer
-             [<! >! chan close! go go-loop mult tap untap]]
+             [<! >! chan close! go go-loop mult pipeline tap untap]]
             [clojure.tools.logging :as log]
-            [clojure.walk :refer [prewalk]]
             [compojure.core :refer [GET]]
             [game
              [play :refer [play]]
              [strategy :refer [get-input-channel]]]
+            [pylos.score :refer [score-middle-blocked]]
             [pylos.strategy.encoded :refer [encoded]]
             [ring.middleware.json :refer [wrap-json-response]]
             [server.site :refer [convert-to-json]]
             [strategy
              [channel :refer [channel]]
-             [multi :refer [add-strategies get-strategy multi-channel]]]
-            [strategy.negamax :refer [negamax]]
-            [pylos.score :refer [score-middle-blocked]]))
+             [multi :refer [add-strategies get-strategy multi-channel]]
+             [negamax :refer [negamax]]]))
 
 ;; (defprotocol Client
 ;;   (id [this] "Get this client's id")
@@ -28,12 +27,8 @@
 (defn- make-game-infos-msg [client game-id game-infos]
   {:type :msg/game-infos :client client :game-id game-id :game-infos game-infos})
 
-;; TODO remove this message and just send a bunch of game-infos ?
 (defn- make-past-game-infos-msg [client game-id past-game-infos]
   {:type :msg/past-game-infos :client client :game-id game-id :past-game-infos past-game-infos})
-
-(defn- make-notify-players-msg [game-id players]
-  {:type :msg/update-game :game-id game-id :players players})
 
 (defn- make-notify-new-game-msg [client game-id]
   {:type :msg/new-game :client client :game-id game-id})
@@ -155,18 +150,6 @@
                 (log/debug "Sending move to game client" game-ch input)
                 (go (>! game-ch input))))))))))
 
-(defn- register-for-game-output [client game-id output-ch]
-  (log/debug "Registering for game output" client)
-  (go-loop []
-    (let [result (<! output-ch)]
-      (log/debug "Got result" client result)
-      (if (nil? result)
-        (log/debug "Got nil result for game output" client)
-        (do
-          ;; TODO communication to the clients should be sequential
-          (go (>! (:channel client) (make-game-infos-msg client game-id result)))
-          (recur))))))
-
 (defn- subscribe-to-game [games client game-id]
   "Subscribe to game output, returns the output client."
   (let [output-ch (get-in @games [:clients (:id client) game-id])]
@@ -174,6 +157,7 @@
         (when-let [game (get-in @games [:games game-id])]
           (let [output-ch (chan)]
             (tap (:result-mult-ch game) output-ch)
+            (pipeline 1 (:channel client) (map #(make-game-infos-msg client game-id %)) output-ch false)
             (log/debug "Subscribing to game" game-id)
             (swap! games add-output-to-game (:id client) game-id output-ch)
             output-ch)))))
@@ -235,7 +219,7 @@
   (let [output-ch (subscribe-to-game games client game-id)]
     ;; if there is no output ch, the game was not found
     (when output-ch 
-      (register-for-game-output client game-id output-ch)
+      ;(register-for-game-output client game-id output-ch)
       ;; TODO communication to the clients should be sequential
       (go (>! (:channel client) 
               (make-past-game-infos-msg 
@@ -249,10 +233,7 @@
   "Allows the user to play moves on that game."
   ;; we add the channel to the multi strategy if not already there
   (add-strategy games game-id color channel-key nil)
-  (join-game games client (:id user) game-id color channel-key)
-  (go (>! (get-in @games [:games game-id :result-ch])
-          ;; TODO
-          (make-notify-players-msg game-id {}))))
+  (join-game games client (:id user) game-id color channel-key))
 
 (defn- handle-npc [{:keys [games]} client game-id color strategy-options]
   "Adds a NPC on this game."
