@@ -94,11 +94,6 @@
 (defn- get-game [game-runner game-id]
   (get-in @(:games game-runner) [:games game-id]))
 
-;; (deftest new-game-test
-;;   (testing "New game adds playable game"
-;;     (let [game (get-game game-runner game-id)]
-;;       (is (not (nil? game)))
-;;       (is (false? (:started game))))))
 
 (deftest new-game-test
   (testing "New game adds playable game"
@@ -157,8 +152,7 @@
           user               (new-user 123)
           {:keys [game-id]}  (new-game gamerunner-ch client)]
       (join-game gamerunner-ch client user game-id :white :channel)
-      (is (= (<!! output-ch)
-             {}))
+      (<!! (timeout 100))
       (is (= {:white {123 :channel}} (:joined-user-ids (get-game game-runner game-id))))
       (is (= {:games #{game-id}} (get-in @(:games game-runner) [:users 123])))))
   
@@ -168,11 +162,9 @@
           user               (new-user 123)
           {:keys [game-id]}  (new-game gamerunner-ch client)]
       (join-game gamerunner-ch client user game-id :white :channel)
-      (is (= (<!! output-ch)
-             {}))
+      (<!! (timeout 100))
       (leave-game gamerunner-ch client user game-id)
-      (is (= (<!! output-ch)
-             {}))
+      (<!! (timeout 100))
       (is (= {:white {} :black nil} (:joined-user-ids (get-game game-runner game-id))))
       (is (nil? (get-in @(:games game-runner) [:users 123]))))))
 
